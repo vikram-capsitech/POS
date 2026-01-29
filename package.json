@@ -1,0 +1,13 @@
+{
+  "name": "pos-system-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm -r --parallel run dev",
+    "build": "pnpm -r run build",
+    "start": "pnpm -r run start"
+  },
+  "devDependencies": {
+    "concurrently": "^8.0.0"
+  }
+}
