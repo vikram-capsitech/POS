@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import {
   Clock,
   Minus,
@@ -19,10 +19,18 @@ import {
   Bell,
   User,
   Sparkles,
-  Send
-} from 'lucide-react';
-import { MenuItem, OrderItem, Table } from '@/app/data/mockData';
-import { fetchMenu, fetchTables, createOrder, addItemsToOrder, updateOrder, updateTable, fetchOrderById } from '@/app/services/api';
+  Send,
+} from "lucide-react";
+import { MenuItem, OrderItem, Table } from "@/app/data/mockData";
+import {
+  fetchMenu,
+  fetchTables,
+  createOrder,
+  addItemsToOrder,
+  updateOrder,
+  updateTable,
+  fetchOrderById,
+} from "@/app/services/api";
 import {
   Box,
   Paper,
@@ -55,11 +63,12 @@ import {
   ListItemIcon,
   Avatar,
   TextField,
-  DialogActions
-} from '@mui/material';
-import { motion, AnimatePresence } from 'framer-motion';
-import { PartyPopper } from 'lucide-react';
-import axios from 'axios';
+  DialogActions,
+} from "@mui/material";
+import { motion, AnimatePresence } from "framer-motion";
+import { PartyPopper } from "lucide-react";
+import axios from "axios";
+import WaiterTableMapView from "./WaiterTableMapView";
 
 // Using @mui/material Grid (v2) where size prop is supported.
 // If using legacy Grid, replace 'size' with 'item xs sm'.
@@ -71,7 +80,7 @@ export function WaiterPOS() {
   const [loading, setLoading] = useState(true);
 
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [currentOrder, setCurrentOrder] = useState<OrderItem[]>([]);
   const [orderSuccess, setOrderSuccess] = useState(false);
 
@@ -80,27 +89,34 @@ export function WaiterPOS() {
 
   // Bill & WhatsApp State
   const [openBillDialog, setOpenBillDialog] = useState(false);
-  const [customerPhone, setCustomerPhone] = useState('');
-  const [restaurantInfo, setRestaurantInfo] = useState({ name: 'My Restaurant', address: '', phone: '' });
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [restaurantInfo, setRestaurantInfo] = useState({
+    name: "My Restaurant",
+    address: "",
+    phone: "",
+  });
 
   // New Features State
-  const [viewMode, setViewMode] = useState<'tables' | 'menu'>('tables');
+  const [viewMode, setViewMode] = useState<"tables" | "menu">("tables");
   const [notifications, setNotifications] = useState<string[]>([]);
   const [openNotifications, setOpenNotifications] = useState(false);
 
   // Mock Staff for AI Assignment
-  const waiters = ['Rahul', 'Priya', 'Amit', 'Sneha'];
+  const waiters = ["Rahul", "Priya", "Amit", "Sneha"];
 
   const theme = useTheme();
 
   const loadData = async () => {
     try {
-      const [tableData, menuData] = await Promise.all([fetchTables(), fetchMenu()]);
+      const [tableData, menuData] = await Promise.all([
+        fetchTables(),
+        fetchMenu(),
+      ]);
 
       // Mock AI Assignment: Assign waiters to tables
       const tablesWithStaff = tableData.map((t: any, i: number) => ({
         ...t,
-        assignedWaiter: waiters[Math.floor(i / 2) % waiters.length] // 1 waiter per 2 tables logic
+        assignedWaiter: waiters[Math.floor(i / 2) % waiters.length], // 1 waiter per 2 tables logic
       }));
 
       setTables(tablesWithStaff);
@@ -115,9 +131,12 @@ export function WaiterPOS() {
   useEffect(() => {
     loadData();
     // Fetch Restaurant Info for bills
-    axios.get('http://localhost:5000/api/restaurant').then(res => {
-      if (res.data) setRestaurantInfo(res.data);
-    }).catch(console.error);
+    axios
+      .get("http://localhost:5000/api/restaurant")
+      .then((res) => {
+        if (res.data) setRestaurantInfo(res.data);
+      })
+      .catch(console.error);
 
     const interval = setInterval(loadData, 30000);
     return () => clearInterval(interval);
@@ -129,12 +148,14 @@ export function WaiterPOS() {
       if (selectedTable && selectedTable.currentOrderId) {
         try {
           setLoading(true);
-          const order = await fetchOrderById(selectedTable.currentOrderId.toString());
+          const order = await fetchOrderById(
+            selectedTable.currentOrderId.toString(),
+          );
           // Map backend items to frontend OrderItem structure
           const mappedItems: OrderItem[] = order.items.map((i: any) => ({
             menuItem: i.menuItem,
             quantity: i.quantity,
-            customization: i.customization
+            customization: i.customization,
           }));
           setCurrentOrder(mappedItems);
         } catch (e) {
@@ -149,9 +170,9 @@ export function WaiterPOS() {
 
     if (selectedTable) {
       loadTableOrder();
-      setViewMode('menu'); // Auto switch to menu when table selected
+      setViewMode("menu"); // Auto switch to menu when table selected
     } else {
-      setViewMode('tables');
+      setViewMode("tables");
     }
   }, [selectedTable]);
 
@@ -160,29 +181,39 @@ export function WaiterPOS() {
     const notifyInterval = setInterval(() => {
       if (Math.random() > 0.7) {
         const randomTable = Math.floor(Math.random() * 8) + 1;
-        setNotifications(prev => [`Kitchen: Order for Table ${randomTable} is Ready! 🍳`, ...prev]);
+        setNotifications((prev) => [
+          `Kitchen: Order for Table ${randomTable} is Ready! 🍳`,
+          ...prev,
+        ]);
       }
     }, 15000); // Check every 15s
     return () => clearInterval(notifyInterval);
   }, []);
 
-  const categories = ['All', ...Array.from(new Set(menuItems.map((item) => item.category)))];
+  const categories = [
+    "All",
+    ...Array.from(new Set(menuItems.map((item) => item.category))),
+  ];
 
   const filteredMenu =
-    selectedCategory === 'All' ? menuItems : menuItems.filter((item) => item.category === selectedCategory);
+    selectedCategory === "All"
+      ? menuItems
+      : menuItems.filter((item) => item.category === selectedCategory);
 
   const addItemToOrder = (item: MenuItem) => {
     const itemId = item.id || (item as any)._id; // Robust ID check
-    const existingItem = currentOrder.find((orderItem) =>
-      (orderItem.menuItem.id || (orderItem.menuItem as any)._id) === itemId
+    const existingItem = currentOrder.find(
+      (orderItem) =>
+        (orderItem.menuItem.id || (orderItem.menuItem as any)._id) === itemId,
     );
 
     if (existingItem) {
       setCurrentOrder(
         currentOrder.map((orderItem) =>
           (orderItem.menuItem.id || (orderItem.menuItem as any)._id) === itemId
-            ? { ...orderItem, quantity: orderItem.quantity + 1 } : orderItem
-        )
+            ? { ...orderItem, quantity: orderItem.quantity + 1 }
+            : orderItem,
+        ),
       );
     } else {
       setCurrentOrder([...currentOrder, { menuItem: item, quantity: 1 }]);
@@ -192,17 +223,28 @@ export function WaiterPOS() {
   const updateQuantity = (itemId: string, change: number) => {
     setCurrentOrder(
       currentOrder
-        .map((item) => ((item.menuItem.id || (item.menuItem as any)._id) === itemId ? { ...item, quantity: item.quantity + change } : item))
-        .filter((item) => item.quantity > 0)
+        .map((item) =>
+          (item.menuItem.id || (item.menuItem as any)._id) === itemId
+            ? { ...item, quantity: item.quantity + change }
+            : item,
+        )
+        .filter((item) => item.quantity > 0),
     );
   };
 
   const removeItem = (itemId: string) => {
-    setCurrentOrder(currentOrder.filter((item) => (item.menuItem.id || (item.menuItem as any)._id) !== itemId));
+    setCurrentOrder(
+      currentOrder.filter(
+        (item) => (item.menuItem.id || (item.menuItem as any)._id) !== itemId,
+      ),
+    );
   };
 
   const getTotalAmount = () => {
-    return currentOrder.reduce((sum, item) => sum + item.menuItem.price * item.quantity, 0);
+    return currentOrder.reduce(
+      (sum, item) => sum + item.menuItem.price * item.quantity,
+      0,
+    );
   };
 
   const handlePrintBill = () => {
@@ -220,13 +262,13 @@ export function WaiterPOS() {
     const total = Math.floor(subtotal * 1.05);
 
     let billText = `*${restaurantInfo.name}*\n`;
-    billText += `${restaurantInfo.address || ''}\n`;
+    billText += `${restaurantInfo.address || ""}\n`;
     billText += `--------------------------------\n`;
     billText += `Date: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}\n`;
     billText += `Table: ${selectedTable?.number}\n`;
     billText += `--------------------------------\n`;
 
-    currentOrder.forEach(item => {
+    currentOrder.forEach((item) => {
       billText += `${item.menuItem.name} x${item.quantity} = ₹${item.menuItem.price * item.quantity}\n`;
     });
 
@@ -240,20 +282,24 @@ export function WaiterPOS() {
     const encodedText = encodeURIComponent(billText);
     const url = `https://wa.me/91${customerPhone}?text=${encodedText}`; // Assuming +91 default
 
-    window.open(url, '_blank');
+    window.open(url, "_blank");
     setOpenBillDialog(false);
-    setCustomerPhone('');
+    setCustomerPhone("");
   };
 
   const handleClearTable = async () => {
     if (!selectedTable) return;
-    if (window.confirm(`Clear Table ${selectedTable.number}? This will free the table.`)) {
+    if (
+      window.confirm(
+        `Clear Table ${selectedTable.number}? This will free the table.`,
+      )
+    ) {
       try {
         const id = selectedTable.id || (selectedTable as any)._id; // Robust ID
-        await updateTable(id, { status: 'available', currentOrderId: null });
+        await updateTable(id, { status: "available", currentOrderId: null });
         loadData();
         setSelectedTable(null);
-        setViewMode('tables'); // Go back
+        setViewMode("tables"); // Go back
       } catch (e) {
         console.error("Failed to clear table", e);
       }
@@ -263,24 +309,28 @@ export function WaiterPOS() {
   const handlePlaceOrder = async () => {
     if (!selectedTable) return;
 
-    const itemsPayload = currentOrder.map(i => ({
+    const itemsPayload = currentOrder.map((i) => ({
       menuItem: i.menuItem.id || (i.menuItem as any)._id,
       quantity: i.quantity,
-      customization: i.customization
+      customization: i.customization,
     }));
     const total = getTotalAmount();
 
     try {
       if (selectedTable.currentOrderId) {
         // Add to existing order
-        await addItemsToOrder(selectedTable.currentOrderId.toString(), itemsPayload, total);
+        await addItemsToOrder(
+          selectedTable.currentOrderId.toString(),
+          itemsPayload,
+          total,
+        );
       } else {
         // Create new order
         const orderData = {
           tableId: selectedTable.id || (selectedTable as any)._id,
           items: itemsPayload,
           total: total,
-          waiterName: "Staff"
+          waiterName: "Staff",
         };
         await createOrder(orderData as any);
       }
@@ -296,7 +346,7 @@ export function WaiterPOS() {
     if (!selectedTable || !selectedTable.currentOrderId) return;
     try {
       // In a real app, you'd record the payment method
-      await updateOrder(selectedTable.currentOrderId.toString(), 'paid');
+      await updateOrder(selectedTable.currentOrderId.toString(), "paid");
       loadData();
 
       // Show Reward / Success UI
@@ -304,116 +354,140 @@ export function WaiterPOS() {
       setOpenRewardDialog(true);
 
       setSelectedTable(null);
-      setViewMode('tables'); // Go back after payment
+      setViewMode("tables"); // Go back after payment
     } catch (e) {
       console.error("Payment failed", e);
     }
   };
 
-  const getTableColor = (status: Table['status']): 'success' | 'info' | 'warning' | 'error' | 'primary' => {
+  const getTableColor = (
+    status: Table["status"],
+  ): "success" | "info" | "warning" | "error" | "primary" => {
     switch (status) {
-      case 'available': return 'success';
-      case 'occupied': return 'info';
-      case 'reserved': return 'warning';
-      case 'billing': return 'error';
-      default: return 'primary';
+      case "available":
+        return "success";
+      case "occupied":
+        return "info";
+      case "reserved":
+        return "warning";
+      case "billing":
+        return "error";
+      default:
+        return "primary";
     }
   };
 
-  if (loading) return <Box p={4} display="flex" justifyContent="center"><CircularProgress /></Box>;
+  if (loading)
+    return (
+      <Box p={4} display="flex" justifyContent="center">
+        <CircularProgress />
+      </Box>
+    );
 
   return (
-    <Box sx={{ height: 'calc(100vh - 120px)', position: 'relative' }}>
-
+    <Box sx={{ height: "calc(100vh - 120px)", position: "relative" }}>
       {/* HEADER for Waiter View */}
-      <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        {viewMode === 'menu' ? (
-          <Button startIcon={<ArrowLeft />} onClick={() => setSelectedTable(null)}>Back to Tables</Button>
+      <Box
+        sx={{
+          mb: 2,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        {viewMode === "menu" ? (
+          <Button
+            startIcon={<ArrowLeft />}
+            onClick={() => setSelectedTable(null)}
+          >
+            Back to Tables
+          </Button>
         ) : (
-          <Typography variant="h5" fontWeight="bold">Floor Plan</Typography>
+          <Typography variant="h5" fontWeight="bold">
+            Floor Plan
+          </Typography>
         )}
 
         <Stack direction="row" spacing={2}>
-          <Button variant="outlined" startIcon={<Bell />} onClick={() => setOpenNotifications(true)}>
+          <Button
+            variant="outlined"
+            startIcon={<Bell />}
+            onClick={() => setOpenNotifications(true)}
+          >
             Notifications
             {notifications.length > 0 && (
-              <Badge badgeContent={notifications.length} color="error" sx={{ ml: 1, mb: 1 }} />
+              <Badge
+                badgeContent={notifications.length}
+                color="error"
+                sx={{ ml: 1, mb: 1 }}
+              />
             )}
           </Button>
         </Stack>
       </Box>
 
       {/* VIEW: TABLES */}
-      {viewMode === 'tables' && (
+      {viewMode === "tables" && (
         <Grid container spacing={3}>
-          {tables.map((table) => {
-            const color = getTableColor(table.status);
-            const tableId = table.id || (table as any)._id;
-            const waiterName = (table as any).assignedWaiter || 'Unassigned';
-
-            return (
-              <Grid size={{ xs: 6, sm: 4, md: 3 }} key={tableId}>
-                <Card
-                  elevation={0}
-                  variant="outlined"
-                  sx={{
-                    height: 180,
-                    border: 2,
-                    borderColor: alpha(theme.palette[color].main, 0.3),
-                    bgcolor: alpha(theme.palette[color].main, 0.05),
-                    transition: '0.2s',
-                    '&:hover': { transform: 'translateY(-4px)', boxShadow: theme.shadows[4] },
-                    position: 'relative'
-                  }}
-                >
-                  <CardActionArea sx={{ height: '100%', p: 2 }} onClick={() => setSelectedTable(table)}>
-                    <Stack height="100%" justifyContent="space-between">
-                      <Box display="flex" justifyContent="space-between">
-                        <Typography variant="h4" fontWeight="bold" color={color + ".main"}>{table.number}</Typography>
-                        <Chip label={table.status} color={color} size="small" sx={{ textTransform: 'capitalize' }} />
-                      </Box>
-
-                      {/* AI Assignment Badge */}
-                      <Box sx={{ bgcolor: 'background.paper', p: 1, borderRadius: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Avatar sx={{ width: 24, height: 24, fontSize: '0.7rem' }}>{waiterName[0]}</Avatar>
-                        <Box>
-                          <Typography variant="caption" color="text.secondary" display="block" lineHeight={1}>Served by</Typography>
-                          <Typography variant="caption" fontWeight="bold">{waiterName}</Typography>
-                        </Box>
-                        <Sparkles size={14} color="#FFD700" style={{ marginLeft: 'auto' }} />
-                      </Box>
-
-                      <Typography variant="body2" color="text.secondary" align="center">{table.seats} Seats</Typography>
-                    </Stack>
-                  </CardActionArea>
-                </Card>
-              </Grid>
-            );
-          })}
+          <WaiterTableMapView
+            tables={tables as any}
+            getTableColor={getTableColor}
+            onSelectTable={(t) => setSelectedTable(t)}
+          />
         </Grid>
       )}
 
       {/* VIEW: MENU (Split Screen) */}
-      {viewMode === 'menu' && (
-        <Box sx={{ height: '100%', display: 'flex', gap: 2, overflow: 'hidden' }}>
+      {viewMode === "menu" && (
+        <Box
+          sx={{ height: "100%", display: "flex", gap: 2, overflow: "hidden" }}
+        >
           {/* Left: Menu Grid */}
-          <Paper elevation={0} variant="outlined" sx={{ flex: 1, display: 'flex', flexDirection: 'column', borderRadius: 3, overflow: 'hidden' }}>
-            <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider', bgcolor: 'background.paper' }}>
-              <Stack direction="row" spacing={2} sx={{ overflowX: 'auto', pb: 1 }}>
+          <Paper
+            elevation={0}
+            variant="outlined"
+            sx={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              borderRadius: 3,
+              overflow: "hidden",
+            }}
+          >
+            <Box
+              sx={{
+                p: 2,
+                borderBottom: 1,
+                borderColor: "divider",
+                bgcolor: "background.paper",
+              }}
+            >
+              <Stack
+                direction="row"
+                spacing={2}
+                sx={{ overflowX: "auto", pb: 1 }}
+              >
                 {categories.map((cat) => (
                   <Chip
                     key={cat}
                     label={cat}
                     onClick={() => setSelectedCategory(cat)}
-                    color={selectedCategory === cat ? 'primary' : 'default'}
-                    variant={selectedCategory === cat ? 'filled' : 'outlined'}
+                    color={selectedCategory === cat ? "primary" : "default"}
+                    variant={selectedCategory === cat ? "filled" : "outlined"}
                     clickable
                   />
                 ))}
               </Stack>
             </Box>
 
-            <Box sx={{ p: 2, flex: 1, overflowY: 'auto', bgcolor: 'background.default' }}>
+            <Box
+              sx={{
+                p: 2,
+                flex: 1,
+                overflowY: "auto",
+                bgcolor: "background.default",
+              }}
+            >
               <Grid container spacing={2}>
                 {filteredMenu.map((item) => {
                   const itemId = item.id || (item as any)._id; // Handle backend _id
@@ -423,40 +497,85 @@ export function WaiterPOS() {
                         elevation={0}
                         variant="outlined"
                         sx={{
-                          height: '100%',
-                          display: 'flex',
-                          flexDirection: 'column',
+                          height: "100%",
+                          display: "flex",
+                          flexDirection: "column",
                           borderRadius: 3,
                           border: 1,
-                          borderColor: 'divider',
+                          borderColor: "divider",
                           opacity: item.available ? 1 : 0.6,
-                          position: 'relative'
+                          position: "relative",
                         }}
                       >
                         <CardActionArea
                           onClick={() => addItemToOrder(item)}
                           disabled={!item.available}
-                          sx={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}
+                          sx={{
+                            height: "100%",
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "stretch",
+                          }}
                         >
-                          <Box sx={{ position: 'relative', pt: '60%' }}>
+                          <Box sx={{ position: "relative", pt: "60%" }}>
                             <CardMedia
                               component="img"
                               image={item.imageUrl}
                               alt={item.name}
-                              sx={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+                              sx={{
+                                position: "absolute",
+                                top: 0,
+                                left: 0,
+                                width: "100%",
+                                height: "100%",
+                              }}
                             />
                             {!item.available && (
-                              <Box sx={{ position: 'absolute', inset: 0, bgcolor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <Box
+                                sx={{
+                                  position: "absolute",
+                                  inset: 0,
+                                  bgcolor: "rgba(0,0,0,0.6)",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                }}
+                              >
                                 <Chip label="Sold Out" color="error" />
                               </Box>
                             )}
                           </Box>
                           <CardContent sx={{ flexGrow: 1, p: 2 }}>
-                            <Typography variant="subtitle1" fontWeight="bold" noWrap>{item.name}</Typography>
-                            <Stack direction="row" justifyContent="space-between" alignItems="center" mt={1}>
-                              <Typography fontWeight="bold" color="primary">₹{item.price}</Typography>
-                              <Box sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), p: 0.5, borderRadius: 2 }}>
-                                <Plus size={16} color={theme.palette.primary.main} />
+                            <Typography
+                              variant="subtitle1"
+                              fontWeight="bold"
+                              noWrap
+                            >
+                              {item.name}
+                            </Typography>
+                            <Stack
+                              direction="row"
+                              justifyContent="space-between"
+                              alignItems="center"
+                              mt={1}
+                            >
+                              <Typography fontWeight="bold" color="primary">
+                                ₹{item.price}
+                              </Typography>
+                              <Box
+                                sx={{
+                                  bgcolor: alpha(
+                                    theme.palette.primary.main,
+                                    0.1,
+                                  ),
+                                  p: 0.5,
+                                  borderRadius: 2,
+                                }}
+                              >
+                                <Plus
+                                  size={16}
+                                  color={theme.palette.primary.main}
+                                />
                               </Box>
                             </Stack>
                           </CardContent>
@@ -470,70 +589,177 @@ export function WaiterPOS() {
           </Paper>
 
           {/* Right: Order Cart */}
-          <Paper elevation={0} variant="outlined" sx={{ width: 400, display: 'flex', flexDirection: 'column', borderRadius: 3, overflow: 'hidden', bgcolor: 'background.paper' }}>
-            <Box sx={{ p: 2.5, bgcolor: 'primary.main', color: 'primary.contrastText', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Paper
+            elevation={0}
+            variant="outlined"
+            sx={{
+              width: 400,
+              display: "flex",
+              flexDirection: "column",
+              borderRadius: 3,
+              overflow: "hidden",
+              bgcolor: "background.paper",
+            }}
+          >
+            <Box
+              sx={{
+                p: 2.5,
+                bgcolor: "primary.main",
+                color: "primary.contrastText",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
               <Box>
-                <Typography variant="h6" fontWeight="bold">Table {selectedTable?.number}</Typography>
-                <Typography variant="caption" sx={{ opacity: 0.9 }}>Order Details</Typography>
+                <Typography variant="h6" fontWeight="bold">
+                  Table {selectedTable?.number}
+                </Typography>
+                <Typography variant="caption" sx={{ opacity: 0.9 }}>
+                  Order Details
+                </Typography>
               </Box>
-              <Chip label="Dine In" size="small" sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white' }} />
+              <Chip
+                label="Dine In"
+                size="small"
+                sx={{ bgcolor: "rgba(255,255,255,0.2)", color: "white" }}
+              />
             </Box>
 
-            <Box sx={{ flex: 1, overflowY: 'auto', p: 2 }}>
+            <Box sx={{ flex: 1, overflowY: "auto", p: 2 }}>
               {currentOrder.length === 0 ? (
-                <Box height="100%" display="flex" flexDirection="column" alignItems="center" justifyContent="center" color="text.secondary">
-                  <Box sx={{ p: 3, bgcolor: 'action.hover', borderRadius: '50%', mb: 2 }}>
+                <Box
+                  height="100%"
+                  display="flex"
+                  flexDirection="column"
+                  alignItems="center"
+                  justifyContent="center"
+                  color="text.secondary"
+                >
+                  <Box
+                    sx={{
+                      p: 3,
+                      bgcolor: "action.hover",
+                      borderRadius: "50%",
+                      mb: 2,
+                    }}
+                  >
                     <Utensils size={32} />
                   </Box>
                   <Typography>No items in order</Typography>
-                  <Typography variant="caption">Tap menu items to add</Typography>
+                  <Typography variant="caption">
+                    Tap menu items to add
+                  </Typography>
                 </Box>
               ) : (
                 <Stack spacing={2}>
                   {currentOrder.map((item, index) => {
-                    const itemId = item.menuItem.id || (item.menuItem as any)._id; // Robust ID
+                    const itemId =
+                      item.menuItem.id || (item.menuItem as any)._id; // Robust ID
                     return (
-                      <Paper key={index} variant="outlined" sx={{ p: 1.5, borderRadius: 3, display: 'flex', gap: 2, alignItems: 'center' }}>
-                        <Avatar variant="rounded" src={item.menuItem.imageUrl} sx={{ width: 56, height: 56, borderRadius: 2 }} />
+                      <Paper
+                        key={index}
+                        variant="outlined"
+                        sx={{
+                          p: 1.5,
+                          borderRadius: 3,
+                          display: "flex",
+                          gap: 2,
+                          alignItems: "center",
+                        }}
+                      >
+                        <Avatar
+                          variant="rounded"
+                          src={item.menuItem.imageUrl}
+                          sx={{ width: 56, height: 56, borderRadius: 2 }}
+                        />
                         <Box flex={1}>
-                          <Typography variant="subtitle2" fontWeight="bold">{item.menuItem.name}</Typography>
-                          <Typography variant="caption" color="text.secondary">₹{item.menuItem.price * item.quantity}</Typography>
+                          <Typography variant="subtitle2" fontWeight="bold">
+                            {item.menuItem.name}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            ₹{item.menuItem.price * item.quantity}
+                          </Typography>
                         </Box>
-                        <Stack direction="row" alignItems="center" spacing={1} sx={{ bgcolor: 'action.hover', borderRadius: 3, p: 0.5 }}>
-                          <IconButton size="small" onClick={() => updateQuantity(itemId, -1)} disabled={item.quantity <= 1}>
+                        <Stack
+                          direction="row"
+                          alignItems="center"
+                          spacing={1}
+                          sx={{
+                            bgcolor: "action.hover",
+                            borderRadius: 3,
+                            p: 0.5,
+                          }}
+                        >
+                          <IconButton
+                            size="small"
+                            onClick={() => updateQuantity(itemId, -1)}
+                            disabled={item.quantity <= 1}
+                          >
                             <Minus size={14} />
                           </IconButton>
-                          <Typography variant="body2" fontWeight="bold" sx={{ minWidth: 20, textAlign: 'center' }}>{item.quantity}</Typography>
-                          <IconButton size="small" onClick={() => updateQuantity(itemId, 1)}>
+                          <Typography
+                            variant="body2"
+                            fontWeight="bold"
+                            sx={{ minWidth: 20, textAlign: "center" }}
+                          >
+                            {item.quantity}
+                          </Typography>
+                          <IconButton
+                            size="small"
+                            onClick={() => updateQuantity(itemId, 1)}
+                          >
                             <Plus size={14} />
                           </IconButton>
                         </Stack>
-                        <IconButton color="error" size="small" onClick={() => removeItem(itemId)}>
+                        <IconButton
+                          color="error"
+                          size="small"
+                          onClick={() => removeItem(itemId)}
+                        >
                           <Trash2 size={16} />
                         </IconButton>
                       </Paper>
-                    )
+                    );
                   })}
                 </Stack>
               )}
             </Box>
 
             {/* Footer Actions */}
-            <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider', bgcolor: 'background.default' }}>
+            <Box
+              sx={{
+                p: 2,
+                borderTop: 1,
+                borderColor: "divider",
+                bgcolor: "background.default",
+              }}
+            >
               <Stack spacing={2} mb={2}>
-                <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, bgcolor: 'background.paper' }}>
+                <Paper
+                  variant="outlined"
+                  sx={{ p: 2, borderRadius: 3, bgcolor: "background.paper" }}
+                >
                   <Stack direction="row" justifyContent="space-between" mb={1}>
                     <Typography color="text.secondary">Subtotal</Typography>
-                    <Typography fontWeight="bold">₹{getTotalAmount()}</Typography>
+                    <Typography fontWeight="bold">
+                      ₹{getTotalAmount()}
+                    </Typography>
                   </Stack>
                   <Stack direction="row" justifyContent="space-between" mb={1}>
                     <Typography color="text.secondary">Tax (5%)</Typography>
-                    <Typography fontWeight="bold">₹{Math.floor(getTotalAmount() * 0.05)}</Typography>
+                    <Typography fontWeight="bold">
+                      ₹{Math.floor(getTotalAmount() * 0.05)}
+                    </Typography>
                   </Stack>
                   <Divider sx={{ my: 1 }} />
                   <Stack direction="row" justifyContent="space-between">
-                    <Typography variant="h6" fontWeight="bold">Total</Typography>
-                    <Typography variant="h6" fontWeight="bold" color="primary">₹{Math.floor(getTotalAmount() * 1.05)}</Typography>
+                    <Typography variant="h6" fontWeight="bold">
+                      Total
+                    </Typography>
+                    <Typography variant="h6" fontWeight="bold" color="primary">
+                      ₹{Math.floor(getTotalAmount() * 1.05)}
+                    </Typography>
                   </Stack>
                 </Paper>
               </Stack>
@@ -543,10 +769,28 @@ export function WaiterPOS() {
                   {/* Bill Actions */}
                   <Grid container spacing={1} mb={2}>
                     <Grid size={{ xs: 6 }}>
-                      <Button variant="outlined" size="small" color="success" fullWidth startIcon={<Smartphone size={16} />} onClick={handlePrintBill}>WhatsApp Bill</Button>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        color="success"
+                        fullWidth
+                        startIcon={<Smartphone size={16} />}
+                        onClick={handlePrintBill}
+                      >
+                        WhatsApp Bill
+                      </Button>
                     </Grid>
                     <Grid size={{ xs: 6 }}>
-                      <Button variant="outlined" size="small" color="error" fullWidth startIcon={<XCircle size={16} />} onClick={handleClearTable}>Clear</Button>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        color="error"
+                        fullWidth
+                        startIcon={<XCircle size={16} />}
+                        onClick={handleClearTable}
+                      >
+                        Clear
+                      </Button>
                     </Grid>
                   </Grid>
                   <Grid container spacing={1} mb={1}>
@@ -555,8 +799,13 @@ export function WaiterPOS() {
                         variant="outlined"
                         fullWidth
                         disabled={!selectedTable?.currentOrderId}
-                        onClick={() => handlePayment('Card')}
-                        sx={{ flexDirection: 'column', py: 1, fontSize: '0.7rem' }}>
+                        onClick={() => handlePayment("Card")}
+                        sx={{
+                          flexDirection: "column",
+                          py: 1,
+                          fontSize: "0.7rem",
+                        }}
+                      >
                         <CreditCard size={20} /> Card
                       </Button>
                     </Grid>
@@ -565,8 +814,13 @@ export function WaiterPOS() {
                         variant="outlined"
                         fullWidth
                         disabled={!selectedTable?.currentOrderId}
-                        onClick={() => handlePayment('Cash')}
-                        sx={{ flexDirection: 'column', py: 1, fontSize: '0.7rem' }}>
+                        onClick={() => handlePayment("Cash")}
+                        sx={{
+                          flexDirection: "column",
+                          py: 1,
+                          fontSize: "0.7rem",
+                        }}
+                      >
                         <Banknote size={20} /> Cash
                       </Button>
                     </Grid>
@@ -582,11 +836,13 @@ export function WaiterPOS() {
                     sx={{
                       borderRadius: 2,
                       py: 1.5,
-                      fontWeight: 'bold',
-                      fontSize: '1.1rem'
+                      fontWeight: "bold",
+                      fontSize: "1.1rem",
                     }}
                   >
-                    {selectedTable?.currentOrderId ? "Add to Order" : "Place Order"}
+                    {selectedTable?.currentOrderId
+                      ? "Add to Order"
+                      : "Place Order"}
                   </Button>
                 </Box>
               ) : (
@@ -597,7 +853,12 @@ export function WaiterPOS() {
                   disabled={currentOrder.length === 0}
                   onClick={handlePlaceOrder}
                   startIcon={<Check />}
-                  sx={{ borderRadius: 3, height: 56, fontSize: '1.1rem', boxShadow: theme.shadows[4] }}
+                  sx={{
+                    borderRadius: 3,
+                    height: 56,
+                    fontSize: "1.1rem",
+                    boxShadow: theme.shadows[4],
+                  }}
                 >
                   Place Order • ₹{getTotalAmount()}
                 </Button>
@@ -607,8 +868,14 @@ export function WaiterPOS() {
         </Box>
       )}
 
-      <Snackbar open={orderSuccess} autoHideDuration={3000} onClose={() => setOrderSuccess(false)}>
-        <Alert severity="success" variant="filled">Order placed successfully!</Alert>
+      <Snackbar
+        open={orderSuccess}
+        autoHideDuration={3000}
+        onClose={() => setOrderSuccess(false)}
+      >
+        <Alert severity="success" variant="filled">
+          Order placed successfully!
+        </Alert>
       </Snackbar>
 
       {/* Rewards Dialog */}
@@ -618,7 +885,7 @@ export function WaiterPOS() {
         maxWidth="xs"
         fullWidth
         PaperProps={{
-          style: { borderRadius: 24, textAlign: 'center', padding: 20 }
+          style: { borderRadius: 24, textAlign: "center", padding: 20 },
         }}
       >
         <Box position="relative" overflow="hidden">
@@ -632,17 +899,19 @@ export function WaiterPOS() {
                   opacity: 0,
                   y: Math.random() * -200 - 50,
                   x: (Math.random() - 0.5) * 200,
-                  rotate: Math.random() * 360
+                  rotate: Math.random() * 360,
                 }}
                 transition={{ duration: 2, ease: "easeOut" }}
                 style={{
-                  position: 'absolute',
+                  position: "absolute",
                   bottom: 0,
-                  left: '50%',
+                  left: "50%",
                   width: 8,
                   height: 8,
-                  borderRadius: '50%',
-                  background: ['#FFD700', '#FF6B6B', '#4ECDC4'][Math.floor(Math.random() * 3)]
+                  borderRadius: "50%",
+                  background: ["#FFD700", "#FF6B6B", "#4ECDC4"][
+                    Math.floor(Math.random() * 3)
+                  ],
                 }}
               />
             ))}
@@ -653,41 +922,71 @@ export function WaiterPOS() {
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: "spring", stiffness: 200, damping: 10 }}
           >
-            <Box sx={{
-              width: 80,
-              height: 80,
-              bgcolor: 'success.light',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              mx: 'auto',
-              mb: 2,
-              boxShadow: '0 10px 30px -10px rgba(16, 185, 129, 0.5)'
-            }}>
+            <Box
+              sx={{
+                width: 80,
+                height: 80,
+                bgcolor: "success.light",
+                borderRadius: "50%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                mx: "auto",
+                mb: 2,
+                boxShadow: "0 10px 30px -10px rgba(16, 185, 129, 0.5)",
+              }}
+            >
               <Check size={48} color="white" strokeWidth={3} />
             </Box>
-            <Typography variant="h5" fontWeight="bold" gutterBottom>Payment Successful!</Typography>
-            <Typography color="text.secondary" mb={3}>Transaction ID: TXN-{Date.now().toString().slice(-6)}</Typography>
+            <Typography variant="h5" fontWeight="bold" gutterBottom>
+              Payment Successful!
+            </Typography>
+            <Typography color="text.secondary" mb={3}>
+              Transaction ID: TXN-{Date.now().toString().slice(-6)}
+            </Typography>
 
-            <Box sx={{ bgcolor: 'warning.light', p: 2, borderRadius: 3, mb: 3, display: 'inline-flex', alignItems: 'center', gap: 1 }}>
+            <Box
+              sx={{
+                bgcolor: "warning.light",
+                p: 2,
+                borderRadius: 3,
+                mb: 3,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 1,
+              }}
+            >
               <PartyPopper size={24} color="#B45309" />
-              <Typography fontWeight="bold" color="#B45309">You earned {rewardPoints} Points!</Typography>
+              <Typography fontWeight="bold" color="#B45309">
+                You earned {rewardPoints} Points!
+              </Typography>
             </Box>
           </motion.div>
 
-          <Button variant="contained" fullWidth size="large" onClick={() => setOpenRewardDialog(false)} sx={{ borderRadius: 3 }}>
+          <Button
+            variant="contained"
+            fullWidth
+            size="large"
+            onClick={() => setOpenRewardDialog(false)}
+            sx={{ borderRadius: 3 }}
+          >
             Done
           </Button>
         </Box>
       </Dialog>
 
       {/* WhatsApp Bill Dialog */}
-      <Dialog open={openBillDialog} onClose={() => setOpenBillDialog(false)} maxWidth="xs" fullWidth>
+      <Dialog
+        open={openBillDialog}
+        onClose={() => setOpenBillDialog(false)}
+        maxWidth="xs"
+        fullWidth
+      >
         <DialogTitle>Send Bill via WhatsApp</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" mb={2}>
-            Enter the customer's phone number to send a detailed bill directly to their WhatsApp.
+            Enter the customer's phone number to send a detailed bill directly
+            to their WhatsApp.
           </Typography>
           <TextField
             autoFocus
@@ -699,12 +998,28 @@ export function WaiterPOS() {
             value={customerPhone}
             onChange={(e) => setCustomerPhone(e.target.value)}
             InputProps={{
-              startAdornment: <Typography color="text.secondary" mr={1}>+91</Typography>
+              startAdornment: (
+                <Typography color="text.secondary" mr={1}>
+                  +91
+                </Typography>
+              ),
             }}
           />
           <Box mt={2}>
-            <Typography variant="subtitle2" fontWeight="bold">Bill Preview:</Typography>
-            <Box sx={{ p: 2, bgcolor: 'grey.100', borderRadius: 2, mt: 1, fontSize: '0.75rem', fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>
+            <Typography variant="subtitle2" fontWeight="bold">
+              Bill Preview:
+            </Typography>
+            <Box
+              sx={{
+                p: 2,
+                bgcolor: "grey.100",
+                borderRadius: 2,
+                mt: 1,
+                fontSize: "0.75rem",
+                fontFamily: "monospace",
+                whiteSpace: "pre-wrap",
+              }}
+            >
               {restaurantInfo.name}
               {"\n----------------\n"}
               Total: ₹{Math.floor(getTotalAmount() * 1.05)}
@@ -713,7 +1028,12 @@ export function WaiterPOS() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenBillDialog(false)}>Cancel</Button>
-          <Button onClick={sendWhatsAppBill} variant="contained" color="success" startIcon={<Send size={16} />}>
+          <Button
+            onClick={sendWhatsAppBill}
+            variant="contained"
+            color="success"
+            startIcon={<Send size={16} />}
+          >
             Send Bill
           </Button>
         </DialogActions>
