@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Clock, ChefHat, CheckCircle, AlertCircle, Circle, Plus, Archive, XCircle } from 'lucide-react';
+import { Clock, Archive } from 'lucide-react';
 import { Order, Table } from '@/app/data/mockData';
 import { fetchOrders, fetchTables, updateOrder, createInventoryRequest } from '@/app/services/api';
 import { useAuth } from '@/context/AuthContext';
@@ -13,9 +13,6 @@ import {
   Button,
   Chip,
   Stack,
-  alpha,
-  useTheme,
-  LinearProgress,
   CircularProgress,
   Dialog,
   DialogTitle,
@@ -41,7 +38,7 @@ export function KitchenDisplay() {
   const [requestData, setRequestData] = useState({ item: '', quantity: '', urgency: 'medium', message: '' });
   const [requestSuccess, setRequestSuccess] = useState(false); // To show snackbar if needed
 
-  const theme = useTheme();
+
 
   const loadData = async () => {
     try {
@@ -52,7 +49,7 @@ export function KitchenDisplay() {
       ]);
 
       const parsedOrders = orderData.map(o => {
-        const t = new Date(o.createdAt || o.timestamp);
+        const t = new Date(o.timestamp);
         return {
           ...o,
           timestamp: isNaN(t.getTime()) ? new Date() : t

@@ -6,7 +6,7 @@ import { CustomerQRMenu } from '@/app/components/CustomerQRMenu';
 import { LoginPage } from '@/app/components/LoginPage';
 import { ProtectedRoute } from '@/app/components/ProtectedRoute';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
-import { LayoutDashboard, Utensils, ChefHat, Sun, Moon, Palette, LogOut } from 'lucide-react';
+import { ChefHat, Sun, Moon, LogOut } from 'lucide-react';
 import {
   AppBar,
   Toolbar,
@@ -14,14 +14,14 @@ import {
   Box,
   Tooltip,
   IconButton,
-  useTheme,
+
   Button
 } from '@mui/material';
 import { useThemeContext } from '@/theme/ThemeContext';
 
 function MainLayout({ children }: { children: React.ReactNode }) {
   const { mode, setMode } = useThemeContext();
-  const theme = useTheme();
+
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 

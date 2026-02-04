@@ -16,7 +16,7 @@ export interface Table {
   number: number;
   seats: number;
   status: 'available' | 'occupied' | 'reserved' | 'billing';
-  currentOrder?: Order;
+  currentOrderId?: string | null;
 }
 
 export interface OrderItem {
@@ -33,6 +33,7 @@ export interface Order {
   timestamp: Date;
   total: number;
   waiterName: string;
+  orderSource?: string;
 }
 
 export const menuItems: MenuItem[] = [

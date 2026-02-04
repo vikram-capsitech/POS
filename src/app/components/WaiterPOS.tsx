@@ -1,24 +1,15 @@
 import { useState, useEffect } from "react";
 import {
-  Clock,
   Minus,
   Plus,
   Trash2,
   CreditCard,
   Smartphone,
   Banknote,
-  Split,
-  Merge,
   Check,
-  Flame,
-  Leaf,
   Utensils,
-  Printer,
   XCircle,
   ArrowLeft,
-  Bell,
-  User,
-  Sparkles,
   Send,
 } from "lucide-react";
 import { MenuItem, OrderItem, Table } from "@/app/data/mockData";
@@ -43,8 +34,6 @@ import {
   CardActionArea,
   CardContent,
   CardMedia,
-  Tabs,
-  Tab,
   Stack,
   Divider,
   useTheme,
@@ -55,12 +44,6 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
-  Badge,
-  Drawer,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
   Avatar,
   TextField,
   DialogActions,
@@ -98,8 +81,8 @@ export function WaiterPOS() {
 
   // New Features State
   const [viewMode, setViewMode] = useState<"tables" | "menu">("tables");
-  const [notifications, setNotifications] = useState<string[]>([]);
-  const [openNotifications, setOpenNotifications] = useState(false);
+
+
 
   // Mock Staff for AI Assignment
   const waiters = ["Rahul", "Priya", "Amit", "Sneha"];
@@ -176,19 +159,7 @@ export function WaiterPOS() {
     }
   }, [selectedTable]);
 
-  // Simulate Kitchen Notifications
-  useEffect(() => {
-    const notifyInterval = setInterval(() => {
-      if (Math.random() > 0.7) {
-        const randomTable = Math.floor(Math.random() * 8) + 1;
-        setNotifications((prev) => [
-          `Kitchen: Order for Table ${randomTable} is Ready! 🍳`,
-          ...prev,
-        ]);
-      }
-    }, 15000); // Check every 15s
-    return () => clearInterval(notifyInterval);
-  }, []);
+
 
   const categories = [
     "All",
@@ -342,7 +313,7 @@ export function WaiterPOS() {
     }
   };
 
-  const handlePayment = async (method: string) => {
+  const handlePayment = async (_method: string) => {
     if (!selectedTable || !selectedTable.currentOrderId) return;
     try {
       // In a real app, you'd record the payment method
@@ -408,22 +379,7 @@ export function WaiterPOS() {
           </Typography>
         )}
 
-        <Stack direction="row" spacing={2}>
-          <Button
-            variant="outlined"
-            startIcon={<Bell />}
-            onClick={() => setOpenNotifications(true)}
-          >
-            Notifications
-            {notifications.length > 0 && (
-              <Badge
-                badgeContent={notifications.length}
-                color="error"
-                sx={{ ml: 1, mb: 1 }}
-              />
-            )}
-          </Button>
-        </Stack>
+
       </Box>
 
       {/* VIEW: TABLES */}

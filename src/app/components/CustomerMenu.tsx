@@ -7,10 +7,7 @@ import {
   Flame,
   Leaf,
   X,
-  CreditCard,
-  Smartphone,
-  Eye,
-  Check
+  Eye
 } from 'lucide-react';
 import { MenuItem, OrderItem } from '@/app/data/mockData';
 import { fetchMenu, createOrder, fetchTables } from '@/app/services/api';
@@ -24,10 +21,8 @@ import {
   CardContent,
   Button,
   IconButton,
-  Chip,
   Drawer,
   Stack,
-  Divider,
   Badge,
   useTheme,
   alpha,

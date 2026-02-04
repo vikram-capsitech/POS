@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import {
     Box,
     Typography,
     Grid,
     Card,
-    CardContent,
     Button,
     TextField,
     Chip,
@@ -17,18 +16,18 @@ import {
     AccordionSummary,
     AccordionDetails
 } from '@mui/material';
-import { Plus, Minus, ShoppingBag, ArrowLeft, MessageSquare, Info, Wifi, ChevronDown } from 'lucide-react';
+import { Plus, Minus, ShoppingBag, Info, Wifi, ChevronDown } from 'lucide-react';
 import { fetchMenu, createOrder, fetchTables, fetchRestaurantDetails } from '../services/api';
 import { MenuItem } from '../data/mockData';
 
 // Simulated Table ID if not in URL (for demo)
-const DEMO_TABLE_ID = '1';
+
 
 export function CustomerQRMenu() {
     // Try to get tableId from URL parameters, else defaults
     const location = useLocation();
     const [tableId, setTableId] = useState('1');
-    const [restaurantId, setRestaurantId] = useState<string | undefined>(undefined);
+
     const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
     const [cart, setCart] = useState<{ item: MenuItem; quantity: number; note: string }[]>([]);
     const [categories, setCategories] = useState<string[]>([]);
@@ -45,7 +44,7 @@ export function CustomerQRMenu() {
         const rid = searchParams.get('restaurantId') || undefined;
 
         setTableId(tbl);
-        setRestaurantId(rid);
+
 
         const loadData = async () => {
             try {
