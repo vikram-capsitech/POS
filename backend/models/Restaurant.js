@@ -7,6 +7,11 @@ const restaurantSchema = mongoose.Schema({
     description: { type: String, default: 'Best food in town!' },
     wifiSsid: { type: String },
     wifiPass: { type: String },
+    theme: {
+        primaryColor: { type: String, default: '#ea580c' },
+        secondaryColor: { type: String, default: '#ec4899' },
+        mode: { type: String, enum: ['light', 'dark', 'custom'], default: 'dark' },
+    }
 }, {
     timestamps: true
 });

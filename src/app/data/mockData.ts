@@ -12,11 +12,13 @@ export interface MenuItem {
 }
 
 export interface Table {
-  id: string;
+  id?: string; // Made optional to handle _id from mongo
+  _id?: string; // MongoDB ID
   number: number;
   seats: number;
   status: 'available' | 'occupied' | 'reserved' | 'billing';
   currentOrder?: Order;
+  currentOrderId?: string | Order | any; // Backend compat
 }
 
 export interface OrderItem {
@@ -34,6 +36,42 @@ export interface Order {
   total: number;
   waiterName: string;
 }
+
+export interface InventoryItem {
+    id: string;
+    name: string;
+    quantity: number;
+    unit: string;
+    minThreshold: number;
+    category: string;
+    lastUpdated: Date;
+}
+
+export interface Expense {
+    id: string;
+    description: string;
+    amount: number;
+    category: string;
+    date: Date;
+    paymentMethod: 'Cash' | 'Card' | 'Online';
+    recordedBy: string;
+}
+
+export interface Staff {
+    id: string;
+    name: string;
+    role: 'Waiter' | 'Kitchen' | 'Manager';
+    shift: string;
+    joindate: Date;
+    performance: {
+        ordersCompleted: number;
+        avgResponseTime: number; // minutes
+        rating: number; // 1-5
+        attendance: number; // %
+    };
+    aiInsight: string;
+}
+
 
 export const menuItems: MenuItem[] = [
   {
@@ -263,4 +301,41 @@ export const salesData = [
   { time: '8 PM', sales: 14200 },
   { time: '9 PM', sales: 13400 },
   { time: '10 PM', sales: 8900 },
+];
+
+export const mockInventoryItems: InventoryItem[] = [
+    { id: 'i1', name: 'Tomatoes', quantity: 20, unit: 'kg', minThreshold: 5, category: 'Vegetables', lastUpdated: new Date() },
+    { id: 'i2', name: 'Chicken Breast', quantity: 15, unit: 'kg', minThreshold: 10, category: 'Meat', lastUpdated: new Date() },
+    { id: 'i3', name: 'Basmati Rice', quantity: 50, unit: 'kg', minThreshold: 20, category: 'Grains', lastUpdated: new Date() },
+    { id: 'i4', name: 'Cooking Oil', quantity: 30, unit: 'L', minThreshold: 15, category: 'Pantry', lastUpdated: new Date() },
+    { id: 'i5', name: 'Milk', quantity: 8, unit: 'L', minThreshold: 10, category: 'Dairy', lastUpdated: new Date() },
+];
+
+export const mockExpenses: Expense[] = [
+    { id: 'e1', description: 'Vegetable Vendor Payment', amount: 3500, category: 'Inventory', date: new Date(), paymentMethod: 'Cash', recordedBy: 'Admin' },
+    { id: 'e2', description: 'Electric Bill', amount: 8200, category: 'Utilities', date: new Date(Date.now() - 86400000), paymentMethod: 'Online', recordedBy: 'Admin' },
+    { id: 'e3', description: 'Kitchen Equipment Repair', amount: 1500, category: 'Maintenance', date: new Date(Date.now() - 172800000), paymentMethod: 'Card', recordedBy: 'Admin' },
+];
+
+export const mockStaff: Staff[] = [
+    { 
+        id: 's1', name: 'Rahul Sharma', role: 'Waiter', shift: 'Morning', joindate: new Date('2024-01-15'),
+        performance: { ordersCompleted: 450, avgResponseTime: 4.2, rating: 4.8, attendance: 95 },
+        aiInsight: 'Consistently fastest response time during peak breakfast hours.'
+    },
+    { 
+        id: 's2', name: 'Priya Singh', role: 'Waiter', shift: 'Evening', joindate: new Date('2024-03-10'),
+        performance: { ordersCompleted: 320, avgResponseTime: 5.5, rating: 4.6, attendance: 92 },
+        aiInsight: 'Excellent customer feedback, suggests highly profitable add-ons.'
+    },
+    { 
+        id: 's3', name: 'Amit Kumar', role: 'Kitchen', shift: 'All Day', joindate: new Date('2023-11-20'),
+        performance: { ordersCompleted: 1200, avgResponseTime: 12, rating: 4.9, attendance: 98 },
+        aiInsight: 'Maintains consistent food quality score of 98%.'
+    },
+    { 
+        id: 's4', name: 'Vikram Malhotra', role: 'Manager', shift: 'Full', joindate: new Date('2023-01-01'),
+        performance: { ordersCompleted: 0, avgResponseTime: 0, rating: 5.0, attendance: 100 },
+        aiInsight: 'Optimized inventory flow reducing waste by 15% this month.'
+    },
 ];

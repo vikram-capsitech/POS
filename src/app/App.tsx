@@ -6,6 +6,7 @@ import { CustomerQRMenu } from '@/app/components/CustomerQRMenu';
 import { LoginPage } from '@/app/components/LoginPage';
 import { ProtectedRoute } from '@/app/components/ProtectedRoute';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { CustomThemeProvider, useCustomTheme } from '@/context/ThemeContext';
 import { LayoutDashboard, Utensils, ChefHat, Sun, Moon, Palette, LogOut } from 'lucide-react';
 import {
   AppBar,
@@ -17,10 +18,9 @@ import {
   useTheme,
   Button
 } from '@mui/material';
-import { useThemeContext } from '@/theme/ThemeContext';
 
 function MainLayout({ children }: { children: React.ReactNode }) {
-  const { mode, setMode } = useThemeContext();
+  // const { customTheme, setCustomTheme } = useCustomTheme(); // Can use this later for toggle
   const theme = useTheme();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -41,11 +41,14 @@ function MainLayout({ children }: { children: React.ReactNode }) {
               </Box>
             )}
 
+            {/* Theme Toggle managed via Admin Settings now */}
+            {/*
             <Tooltip title="Toggle Theme">
-              <IconButton onClick={() => setMode(mode === 'light' ? 'dark' : 'light')}>
-                {mode === 'light' ? <Sun size={20} /> : <Moon size={20} />}
+              <IconButton onClick={() => {}}>
+                <Sun size={20} />
               </IconButton>
             </Tooltip>
+            */}
 
             {user && (
               <Button
@@ -84,28 +87,30 @@ function RedirectHome() {
 export default function App() {
   return (
     <AuthProvider>
-      <MainLayout>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/admin" element={
-            <ProtectedRoute allowedRoles={['admin']}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/waiter" element={
-            <ProtectedRoute allowedRoles={['waiter', 'admin']}>
-              <WaiterPOS />
-            </ProtectedRoute>
-          } />
-          <Route path="/kitchen" element={
-            <ProtectedRoute allowedRoles={['kitchen', 'admin']}>
-              <KitchenDisplay />
-            </ProtectedRoute>
-          } />
-          <Route path="/qr-menu" element={<CustomerQRMenu />} />
-          <Route path="/" element={<RedirectHome />} />
-        </Routes>
-      </MainLayout>
+      <CustomThemeProvider>
+        <MainLayout>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/admin" element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/waiter" element={
+              <ProtectedRoute allowedRoles={['waiter', 'admin']}>
+                <WaiterPOS />
+              </ProtectedRoute>
+            } />
+            <Route path="/kitchen" element={
+              <ProtectedRoute allowedRoles={['kitchen', 'admin']}>
+                <KitchenDisplay />
+              </ProtectedRoute>
+            } />
+            <Route path="/qr-menu" element={<CustomerQRMenu />} />
+            <Route path="/" element={<RedirectHome />} />
+          </Routes>
+        </MainLayout>
+      </CustomThemeProvider>
     </AuthProvider>
   );
 }

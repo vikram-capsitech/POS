@@ -134,7 +134,7 @@ export function CustomerQRMenu() {
             <Typography variant="h4" mb={2}>🎉</Typography>
             <Typography variant="h5" fontWeight="bold" gutterBottom>Order Placed!</Typography>
             <Typography color="text.secondary" paragraph>Your order has been sent to the waiter for approval.</Typography>
-            <Typography variant="body2" sx={{ bgcolor: 'orange', color: 'white', py: 0.5, px: 2, borderRadius: 2 }}>Status: Pending Approval</Typography>
+            <Typography variant="body2" sx={{ bgcolor: 'primary.main', color: 'primary.contrastText', py: 0.5, px: 2, borderRadius: 2 }}>Status: Pending Approval</Typography>
             <Button variant="outlined" sx={{ mt: 4 }} onClick={() => setOrderPlaced(false)}>Order More</Button>
         </Box>
     );

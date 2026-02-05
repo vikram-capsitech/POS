@@ -57,6 +57,11 @@ export function LoginPage() {
   };
 
   const handleDemoLogin = (role: string) => {
+    if (role === 'chef') {
+      setEmail('chef@example.com');
+      setPassword('kitchen123');
+      return;
+    }
     setEmail(`${role}@example.com`);
     setPassword(`${role}123`);
   };
@@ -154,7 +159,7 @@ export function LoginPage() {
             <Button
               size="small"
               variant="outlined"
-              onClick={() => handleDemoLogin("waiter")}
+              onClick={() => handleDemoLogin("chef")}
             >
               Chef
             </Button>

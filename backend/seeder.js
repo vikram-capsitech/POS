@@ -162,9 +162,23 @@ const importData = async () => {
     await Order.deleteMany();
     await MenuItem.deleteMany();
     await Table.deleteMany();
+    const Restaurant = require('./models/Restaurant');
+    await Restaurant.deleteMany();
 
-    const createdMenuItems = await MenuItem.insertMany(menuItems);
-    await Table.insertMany(tables);
+    const restaurant = await Restaurant.create({
+        name: 'Tasty Bites',
+        address: '123 Flavor St',
+        phone: '123-456-7890',
+        description: 'Best food in town!'
+    });
+
+    const restaurantId = restaurant._id;
+
+    const menuItemsWithId = menuItems.map(item => ({ ...item, restaurantId }));
+    const tablesWithId = tables.map(table => ({ ...table, restaurantId })); // Tables need restaurantId too
+
+    await MenuItem.insertMany(menuItemsWithId);
+    await Table.insertMany(tablesWithId);
 
     console.log('Data Imported!');
     process.exit();

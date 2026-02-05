@@ -12,7 +12,7 @@ const getTables = asyncHandler(async (req, res) => {
     if (req.query.restaurantId) {
         query.restaurantId = req.query.restaurantId;
     }
-    const tables = await Table.find(query);
+    const tables = await Table.find(query).populate('currentOrderId');
     res.json(tables);
 });
 

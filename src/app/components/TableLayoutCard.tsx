@@ -68,11 +68,13 @@ function getSeatAngles(seats: number) {
   }
 }
 
-export const TableLayoutCard: React.FC<TableLayoutCardProps> = ({
+export const TableLayoutCard: React.FC<TableLayoutCardProps & { onClick?: () => void, totalAmount?: number }> = ({
   number,
   seats,
   status,
   shape = "round",
+  onClick,
+  totalAmount
 }) => {
   const s = clampSeats(seats);
   const cx = 80;
@@ -90,12 +92,21 @@ export const TableLayoutCard: React.FC<TableLayoutCardProps> = ({
 
   return (
     <Paper
+      elevation={onClick ? 2 : 1}
+      onClick={onClick}
       sx={{
         p: 2,
         border: 1,
         borderColor: "divider",
         borderRadius: 2,
         overflow: "hidden",
+        cursor: onClick ? "pointer" : "default",
+        transition: "all 0.2s",
+        "&:hover": onClick ? {
+          transform: "translateY(-4px)",
+          boxShadow: 3,
+          borderColor: "primary.main"
+        } : {}
       }}
     >
       <Box
@@ -208,13 +219,20 @@ export const TableLayoutCard: React.FC<TableLayoutCardProps> = ({
         </svg>
       </Box>
 
-      <Box mt={1} display="flex" justifyContent="space-between">
+      <Box mt={1} display="flex" justifyContent="space-between" alignItems="center">
         <Typography variant="caption" color="text.secondary">
           {s} seats
         </Typography>
-        <Typography variant="caption" color="text.secondary">
-          Layout view
-        </Typography>
+        {totalAmount !== undefined && (
+          <Typography variant="subtitle2" fontWeight="bold" color="primary.main">
+            ₹{totalAmount}
+          </Typography>
+        )}
+        {(totalAmount === undefined && status === 'available') && (
+          <Typography variant="caption" color="text.secondary">
+            Click to Order
+          </Typography>
+        )}
       </Box>
     </Paper>
   );

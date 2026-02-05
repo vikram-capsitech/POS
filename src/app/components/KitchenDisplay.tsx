@@ -134,7 +134,7 @@ export function KitchenDisplay() {
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Box display="flex" alignItems="center" gap={2}>
           <Typography variant="h4" fontWeight="bold">Kitchen Display System (KDS)</Typography>
-          <Chip label={activeRestaurantId ? "Scope: Active" : "Scope: Default"} size="small" variant="outlined" />
+          <Chip label={activeRestaurantId || user?.restaurantId ? "Scope: Active" : "Scope: Default (No ID)"} size="small" variant="outlined" />
         </Box>
         <Button
           variant="contained"

@@ -20,6 +20,8 @@ import {
   User,
   Sparkles,
   Send,
+  Brain,
+  PartyPopper,
 } from "lucide-react";
 import { MenuItem, OrderItem, Table } from "@/app/data/mockData";
 import {
@@ -66,15 +68,17 @@ import {
   DialogActions,
 } from "@mui/material";
 import { motion, AnimatePresence } from "framer-motion";
-import { PartyPopper } from "lucide-react";
+import { useLocation } from "react-router-dom";
 import axios from "axios";
 import WaiterTableMapView from "./WaiterTableMapView";
+import { useAuth } from "@/context/AuthContext";
 
 // Using @mui/material Grid (v2) where size prop is supported.
 // If using legacy Grid, replace 'size' with 'item xs sm'.
 // Assuming v6 logic or compatible setup.
 
 export function WaiterPOS() {
+  const { activeRestaurantId } = useAuth();
   const [tables, setTables] = useState<Table[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -105,22 +109,31 @@ export function WaiterPOS() {
   const waiters = ["Rahul", "Priya", "Amit", "Sneha"];
 
   const theme = useTheme();
+  const location = useLocation();
 
   const loadData = async () => {
     try {
       const [tableData, menuData] = await Promise.all([
-        fetchTables(),
-        fetchMenu(),
+        fetchTables(activeRestaurantId),
+        fetchMenu(activeRestaurantId),
       ]);
 
       // Mock AI Assignment: Assign waiters to tables
       const tablesWithStaff = tableData.map((t: any, i: number) => ({
         ...t,
-        assignedWaiter: waiters[Math.floor(i / 2) % waiters.length], // 1 waiter per 2 tables logic
+        assignedWaiter: waiters[Math.floor(i / 2) % waiters.length],
       }));
 
       setTables(tablesWithStaff);
       setMenuItems(menuData);
+
+      if (location.state?.tableId) {
+        const preSelected = tablesWithStaff.find((t: any) => (t.id || t._id) === location.state.tableId);
+        if (preSelected) {
+          setSelectedTable(preSelected);
+        }
+        window.history.replaceState({}, document.title);
+      }
     } catch (error) {
       console.error("Failed to fetch data", error);
     } finally {
@@ -130,7 +143,6 @@ export function WaiterPOS() {
 
   useEffect(() => {
     loadData();
-    // Fetch Restaurant Info for bills
     axios
       .get("http://localhost:5000/api/restaurant")
       .then((res) => {
@@ -140,18 +152,18 @@ export function WaiterPOS() {
 
     const interval = setInterval(loadData, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [activeRestaurantId]);
 
-  // Fetch Order Details when Table is Selected
   useEffect(() => {
     const loadTableOrder = async () => {
       if (selectedTable && selectedTable.currentOrderId) {
         try {
           setLoading(true);
-          const order = await fetchOrderById(
-            selectedTable.currentOrderId.toString(),
-          );
-          // Map backend items to frontend OrderItem structure
+          const orderId = typeof selectedTable.currentOrderId === 'object'
+            ? (selectedTable.currentOrderId as any)._id || (selectedTable.currentOrderId as any).id
+            : selectedTable.currentOrderId;
+
+          const order = await fetchOrderById(orderId);
           const mappedItems: OrderItem[] = order.items.map((i: any) => ({
             menuItem: i.menuItem,
             quantity: i.quantity,
@@ -170,13 +182,12 @@ export function WaiterPOS() {
 
     if (selectedTable) {
       loadTableOrder();
-      setViewMode("menu"); // Auto switch to menu when table selected
+      setViewMode("menu");
     } else {
       setViewMode("tables");
     }
   }, [selectedTable]);
 
-  // Simulate Kitchen Notifications
   useEffect(() => {
     const notifyInterval = setInterval(() => {
       if (Math.random() > 0.7) {
@@ -186,102 +197,61 @@ export function WaiterPOS() {
           ...prev,
         ]);
       }
-    }, 15000); // Check every 15s
+    }, 15000);
     return () => clearInterval(notifyInterval);
   }, []);
 
-  const categories = [
-    "All",
-    ...Array.from(new Set(menuItems.map((item) => item.category))),
-  ];
+  const categories = ["All", ...Array.from(new Set(menuItems.map((item) => item.category)))];
 
-  const filteredMenu =
-    selectedCategory === "All"
-      ? menuItems
-      : menuItems.filter((item) => item.category === selectedCategory);
+  const filteredMenu = selectedCategory === "All"
+    ? menuItems
+    : menuItems.filter((item) => item.category === selectedCategory);
 
   const addItemToOrder = (item: MenuItem) => {
-    const itemId = item.id || (item as any)._id; // Robust ID check
+    const itemId = item.id || (item as any)._id;
     const existingItem = currentOrder.find(
-      (orderItem) =>
-        (orderItem.menuItem.id || (orderItem.menuItem as any)._id) === itemId,
+      (orderItem) => (orderItem.menuItem.id || (orderItem.menuItem as any)._id) === itemId,
     );
-
     if (existingItem) {
-      setCurrentOrder(
-        currentOrder.map((orderItem) =>
-          (orderItem.menuItem.id || (orderItem.menuItem as any)._id) === itemId
-            ? { ...orderItem, quantity: orderItem.quantity + 1 }
-            : orderItem,
-        ),
-      );
+      setCurrentOrder(currentOrder.map((orderItem) =>
+        (orderItem.menuItem.id || (orderItem.menuItem as any)._id) === itemId
+          ? { ...orderItem, quantity: orderItem.quantity + 1 }
+          : orderItem,
+      ));
     } else {
       setCurrentOrder([...currentOrder, { menuItem: item, quantity: 1 }]);
     }
   };
 
   const updateQuantity = (itemId: string, change: number) => {
-    setCurrentOrder(
-      currentOrder
-        .map((item) =>
-          (item.menuItem.id || (item.menuItem as any)._id) === itemId
-            ? { ...item, quantity: item.quantity + change }
-            : item,
-        )
-        .filter((item) => item.quantity > 0),
-    );
+    setCurrentOrder(currentOrder.map((item) =>
+      (item.menuItem.id || (item.menuItem as any)._id) === itemId
+        ? { ...item, quantity: item.quantity + change }
+        : item,
+    ).filter((item) => item.quantity > 0));
   };
 
   const removeItem = (itemId: string) => {
-    setCurrentOrder(
-      currentOrder.filter(
-        (item) => (item.menuItem.id || (item.menuItem as any)._id) !== itemId,
-      ),
-    );
+    setCurrentOrder(currentOrder.filter(
+      (item) => (item.menuItem.id || (item.menuItem as any)._id) !== itemId,
+    ));
   };
 
   const getTotalAmount = () => {
-    return currentOrder.reduce(
-      (sum, item) => sum + item.menuItem.price * item.quantity,
-      0,
-    );
+    return currentOrder.reduce((sum, item) => sum + item.menuItem.price * item.quantity, 0);
   };
 
-  const handlePrintBill = () => {
-    setOpenBillDialog(true);
-  };
+  const handlePrintBill = () => setOpenBillDialog(true);
 
   const sendWhatsAppBill = () => {
     if (!customerPhone) {
       alert("Please enter customer number");
       return;
     }
-
     const subtotal = getTotalAmount();
-    const tax = Math.floor(subtotal * 0.05);
-    const total = Math.floor(subtotal * 1.05);
-
-    let billText = `*${restaurantInfo.name}*\n`;
-    billText += `${restaurantInfo.address || ""}\n`;
-    billText += `--------------------------------\n`;
-    billText += `Date: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}\n`;
-    billText += `Table: ${selectedTable?.number}\n`;
-    billText += `--------------------------------\n`;
-
-    currentOrder.forEach((item) => {
-      billText += `${item.menuItem.name} x${item.quantity} = ₹${item.menuItem.price * item.quantity}\n`;
-    });
-
-    billText += `--------------------------------\n`;
-    billText += `Subtotal: ₹${subtotal}\n`;
-    billText += `Tax (5%): ₹${tax}\n`;
-    billText += `*TOTAL: ₹${total}*\n`;
-    billText += `--------------------------------\n`;
-    billText += `Thank you for dining with us!\n`;
-
-    const encodedText = encodeURIComponent(billText);
-    const url = `https://wa.me/91${customerPhone}?text=${encodedText}`; // Assuming +91 default
-
+    const total = Math.floor(subtotal * 1.05); // 5% tax
+    let billText = `*${restaurantInfo.name}*\nDate: ${new Date().toLocaleDateString()}\nTotal: ₹${total}`;
+    const url = `https://wa.me/91${customerPhone}?text=${encodeURIComponent(billText)}`;
     window.open(url, "_blank");
     setOpenBillDialog(false);
     setCustomerPhone("");
@@ -289,17 +259,13 @@ export function WaiterPOS() {
 
   const handleClearTable = async () => {
     if (!selectedTable) return;
-    if (
-      window.confirm(
-        `Clear Table ${selectedTable.number}? This will free the table.`,
-      )
-    ) {
+    if (window.confirm(`Clear Table ${selectedTable.number}?`)) {
       try {
-        const id = selectedTable.id || (selectedTable as any)._id; // Robust ID
+        const id = selectedTable.id || (selectedTable as any)._id;
         await updateTable(id, { status: "available", currentOrderId: null });
         loadData();
         setSelectedTable(null);
-        setViewMode("tables"); // Go back
+        setViewMode("tables");
       } catch (e) {
         console.error("Failed to clear table", e);
       }
@@ -308,26 +274,22 @@ export function WaiterPOS() {
 
   const handlePlaceOrder = async () => {
     if (!selectedTable) return;
-
     const itemsPayload = currentOrder.map((i) => ({
       menuItem: i.menuItem.id || (i.menuItem as any)._id,
       quantity: i.quantity,
       customization: i.customization,
     }));
     const total = getTotalAmount();
-
     try {
       if (selectedTable.currentOrderId) {
-        // Add to existing order
-        await addItemsToOrder(
-          selectedTable.currentOrderId.toString(),
-          itemsPayload,
-          total,
-        );
+        const orderId = typeof selectedTable.currentOrderId === 'object'
+          ? (selectedTable.currentOrderId as any)._id || (selectedTable.currentOrderId as any).id
+          : selectedTable.currentOrderId;
+        await addItemsToOrder(orderId, itemsPayload, total);
       } else {
-        // Create new order
         const orderData = {
           tableId: selectedTable.id || (selectedTable as any)._id,
+          restaurantId: activeRestaurantId,
           items: itemsPayload,
           total: total,
           waiterName: "Staff",
@@ -336,7 +298,7 @@ export function WaiterPOS() {
       }
       setOrderSuccess(true);
       setCurrentOrder([]);
-      loadData(); // Refresh tables status
+      loadData();
     } catch (err) {
       console.error("Failed to place order", err);
     }
@@ -345,35 +307,36 @@ export function WaiterPOS() {
   const handlePayment = async (method: string) => {
     if (!selectedTable || !selectedTable.currentOrderId) return;
     try {
-      // In a real app, you'd record the payment method
-      await updateOrder(selectedTable.currentOrderId.toString(), "paid");
+      const orderId = typeof selectedTable.currentOrderId === 'object'
+        ? (selectedTable.currentOrderId as any)._id || (selectedTable.currentOrderId as any).id
+        : selectedTable.currentOrderId;
+      await updateOrder(orderId, "paid");
       loadData();
-
-      // Show Reward / Success UI
-      setRewardPoints(Math.floor(getTotalAmount() * 0.1)); // 10% points
+      setRewardPoints(Math.floor(getTotalAmount() * 0.1));
       setOpenRewardDialog(true);
-
       setSelectedTable(null);
-      setViewMode("tables"); // Go back after payment
+      setViewMode("tables");
     } catch (e) {
       console.error("Payment failed", e);
     }
   };
 
+
+
   const getTableColor = (
     status: Table["status"],
-  ): "success" | "info" | "warning" | "error" | "primary" => {
+  ): "success" | "info" | "warning" | "error" | "primary" | "secondary" => {
     switch (status) {
       case "available":
         return "success";
       case "occupied":
-        return "info";
+        return "primary"; // Use brand color for occupied tables
       case "reserved":
         return "warning";
       case "billing":
         return "error";
       default:
-        return "primary";
+        return "secondary";
     }
   };
 
@@ -656,6 +619,9 @@ export function WaiterPOS() {
                   {currentOrder.map((item, index) => {
                     const itemId =
                       item.menuItem.id || (item.menuItem as any)._id; // Robust ID
+                    // Check if this is an existing order (items already sent to kitchen)
+                    const isExistingOrder = selectedTable?.currentOrderId;
+
                     return (
                       <Paper
                         key={index}
@@ -666,8 +632,29 @@ export function WaiterPOS() {
                           display: "flex",
                           gap: 2,
                           alignItems: "center",
+                          position: "relative",
+                          overflow: "hidden"
                         }}
                       >
+                        {/* Timer Background for Preparing Items */}
+                        {isExistingOrder && (
+                          <Box
+                            sx={{
+                              position: 'absolute',
+                              bottom: 0,
+                              left: 0,
+                              height: 4,
+                              bgcolor: 'primary.main',
+                              animation: `progress ${item.menuItem.prepTime * 60}s linear forwards`,
+                              width: '0%', // Start at 0 and grow or start at 100 and shrink. Let's do a simple mock progress bar
+                              '@keyframes progress': {
+                                '0%': { width: '0%' },
+                                '100%': { width: '100%' }
+                              }
+                            }}
+                          />
+                        )}
+
                         <Avatar
                           variant="rounded"
                           src={item.menuItem.imageUrl}
@@ -677,48 +664,69 @@ export function WaiterPOS() {
                           <Typography variant="subtitle2" fontWeight="bold">
                             {item.menuItem.name}
                           </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            ₹{item.menuItem.price * item.quantity}
-                          </Typography>
+                          <Stack direction="row" alignItems="center" spacing={1}>
+                            <Typography variant="caption" color="text.secondary">
+                              ₹{item.menuItem.price * item.quantity}
+                            </Typography>
+                            {isExistingOrder && (
+                              <Box display="flex" alignItems="center" bgcolor="warning.light" px={0.8} py={0.2} borderRadius={1}>
+                                <Clock size={10} style={{ marginRight: 4 }} className="text-warning-dark" />
+                                <Typography variant="caption" color="warning.dark" fontWeight="bold">
+                                  Preparing... {item.menuItem.prepTime}m
+                                </Typography>
+                              </Box>
+                            )}
+                          </Stack>
                         </Box>
-                        <Stack
-                          direction="row"
-                          alignItems="center"
-                          spacing={1}
-                          sx={{
-                            bgcolor: "action.hover",
-                            borderRadius: 3,
-                            p: 0.5,
-                          }}
-                        >
-                          <IconButton
-                            size="small"
-                            onClick={() => updateQuantity(itemId, -1)}
-                            disabled={item.quantity <= 1}
+
+                        {/* Only show edit controls if it's a NEW order (not sent to kitchen yet) */}
+                        {!isExistingOrder ? (
+                          <Stack
+                            direction="row"
+                            alignItems="center"
+                            spacing={1}
+                            sx={{
+                              bgcolor: "action.hover",
+                              borderRadius: 3,
+                              p: 0.5,
+                            }}
                           >
-                            <Minus size={14} />
-                          </IconButton>
-                          <Typography
-                            variant="body2"
-                            fontWeight="bold"
-                            sx={{ minWidth: 20, textAlign: "center" }}
-                          >
-                            {item.quantity}
+                            <IconButton
+                              size="small"
+                              onClick={() => updateQuantity(itemId, -1)}
+                              disabled={item.quantity <= 1}
+                            >
+                              <Minus size={14} />
+                            </IconButton>
+                            <Typography
+                              variant="body2"
+                              fontWeight="bold"
+                              sx={{ minWidth: 20, textAlign: "center" }}
+                            >
+                              {item.quantity}
+                            </Typography>
+                            <IconButton
+                              size="small"
+                              onClick={() => updateQuantity(itemId, 1)}
+                            >
+                              <Plus size={14} />
+                            </IconButton>
+                          </Stack>
+                        ) : (
+                          <Typography variant="h6" fontWeight="bold" color="text.secondary">
+                            x{item.quantity}
                           </Typography>
+                        )}
+
+                        {!isExistingOrder && (
                           <IconButton
+                            color="error"
                             size="small"
-                            onClick={() => updateQuantity(itemId, 1)}
+                            onClick={() => removeItem(itemId)}
                           >
-                            <Plus size={14} />
+                            <Trash2 size={16} />
                           </IconButton>
-                        </Stack>
-                        <IconButton
-                          color="error"
-                          size="small"
-                          onClick={() => removeItem(itemId)}
-                        >
-                          <Trash2 size={16} />
-                        </IconButton>
+                        )}
                       </Paper>
                     );
                   })}
@@ -766,84 +774,57 @@ export function WaiterPOS() {
 
               {selectedTable?.currentOrderId ? (
                 <Box>
-                  {/* Bill Actions */}
-                  <Grid container spacing={1} mb={2}>
-                    <Grid size={{ xs: 6 }}>
+                  {/* Existing Order Actions */}
+                  <Stack spacing={2}>
+                    <Stack direction="row" spacing={2}>
                       <Button
-                        variant="outlined"
-                        size="small"
+                        variant="contained"
                         color="success"
                         fullWidth
-                        startIcon={<Smartphone size={16} />}
-                        onClick={handlePrintBill}
+                        size="large"
+                        startIcon={<Banknote />}
+                        onClick={() => handlePayment('cash')}
+                        sx={{ py: 1.5, borderRadius: 3 }}
                       >
-                        WhatsApp Bill
+                        Settle & Pay
                       </Button>
-                    </Grid>
-                    <Grid size={{ xs: 6 }}>
                       <Button
                         variant="outlined"
-                        size="small"
                         color="error"
                         fullWidth
-                        startIcon={<XCircle size={16} />}
+                        startIcon={<XCircle />}
                         onClick={handleClearTable}
+                        sx={{ borderRadius: 3 }}
                       >
-                        Clear
+                        Clear Table
                       </Button>
-                    </Grid>
-                  </Grid>
-                  <Grid container spacing={1} mb={1}>
-                    <Grid size={{ xs: 6 }}>
-                      <Button
-                        variant="outlined"
-                        fullWidth
-                        disabled={!selectedTable?.currentOrderId}
-                        onClick={() => handlePayment("Card")}
-                        sx={{
-                          flexDirection: "column",
-                          py: 1,
-                          fontSize: "0.7rem",
-                        }}
-                      >
-                        <CreditCard size={20} /> Card
-                      </Button>
-                    </Grid>
-                    <Grid size={{ xs: 6 }}>
-                      <Button
-                        variant="outlined"
-                        fullWidth
-                        disabled={!selectedTable?.currentOrderId}
-                        onClick={() => handlePayment("Cash")}
-                        sx={{
-                          flexDirection: "column",
-                          py: 1,
-                          fontSize: "0.7rem",
-                        }}
-                      >
-                        <Banknote size={20} /> Cash
-                      </Button>
-                    </Grid>
-                  </Grid>
+                    </Stack>
 
-                  <Button
-                    variant="contained"
-                    fullWidth
-                    size="large"
-                    startIcon={<Check />}
-                    disabled={currentOrder.length === 0 || !selectedTable}
-                    onClick={handlePlaceOrder}
-                    sx={{
-                      borderRadius: 2,
-                      py: 1.5,
-                      fontWeight: "bold",
-                      fontSize: "1.1rem",
-                    }}
-                  >
-                    {selectedTable?.currentOrderId
-                      ? "Add to Order"
-                      : "Place Order"}
-                  </Button>
+                    <Button
+                      variant="contained"
+                      fullWidth
+                      size="large"
+                      startIcon={<Check />}
+                      onClick={handlePlaceOrder}
+                      sx={{
+                        py: 1.5,
+                        borderRadius: 3,
+                        bgcolor: "warning.main",
+                        '&:hover': { bgcolor: "warning.dark" }
+                      }}
+                    >
+                      Add More Items
+                    </Button>
+
+                    <Button
+                      variant="text"
+                      size="small"
+                      startIcon={<Smartphone />}
+                      onClick={handlePrintBill}
+                    >
+                      Share Bill via WhatsApp
+                    </Button>
+                  </Stack>
                 </Box>
               ) : (
                 <Button

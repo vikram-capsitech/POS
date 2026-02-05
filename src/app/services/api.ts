@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { MenuItem, Table, Order } from '@/app/data/mockData';
+import { MenuItem, Table, Order, InventoryItem, Expense, Staff, mockInventoryItems, mockExpenses, mockStaff } from '@/app/data/mockData';
 
 const API_URL = import.meta.env.PROD ? '/api' : 'http://localhost:5000/api';
 
@@ -10,6 +10,7 @@ const api = axios.create({
     },
 });
 
+// ... (existing interceptor code) ...
 // Attach token if exists
 api.interceptors.request.use(config => {
     const userInfo = localStorage.getItem('userInfo');
@@ -20,6 +21,7 @@ api.interceptors.request.use(config => {
     return config;
 });
 
+// ... (existing menu/table/order exports) ...
 export const fetchMenu = async (restaurantId?: string): Promise<MenuItem[]> => {
     const response = await api.get('/menu', { params: { restaurantId } });
     return response.data;
@@ -91,6 +93,33 @@ export const updateInventoryRequest = async (id: string, status: string) => {
     return response.data;
 };
 
+// --- NEW MOCK APIs for Dashboard ---
+
+export const fetchInventoryItems = async (): Promise<InventoryItem[]> => {
+    // Mocking return
+    return new Promise(resolve => setTimeout(() => resolve(mockInventoryItems), 500));
+};
+
+export const createInventoryItem = async (data: any): Promise<InventoryItem> => {
+     // Mock
+    return new Promise(resolve => setTimeout(() => resolve({ ...data, id: 'mig_' + Date.now() }), 500));
+};
+
+export const fetchExpenses = async (): Promise<Expense[]> => {
+    // Mock
+    return new Promise(resolve => setTimeout(() => resolve(mockExpenses), 500));
+};
+
+export const createExpense = async (data: any): Promise<Expense> => {
+    // Mock
+    return new Promise(resolve => setTimeout(() => resolve({ ...data, id: 'exp_' + Date.now() }), 500));
+};
+
+export const fetchStaff = async (): Promise<Staff[]> => {
+    // Mock
+    return new Promise(resolve => setTimeout(() => resolve(mockStaff), 500));
+};
+
 // Restaurant APIs
 export const fetchRestaurants = async () => {
     const response = await api.get('/restaurant?all=true');
@@ -121,5 +150,11 @@ export const fetchReports = async (restaurantId?: string) => {
 
 export const createReport = async (data: any) => {
     const response = await api.post('/reports', data);
+    return response.data;
+};
+
+
+export const updateRestaurantTheme = async (id: string, theme: any) => {
+    const response = await api.put(`/restaurant/${id}/theme`, { theme });
     return response.data;
 };

@@ -14,7 +14,7 @@ import { alpha, useTheme } from "@mui/material/styles";
 import { Sparkles } from "lucide-react";
 import type { Table } from "@/app/data/mockData";
 
-type TableColor = "success" | "info" | "warning" | "error" | "primary";
+type TableColor = "success" | "info" | "warning" | "error" | "primary" | "secondary";
 
 type Props = {
   tables: (Table & { assignedWaiter?: string })[];

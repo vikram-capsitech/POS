@@ -55,4 +55,24 @@ router.put('/:id', protect, admin, asyncHandler(async (req, res) => {
     res.json(updatedInfo);
 }));
 
+// @desc    Update restaurant theme (Admin)
+// @route   PUT /api/restaurant/:id/theme
+router.put('/:id/theme', protect, admin, asyncHandler(async (req, res) => {
+    let info = await Restaurant.findById(req.params.id);
+    if (!info) {
+        res.status(404);
+        throw new Error('Restaurant not found');
+    }
+
+    if (req.body.theme) {
+        info.theme = {
+            ...info.theme,
+            ...req.body.theme
+        };
+    }
+
+    const updatedInfo = await info.save();
+    res.json(updatedInfo);
+}));
+
 module.exports = router;
