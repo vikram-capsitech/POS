@@ -165,20 +165,38 @@ const importData = async () => {
     const Restaurant = require('./models/Restaurant');
     await Restaurant.deleteMany();
 
-    const restaurant = await Restaurant.create({
+    // Create Restaurant 1
+    const restaurant1 = await Restaurant.create({
         name: 'Tasty Bites',
         address: '123 Flavor St',
         phone: '123-456-7890',
-        description: 'Best food in town!'
+        description: 'Best Indian food in town!'
     });
 
-    const restaurantId = restaurant._id;
+    // Create Restaurant 2
+    const restaurant2 = await Restaurant.create({
+        name: 'Spice Garden',
+        address: '456 Aroma Ave',
+        phone: '987-654-3210',
+        description: 'Authentic spices and flavors.'
+    });
 
-    const menuItemsWithId = menuItems.map(item => ({ ...item, restaurantId }));
-    const tablesWithId = tables.map(table => ({ ...table, restaurantId })); // Tables need restaurantId too
+    console.log(`Created Restaurants: ${restaurant1.name}, ${restaurant2.name}`);
 
-    await MenuItem.insertMany(menuItemsWithId);
-    await Table.insertMany(tablesWithId);
+    // Assign data to Restaurant 1
+    const menuItems1 = menuItems.map(item => ({ ...item, restaurantId: restaurant1._id }));
+    const tables1 = tables.map(table => ({ ...table, restaurantId: restaurant1._id }));
+
+    // Assign data to Restaurant 2 (for simplicity, using same menu/table structure but you could vary it)
+    const menuItems2 = menuItems.map(item => ({ ...item, restaurantId: restaurant2._id }));
+    const tables2 = tables.map((table, index) => ({ 
+        ...table, 
+        number: table.number + 10, // Create different table numbers for 2nd restaurant (11-20)
+        restaurantId: restaurant2._id 
+    }));
+
+    await MenuItem.insertMany([...menuItems1, ...menuItems2]);
+    await Table.insertMany([...tables1, ...tables2]);
 
     console.log('Data Imported!');
     process.exit();
@@ -193,6 +211,8 @@ const destroyData = async () => {
     await Order.deleteMany();
     await MenuItem.deleteMany();
     await Table.deleteMany();
+    const Restaurant = require('./models/Restaurant');
+    await Restaurant.deleteMany(); // Also delete restaurants
 
     console.log('Data Destroyed!');
     process.exit();
