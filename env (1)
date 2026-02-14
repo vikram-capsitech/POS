@@ -1,0 +1,24 @@
+# Server Configuration
+PORT=5000
+MONGO_URI=your_connection_string_here
+JWT_SECRET=your_jwt_secret_key
+EMP_APP_ORIGIN=http://192.168.31.9:8081
+ADMIN_WEB_ORIGIN=http://192.168.31.9:5173
+
+# MongoDB Connection
+PORT=5000
+MONGO_URI=mongodb+srv://dhakarwal75_db_user:6Kmc55FA6X9CLvE3@jumbo-1.juejroy.mongodb.net/jumbo-1?retryWrites=true&w=majority
+JWT_SECRET=mySuperSecretKey
+
+# JWT
+JWT_SECRET=your_jwt_secret_key_here
+JWT_EXPIRE=30d
+
+# Default Super Admin (change these in production)
+DEFAULT_SUPERADMIN_EMAIL=superadmin@example.com
+DEFAULT_SUPERADMIN_PASSWORD=SuperAdmin@123
+
+#cloudinary
+CLOUDINARY_CLOUD_NAME=dgdknd4jl
+CLOUDINARY_API_KEY=312444147953749
+CLOUDINARY_API_SECRET=aA0pMdKelKkmEk_YWg83XC5t4uw
