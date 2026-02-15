@@ -1,12 +1,23 @@
 const OpenAI = require("openai");
 const { buildTaskPrompt } = require("../utils/aiPrompt");
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const apiKey = process.env.OPENAI_API_KEY;
+let openai;
+
+if (apiKey) {
+  openai = new OpenAI({
+    apiKey: apiKey,
+  });
+} else {
+  console.warn("OPENAI_API_KEY is not set. AI features will be disabled.");
+}
 
 async function analyzeImagesByAi({ imagePath, title, description, category }) {
   try {
+    if (!openai) {
+      throw new Error("OpenAI API key is not configured.");
+    }
+
     const taskPrompt = buildTaskPrompt({
       category,
       title,

@@ -1,13 +1,12 @@
 # Server Configuration
 PORT=5000
-MONGO_URI=your_connection_string_here
+MONGO_URI=mongodb+srv://vikram:Vikram1436@cluster0.eaasq.mongodb.net/CM?retryWrites=true&w=majority
 JWT_SECRET=your_jwt_secret_key
 EMP_APP_ORIGIN=http://192.168.31.9:8081
 ADMIN_WEB_ORIGIN=http://192.168.31.9:5173
 
 # MongoDB Connection
 PORT=5000
-MONGO_URI=mongodb+srv://dhakarwal75_db_user:6Kmc55FA6X9CLvE3@jumbo-1.juejroy.mongodb.net/jumbo-1?retryWrites=true&w=majority
 JWT_SECRET=mySuperSecretKey
 
 # JWT

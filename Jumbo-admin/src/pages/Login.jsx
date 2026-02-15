@@ -17,13 +17,12 @@ export default function Login({ onLogin }) {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const performLogin = async (loginEmail, loginPassword) => {
     setLoading(true);
     setError("");
 
     try {
-      const response = await loginUser(email, password, "web");
+      const response = await loginUser(loginEmail, loginPassword, "web");
 
       // Store token and role
       localStorage.setItem("token", response.token);
@@ -43,7 +42,7 @@ export default function Login({ onLogin }) {
       if (response?.role === "employee") {
         try {
           const attendanceId = await createManagerCheckIns({
-            employeeId: response._id, 
+            employeeId: response._id,
             restaurantID: response.restaurantID,
           });
           localStorage.setItem("attendanceId", attendanceId.data._id);
@@ -71,6 +70,11 @@ export default function Login({ onLogin }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    await performLogin(email, password);
   };
 
   return (
@@ -250,9 +254,9 @@ export default function Login({ onLogin }) {
               left: "518px",
               display: "flex",
               flexDirection: "column",
-              gap: "52px", // updated from 15px to match your layout
+              gap: "20px", // Reduced gap to fit buttons
               width: "358px",
-              height: "376px",
+              // height: "376px", // Removed fixed height
               opacity: 1,
             }}
           >
@@ -363,6 +367,100 @@ export default function Login({ onLogin }) {
               </p>
             )}
 
+            <button
+              type="submit"
+              disabled={loading}
+              className="custom-login-btn"
+            >
+              {loading ? "Logging in..." : "Login"}
+            </button>
+
+            {/* Quick Login Buttons (Dev Only) */}
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "10px" }}
+            >
+              <p
+                style={{ fontSize: "12px", color: "#888", marginBottom: "5px" }}
+              >
+                Quick Login (Dev Only):
+              </p>
+              <div
+                style={{
+                  display: "flex",
+                  gap: "10px",
+                  flexWrap: "wrap",
+                  justifyContent: "space-between",
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() =>
+                    performLogin("superadmin@example.com", "SuperAdmin@123")
+                  }
+                  style={{
+                    flex: "1 0 45%",
+                    padding: "8px",
+                    fontSize: "11px",
+                    cursor: "pointer",
+                    backgroundColor: "#e0e0e0",
+                    border: "none",
+                    borderRadius: "5px",
+                  }}
+                >
+                  Super Admin
+                </button>
+                <button
+                  type="button"
+                  onClick={() => performLogin("admin@example.com", "Admin@123")}
+                  style={{
+                    flex: "1 0 45%",
+                    padding: "8px",
+                    fontSize: "11px",
+                    cursor: "pointer",
+                    backgroundColor: "#e0e0e0",
+                    border: "none",
+                    borderRadius: "5px",
+                  }}
+                >
+                  Restaurant Admin
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    performLogin("kitchen@example.com", "Employee@123")
+                  }
+                  style={{
+                    flex: "1 0 45%",
+                    padding: "8px",
+                    fontSize: "11px",
+                    cursor: "pointer",
+                    backgroundColor: "#e0e0e0",
+                    border: "none",
+                    borderRadius: "5px",
+                  }}
+                >
+                  Kitchen Staff
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    performLogin("counter@example.com", "Employee@123")
+                  }
+                  style={{
+                    flex: "1 0 45%",
+                    padding: "8px",
+                    fontSize: "11px",
+                    cursor: "pointer",
+                    backgroundColor: "#e0e0e0",
+                    border: "none",
+                    borderRadius: "5px",
+                  }}
+                >
+                  Counter Staff
+                </button>
+              </div>
+            </div>
+
             <div
               style={{
                 display: "flex",
@@ -431,14 +529,6 @@ export default function Login({ onLogin }) {
                 width="358px"
               />
             </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="custom-login-btn"
-            >
-              {loading ? "Logging in..." : "Login"}
-            </button>
           </form>
         </div>
       </div>
