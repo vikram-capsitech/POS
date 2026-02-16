@@ -93,6 +93,10 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5001; // Changed to 5001 to avoid conflicts
 
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+if (require.main === module) {
+  server.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
+
+module.exports = app;
