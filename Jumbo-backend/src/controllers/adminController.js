@@ -73,51 +73,68 @@ exports.updateUserById = asyncHandler(async (req, res) => {
   try {
     const adminId = req.params.id;
 
-
-    let admin = await User.findOne({
+    const admin = await User.findOne({
       _id: adminId,
       role: { $in: ["admin", "superadmin"] },
     });
 
     if (!admin) {
-      return res.status(404).json({
-        success: false,
-        message: "Admin not found",
-      });
+      return res.status(404).json({ success: false, message: "Admin not found" });
     }
 
+    // email uniqueness
     const { email } = req.body;
-
     if (email && email !== admin.email) {
       const exists = await User.findOne({ email });
       if (exists) {
-        return res.status(400).json({
-          success: false,
-          message: "Email already exists",
-        });
+        return res.status(400).json({ success: false, message: "Email already exists" });
       }
     }
 
-    const disallowedFields = ["password"];
-
-    Object.keys(req.body).forEach((key) => {
-      if (!disallowedFields.includes(key)) {
-        admin[key] = req.body[key];
-      }
+    // ✅ only update user/admin fields here
+    const userAllowed = ["name", "address", "phoneNumber", "email", "gender", "monthlyfee"];
+    userAllowed.forEach((k) => {
+      if (req.body[k] !== undefined) admin[k] = req.body[k];
     });
 
-    if (req.file) {
-      admin.profilePhoto = req.file.path;
+    // ✅ profile photo
+    if (req.files?.profilePhoto?.[0]) {
+      admin.profilePhoto = req.files.profilePhoto[0].path; // cloudinary url
     }
 
     await admin.save();
 
-    const { password, ...safeData } = admin.toObject();
+    // ✅ restaurant update
+    let restaurantData = null;
+    if (admin.restaurantID) {
+      const restaurant = await Restaurant.findById(admin.restaurantID);
 
-    res.status(200).json({
+      if (restaurant) {
+        // Map UI payload fields -> Restaurant schema
+        if (req.body.organizationName !== undefined) restaurant.name = req.body.organizationName;
+        if (req.body.gstIn !== undefined) restaurant.gstIn = req.body.gstIn;
+        if (req.body.fssaiLicense !== undefined) restaurant.fssaiLicense = req.body.fssaiLicense;
+        if (req.body.contactPhone !== undefined) restaurant.contactPhone = req.body.contactPhone;
+
+        // ✅ restaurant logo
+        if (req.files?.restaurantLogo?.[0]) {
+          restaurant.logo = req.files.restaurantLogo[0].path; // cloudinary url
+        }
+
+        await restaurant.save();
+        restaurantData = restaurant.toObject();
+      }
+    }
+
+    const { password, ...safeAdmin } = admin.toObject();
+
+    return res.status(200).json({
       success: true,
       message: "Admin updated successfully",
-      data: safeData,
+      data: {
+        admin: safeAdmin,
+        restaurant: restaurantData,
+      },
     });
   } catch (error) {
     console.error("Error updating admin:", error);

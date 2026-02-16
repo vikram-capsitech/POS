@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import api, { loginUser, createAdminCheckIns, createManagerCheckIns } from "../services/api";
 import { Eye, EyeOff } from "lucide-react";
 import { GoogleLogin } from "@react-oauth/google";
+import React from "react";
 
 export default function Login({ onLogin }) {
   const navigate = useNavigate();
@@ -77,10 +78,10 @@ export default function Login({ onLogin }) {
       display: "grid",
       placeItems: "center",
       padding: "24px",
-     background:
-      "radial-gradient(1200px 700px at 20% 10%, rgba(37, 99, 235, 0.18), transparent 45%), radial-gradient(900px 600px at 90% 40%, rgba(15, 23, 42, 0.25), transparent 50%), #0F172A",
-    fontFamily:
-      "Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif",
+      background:
+        "radial-gradient(1200px 700px at 20% 10%, rgba(37, 99, 235, 0.18), transparent 45%), radial-gradient(900px 600px at 90% 40%, rgba(15, 23, 42, 0.25), transparent 50%), #0F172A",
+      fontFamily:
+        "Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif",
     },
     shell: {
       width: "min(1040px, 100%)",
@@ -90,15 +91,15 @@ export default function Login({ onLogin }) {
       borderRadius: "18px",
       overflow: "hidden",
       boxShadow: "0 40px 120px rgba(0,0,0,.45)",
-    background: "rgba(15, 23, 42, 0.75)",
-    backdropFilter: "blur(16px)",
-    border: "1px solid rgba(255,255,255,.08)",
+      background: "rgba(15, 23, 42, 0.75)",
+      backdropFilter: "blur(16px)",
+      border: "1px solid rgba(255,255,255,.08)",
     },
     left: {
       padding: "52px",
       color: "#fff",
       background:
-      "linear-gradient(135deg, #1E293B 0%, #0F172A 60%, #020617 100%)",
+        "linear-gradient(135deg, #1E293B 0%, #0F172A 60%, #020617 100%)",
       display: "flex",
       flexDirection: "column",
       justifyContent: "space-between",
@@ -167,7 +168,7 @@ export default function Login({ onLogin }) {
       padding: "12px 14px",
       borderRadius: "14px",
       background: "rgba(255,255,255,.04)",
-    border: "1px solid rgba(255,255,255,.06)",
+      border: "1px solid rgba(255,255,255,.06)",
     },
     dot: {
       width: "10px",
@@ -210,8 +211,8 @@ export default function Login({ onLogin }) {
       borderRadius: "18px",
       padding: "26px",
       // background: "#FFFFFF",
-    // border: "1px solid rgba(15,23,42,.06)",
-    // boxShadow: "0 20px 60px rgba(0,0,0,.08)",
+      // border: "1px solid rgba(15,23,42,.06)",
+      // boxShadow: "0 20px 60px rgba(0,0,0,.08)",
     },
     cardTop: { display: "grid", gap: "6px", marginBottom: "18px" },
     title: { margin: 0, fontSize: "22px", fontWeight: 750, letterSpacing: "-0.01em", color: "#0F172A", },
@@ -265,7 +266,7 @@ export default function Login({ onLogin }) {
       fontSize: "14px",
       color: "#fff",
       background: "linear-gradient(135deg, #2563EB, #1D4ED8)",
-    boxShadow: "0 10px 30px rgba(37,99,235,.35)",
+      boxShadow: "0 10px 30px rgba(37,99,235,.35)",
       transition: "transform .06s ease, filter .2s ease",
     },
     primaryDisabled: { filter: "grayscale(.15) opacity(.75)", cursor: "not-allowed" },
@@ -320,7 +321,34 @@ export default function Login({ onLogin }) {
     mobileRight: { padding: "24px" },
   };
 
-  const isMobile = typeof window !== "undefined" ? window.innerWidth < 920 : false;
+  function useMediaQuery(query) {
+    const getMatch = () =>
+      typeof window !== "undefined" ? window.matchMedia(query).matches : false;
+
+    const [matches, setMatches] = useState(getMatch);
+
+    React.useEffect(() => {
+      if (typeof window === "undefined") return;
+      const mql = window.matchMedia(query);
+
+      const onChange = () => setMatches(mql.matches);
+      onChange();
+
+      // Safari fallback
+      if (mql.addEventListener) mql.addEventListener("change", onChange);
+      else mql.addListener(onChange);
+
+      return () => {
+        if (mql.removeEventListener) mql.removeEventListener("change", onChange);
+        else mql.removeListener(onChange);
+      };
+    }, [query]);
+
+    return matches;
+  }
+
+  const isMobile = useMediaQuery("(max-width: 920px)");
+
 
   // small helper to add focus styles without extra css file
   const [focus, setFocus] = useState({ email: false, password: false });

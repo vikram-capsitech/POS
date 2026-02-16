@@ -1,5 +1,9 @@
+// Sidebar.jsx / Sidebar.tsx
 import { NavLink, useLocation } from "react-router-dom";
 import { Home, Hand } from "lucide-react";
+import { useEffect, useState } from "react";
+import { getProfile } from "../services/api";
+
 import TaskIcon from "../assets/TaskIcon.svg?react";
 import TaskIconOn from "../assets/TaskIconOn.svg?react";
 import RequestIcon from "../assets/RequestIcon.svg?react";
@@ -11,10 +15,8 @@ import IssueIcon from "../assets/IssueIcon.svg?react";
 import PortalIcon from "../assets/PortalIcon.svg?react";
 import UserProfileIcon from "../assets/UserProfileIcon.svg?react";
 import UserProfileIconOn from "../assets/UserProfileIconOn.svg?react";
-
 import AiReviewIcon from "../assets/AiReviewIcon.svg?react";
 import AiReviewIconOn from "../assets/AiReviewIconOn.svg?react";
-
 import SopIconOn from "../assets/SopIconOn.svg?react";
 import SopIcon from "../assets/SopIcon.svg?react";
 import VoucherOn from "../assets/VoucherOn.svg?react";
@@ -34,24 +36,74 @@ export default function Sidebar({
   const loaction = useLocation();
 
   const handleLinkClick = () => {
-    if (onClose) {
-      onClose();
-    }
+    if (onClose) onClose();
   };
 
   const hasAccess = (accessKey) => {
-    if (userRole !== "employee") return true; // admin,  superadmin
+    if (userRole !== "employee") return true;
     return userAccess?.includes(accessKey);
   };
 
-  const storedModules = JSON.parse(localStorage.getItem("restaurantModules") || "{}");
-  const isPosVisible = storedModules?.pos !== false; // Visible by default if undefined, or explicit check necessary
+  const storedModules = JSON.parse(
+    localStorage.getItem("restaurantModules") || "{}",
+  );
+  const isPosVisible = storedModules?.pos !== false;
+
+  // ✅ restaurant logo state (no navbar needed)
+  const [restaurantLogo, setRestaurantLogo] = useState(
+    localStorage.getItem("restaurantLogo") || "",
+  );
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadLogo = async () => {
+      try {
+        // if already cached, skip call
+        if (restaurantLogo) return;
+
+        const data = await getProfile(); // should return { restaurant: { logo } }
+        if (!mounted) return;
+
+        const logo = data?.restaurant?.logo || "";
+        if (logo) {
+          setRestaurantLogo(logo);
+          localStorage.setItem("restaurantLogo", logo);
+        }
+      } catch (e) {
+        // keep silent
+      }
+    };
+
+    if (localStorage.getItem("token")) loadLogo();
+    return () => {
+      mounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <>
       {isOpen && <div className="sidebar-overlay" onClick={onClose} />}
       <aside className={`sidebar ${isOpen ? "open" : ""}`}>
-        <div className="brand">Management App</div>
+        {/* ✅ Brand area: logo if present else fallback text */}
+        <div className="brand" >
+          {restaurantLogo ? (
+            <img
+              src={restaurantLogo}
+              alt="Restaurant Logo"
+              style={{
+                height: 42,
+                maxWidth: "100%",
+                objectFit: "contain",
+                display: "block",
+              }}
+            />
+          ) : (
+            "Management App"
+          )}
+        </div>
+
         <ul className="nav-list">
           <li>
             <NavLink to="/" className={linkClass} onClick={handleLinkClick}>
@@ -59,16 +111,31 @@ export default function Sidebar({
               Home
             </NavLink>
           </li>
-          
+
           {userRole !== "superadmin" && isPosVisible && (
             <li>
               <NavLink to="/pos" className={linkClass} onClick={handleLinkClick}>
-                {/* Reusing a Monitor icon or similar until custom icon is available */}
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "20px" }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                    <line x1="8" y1="21" x2="16" y2="21"></line>
-                    <line x1="12" y1="17" x2="12" y2="21"></line>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: "20px",
+                  }}
+                >
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                    <line x1="8" y1="21" x2="16" y2="21" />
+                    <line x1="12" y1="17" x2="12" y2="21" />
                   </svg>
                 </div>
                 POS
@@ -94,10 +161,13 @@ export default function Sidebar({
                       <TaskIcon />
                     )}
                     Task
-                    {notifications.task>0 && <span className="red-dot">{notifications.task}</span>}
+                    {notifications.task > 0 && (
+                      <span className="red-dot">{notifications.task}</span>
+                    )}
                   </NavLink>
                 </li>
               )}
+
               {hasAccess("issueRaised") && (
                 <li>
                   <NavLink
@@ -114,10 +184,13 @@ export default function Sidebar({
                       <IssueIcon />
                     )}
                     Issue raised
-                    {notifications.issue>0 && <span className="red-dot">{notifications.issue}</span>}
+                    {notifications.issue > 0 && (
+                      <span className="red-dot">{notifications.issue}</span>
+                    )}
                   </NavLink>
                 </li>
               )}
+
               {hasAccess("request") && (
                 <li>
                   <NavLink
@@ -134,10 +207,13 @@ export default function Sidebar({
                       <RequestIcon />
                     )}
                     Request
-                    {notifications.request>0 && <span className="red-dot">{notifications.request}</span>}
+                    {notifications.request > 0 && (
+                      <span className="red-dot">{notifications.request}</span>
+                    )}
                   </NavLink>
                 </li>
               )}
+
               {hasAccess("attendance") && (
                 <li>
                   <NavLink
@@ -150,11 +226,11 @@ export default function Sidebar({
                     ) : (
                       <AttendenceOff />
                     )}
-                    
                     Attendance
                   </NavLink>
                 </li>
               )}
+
               {hasAccess("voucher") && (
                 <li>
                   <NavLink
@@ -171,22 +247,16 @@ export default function Sidebar({
                   </NavLink>
                 </li>
               )}
+
               {hasAccess("sop") && (
                 <li>
-                  <NavLink
-                    to="/sop"
-                    className={linkClass}
-                    onClick={handleLinkClick}
-                  >
-                    {loaction.pathname.includes("/sop") ? (
-                      <SopIconOn />
-                    ) : (
-                      <SopIcon />
-                    )}
+                  <NavLink to="/sop" className={linkClass} onClick={handleLinkClick}>
+                    {loaction.pathname.includes("/sop") ? <SopIconOn /> : <SopIcon />}
                     SOP
                   </NavLink>
                 </li>
               )}
+
               {hasAccess("ai-Review") && (
                 <li>
                   <NavLink
@@ -203,8 +273,7 @@ export default function Sidebar({
                   </NavLink>
                 </li>
               )}
-              {/* </>
-          )} */}
+
               {hasAccess("salaryManagement") && (
                 <li>
                   <NavLink
@@ -253,6 +322,7 @@ export default function Sidebar({
               </li>
             </>
           )}
+
           {hasAccess("userProfile") && (
             <li>
               <NavLink
@@ -267,11 +337,10 @@ export default function Sidebar({
                 )}
                 {userRole === "superadmin" ? "Admin" : "User"} profile
               </NavLink>
-              <div
-                style={{ borderBottom: "1px solid #ccc", marginTop: "15px" }}
-              ></div>
+              <div style={{ borderBottom: "1px solid #ccc", marginTop: "15px" }} />
             </li>
           )}
+
           {userRole === "admin" && (
             <li>
               <NavLink
@@ -279,34 +348,34 @@ export default function Sidebar({
                 className={linkClass}
                 onClick={handleLinkClick}
               >
-                <UserProfileIconOn /> {/* Reusing icon for now or use PortalIcon */}
+                <UserProfileIconOn />
                 Settings
               </NavLink>
             </li>
           )}
         </ul>
+
         {userRole === "superadmin" && (
           <div className="bottom-section" style={{ marginTop: "auto" }}>
             <div className="nav-text-item">
-              {/* <Shield className="w-5 h-5" /> */}
               <PortalIcon />
               Super Admin Portal
             </div>
           </div>
         )}
+
         {userRole === "admin" && (
           <div className="bottom-section" style={{ marginTop: "auto" }}>
             <div className="nav-text-item">
-              {/* <Shield className="w-5 h-5" /> */}
               <PortalIcon />
               Admin Portal
             </div>
           </div>
         )}
+
         {userRole === "employee" && (
           <div className="bottom-section" style={{ marginTop: "auto" }}>
             <div className="nav-text-item">
-              {/* <Shield className="w-5 h-5" /> */}
               <PortalIcon />
               Manager Portal
             </div>

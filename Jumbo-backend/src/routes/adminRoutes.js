@@ -25,7 +25,16 @@ router.put("/restaurants/:id/theme", protect, authorize("superadmin"), updateRes
 router.post("/admins", protect, uploadPhoto.fields([{ name: 'profilePhoto', maxCount: 1 }, { name: 'restaurantLogo', maxCount: 1 }]), addAdmin);
 router.get("/users",protect, getUsers);
 router.get("/user/:id",protect, authorize("superadmin"), getUsersById);
-router.put('/user/:id',protect, authorize("superadmin"),uploadPhoto.single("profilePhoto"),updateUserById);
+router.put(
+  "/user/:id",
+  protect,
+  authorize("superadmin"),
+  uploadPhoto.fields([
+    { name: "profilePhoto", maxCount: 1 },
+    { name: "restaurantLogo", maxCount: 1 },
+  ]),
+  updateUserById
+);
 router.delete('/user/:id',protect,deleteAdminById)
 
 module.exports = router;

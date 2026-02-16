@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useLocation} from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { Search, User } from "lucide-react";
 import { getProfile } from "../services/api";
 import LogoutIcon from "../assets/homeScreen/LogoutIcon.svg";
@@ -344,7 +344,7 @@ export default function Navbar({ onLogout }) {
         )}
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
-        {data?.restaurant?.logo && (
+        {/* {data?.restaurant?.logo && (
           <img
             src={data.restaurant.logo}
             alt="Restaurant Logo"
@@ -354,7 +354,7 @@ export default function Navbar({ onLogout }) {
               objectFit: "contain",
             }}
           />
-        )}
+        )} */}
         <ProfileMenu
           userName={userName}
           onLogout={onLogout}
