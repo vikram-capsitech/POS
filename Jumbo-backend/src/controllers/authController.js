@@ -24,7 +24,9 @@ exports.loginUser = asyncHandler(async (req, res) => {
     // Find user by email (case-insensitive)
     const user = await User.findOne({
       email: { $regex: new RegExp("^" + loginIdentifier + "$", "i") },
-    }).select("+password"); // Explicitly include password for comparison
+    })
+      .select("+password")
+      .populate("restaurantID"); // Explicitly include password for comparison
 
     if (!user) {
       return res.status(401).json({
@@ -110,6 +112,7 @@ exports.loginUser = asyncHandler(async (req, res) => {
       role: user.role,
       restaurantID : user.restaurantID,
       token: generateToken(tokenPayload),
+      modules: user?.restaurantID?.modules || {},
     };
 
     // Add employee-specific fields if user is an employee
@@ -151,18 +154,22 @@ exports.loginUser = asyncHandler(async (req, res) => {
 // @route   GET /api/auth/profile
 // @access  Private
 exports.getUserProfile = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.user.id).select("-password");
+  const user = await User.findById(req.user.id)
+    .select("-password")
+    .populate("restaurantID");
 
   if (user) {
     const responseData = {
       _id: user._id,
-      name: user.name,
       email: user.email,
       role: user.role,
-      restaurantID: user.restaurantID,
+      restaurant: user.restaurantID,
+      restaurantID: user.restaurantID?._id,
       profilePhoto: user.profilePhoto,
       access: user.access,
+      access: user.access,
       position: user.position,
+      modules: user?.restaurantID?.modules || {},
     };
 
     // Add employee-specific fields if user is an employee

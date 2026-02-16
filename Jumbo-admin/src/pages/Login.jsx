@@ -29,6 +29,11 @@ export default function Login({ onLogin }) {
       localStorage.setItem("role", response.role);
       localStorage.setItem("userId", response._id);
       localStorage.setItem("restaurantID", response?.restaurantID);
+      if (response.modules) {
+        localStorage.setItem("restaurantModules", JSON.stringify(response.modules));
+      } else {
+        localStorage.removeItem("restaurantModules");
+      }
       if (response.role === "admin") {
         try {
           const attendanceId = await createAdminCheckIns({

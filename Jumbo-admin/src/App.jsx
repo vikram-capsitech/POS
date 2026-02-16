@@ -38,6 +38,7 @@ import VOUCHER from "./pages/Voucher";
 import VoucherDetails from "./pages/VoucherDetails";
 import CreateVOUCHER from "./pages/VoucherCreate";
 import moment from "moment-timezone";
+import POS from "./pages/POS";
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -117,6 +118,7 @@ export default function App() {
     setUserRole(role);
     setUserAccess(access);
   };
+  
   const handleLogout = async () => {
     socket.disconnect();
     localStorage.getItem("token");
@@ -147,12 +149,15 @@ export default function App() {
     localStorage.removeItem("userId");
     localStorage.removeItem("access");
     localStorage.removeItem("restaurantID");
+    localStorage.removeItem("restaurantModules");
     setIsLoggedIn(false);
     setUserRole(null);
     setUserAccess([]);
 
     navigate("/");
   };
+
+            {/* <Route path="/admin-portal" element={<AdminPortal />} /> */}
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -199,6 +204,20 @@ export default function App() {
       setIsLoggedIn(true);
       setUserRole(role);
       setUserAccess(access);
+
+      // Refresh profile to get latest modules config
+      import("./services/api").then(async ({ getProfile }) => {
+         try {
+            const profile = await getProfile();
+            if (profile.modules) {
+               localStorage.setItem("restaurantModules", JSON.stringify(profile.modules));
+               // Force re-render if necessary, but for now localStorage is enough for next page load/route change
+               // Ideally, we lift 'modules' state to App, but for now this ensures sync on refresh.
+            }
+         } catch (err) {
+            console.error("Failed to refresh profile config", err);
+         }
+      });
     }
   }, []);
 
@@ -631,11 +650,22 @@ export default function App() {
               }
             />
             <Route
+              path="/pos"
+              element={
+                <ProtectedRoute
+                  userRole={userRole}
+                  allowedRoles={["admin", "superadmin", "employee"]}
+                  requiredAccess="pos"
+                  Component={POS}
+                />
+              }
+            />
+            <Route
               path="/settings"
               element={
                 <ProtectedRoute
                   userRole={userRole}
-                  requiredRole="superadmin"
+                  allowedRoles={["admin", "superadmin"]}
                   Component={Settings}
                 />
               }

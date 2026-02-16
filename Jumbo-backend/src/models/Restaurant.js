@@ -20,6 +20,12 @@ const restaurantSchema = new Schema(
         "Please add a valid email",
       ],
     },
+    theme: {
+      primary: {
+        type: String,
+        default: "#5240d6",
+      },
+    },
     admins: [
       {
         type: Schema.Types.ObjectId,
@@ -32,6 +38,12 @@ const restaurantSchema = new Schema(
         ref: "User",
       },
     ],
+    modules: {
+      pos: {
+        type: Boolean,
+        default: true,
+      },
+    },
   },
   {
     timestamps: true,

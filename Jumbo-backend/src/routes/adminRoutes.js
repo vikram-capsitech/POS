@@ -10,6 +10,7 @@ const {
   getUsersById,
   updateUserById,
   deleteAdminById,
+  updateRestaurantTheme,
 } = require("../controllers/adminController");
 
 // All routes are protected and require superadmin role
@@ -17,6 +18,8 @@ const {
 
 // Restaurant routes
 router.route("/restaurants").post(addRestaurant).get(getRestaurants);
+router.put("/restaurants/theme", protect, authorize("admin", "superadmin"), updateRestaurantTheme);
+router.put("/restaurants/:id/theme", protect, authorize("superadmin"), updateRestaurantTheme);
 
 // Admin user routes
 router.post("/admins",protect,uploadPhoto.single("profilePhoto"),addAdmin);

@@ -13,8 +13,9 @@ import { formatMDYString, formatToDMY, formatToYMD } from "./ui/DateFormatYMD";
 
 import useStore from "../store/store";
 import { calculateDuration } from "./ui/CalculateDuration";
-import { getPaymentRecordByid, deleteAdminById } from "../services/api";
+import { getPaymentRecordByid, deleteAdminById, updateRestaurantTheme } from "../services/api";
 import MonthYearDropdown from "./MonthYearDropDown";
+import { toast } from "sonner";
 
 export default function UserProfile({ role, id }) {
   const navigate = useNavigate();
@@ -675,6 +676,133 @@ export default function UserProfile({ role, id }) {
               </div>
             </>
           )}
+
+          {role === 'admins' && (
+             <>
+                <div className="sop-steps-leaveBox" style={{ marginTop: '20px' }}>
+                     <div className="profile-title-row">
+                        <h3 className="sop-section-title" style={{ fontWeight: "600" }}>
+                           Restaurant Theme
+                        </h3>
+                     </div>
+                     <div style={{ padding: '10px 0' }}>
+                        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                           {[
+                              { value: '#5240d6', label: 'Default' },
+                              { value: '#ec4899', label: 'Pink' },
+                              { value: '#10b981', label: 'Emerald' },
+                              { value: '#3b82f6', label: 'Blue' },
+                              { value: '#f97316', label: 'Orange' },
+                              { value: '#ef4444', label: 'Red' },
+                           ].map((color) => (
+                              <button
+                                 key={color.value}
+                                 onClick={async () => {
+                                    const restaurantId = admin?.restaurant?._id || admin?.restaurantID?._id || admin?.restaurantID || admin?.restaurant;
+                                    try {
+                                       await updateRestaurantTheme(restaurantId, { primary: color.value });
+                                       toast.success(`Theme updated to ${color.label}`);
+                                       // Optionally refresh data if needed
+                                    } catch (err) {
+                                       toast.error("Failed to update theme");
+                                       console.error(err);
+                                    }
+                                 }}
+                                 style={{
+                                    width: '30px',
+                                    height: '30px',
+                                    borderRadius: '50%',
+                                    backgroundColor: color.value,
+                                    border: '2px solid transparent',
+                                    cursor: 'pointer',
+                                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                 }}
+                                 title={color.label}
+                              />
+                           ))}
+                           <div style={{ position: 'relative', width: '30px', height: '30px' }}>
+                              <input 
+                                 type="color" 
+                                 onChange={async (e) => {
+                                    const restaurantId = admin?.restaurant?._id || admin?.restaurantID?._id || admin?.restaurantID || admin?.restaurant;
+                                    try {
+                                       await updateRestaurantTheme(restaurantId, { primary: e.target.value });
+                                       toast.success('Theme updated');
+                                    } catch (err) {
+                                       toast.error("Failed");
+                                    }
+                                 }}
+                                 style={{ 
+                                    width: '100%', 
+                                    height: '100%', 
+                                    opacity: 0, 
+                                    cursor: 'pointer',
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: 0
+                                 }} 
+                              />
+                              <div style={{
+                                 width: '100%',
+                                 height: '100%',
+                                 borderRadius: '50%',
+                                 background: 'conic-gradient(red, yellow, lime, aqua, blue, magenta, red)',
+                                 pointerEvents: 'none',
+                                 border: '1px solid #ddd'
+                              }} />
+                           </div>
+                        </div>
+                     </div>
+                </div>
+
+                {/* POS Module Toggle (Superadmin Only) */}
+                <div className="sop-steps-leaveBox" style={{ marginTop: '20px' }}>
+                     <div className="profile-title-row">
+                        <h3 className="sop-section-title" style={{ fontWeight: "600" }}>
+                           Restaurant Modules
+                        </h3>
+                     </div>
+                     <div style={{ padding: '15px 0' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #f0f0f0' }}>
+                           <div>
+                              <div style={{ fontWeight: '500', color: '#1a1f36' }}>POS System</div>
+                              <div style={{ fontSize: '12px', color: '#697386' }}>Enable/Disable Point of Sale access</div>
+                           </div>
+                           <label className="toggle-switch" style={{ position: 'relative', display: 'inline-block', width: '40px', height: '24px' }}>
+                              <input 
+                                 type="checkbox"
+                                 checked={admin?.restaurant?.modules?.pos !== false}
+                                 onChange={async (e) => {
+                                    const restaurantId = admin?.restaurant?._id || admin?.restaurantID?._id || admin?.restaurantID || admin?.restaurant;
+                                    const isEnabled = e.target.checked;
+                                    try {
+                                       await updateRestaurantTheme(restaurantId, { modules: { ...admin?.restaurant?.modules, pos: isEnabled } });
+                                       await getAdminById(id); // Refresh data
+                                       toast.success(`POS Module ${isEnabled ? 'Enabled' : 'Disabled'}`);
+                                    } catch (err) {
+                                       toast.error("Failed to update module settings");
+                                       console.error(err);
+                                    }
+                                 }}
+                                 style={{ opacity: 0, width: 0, height: 0 }}
+                              />
+                              <span style={{
+                                 position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0,
+                                 backgroundColor: admin?.restaurant?.modules?.pos !== false ? '#5240d6' : '#ccc',
+                                 transition: '.4s', borderRadius: '34px'
+                              }}>
+                                 <span style={{
+                                    position: 'absolute', content: '""', height: '16px', width: '16px',
+                                    left: admin?.restaurant?.modules?.pos !== false ? '20px' : '4px',
+                                    bottom: '4px', backgroundColor: 'white', transition: '.4s', borderRadius: '50%'
+                                 }}/>
+                              </span>
+                           </label>
+                        </div>
+                     </div>
+                </div>
+              </>
+            )}
 
           {role === "staff" && (
             <div>

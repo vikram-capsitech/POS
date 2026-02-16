@@ -19,11 +19,13 @@ import DonutChart from "../components/DonutChart";
 import useStore from "../store/store";
 
 
+import { useAppTheme } from "../context/ThemeContext";
+
 export default function Home() {
   const navigate = useNavigate();
+  const { primaryColor } = useAppTheme();
 
   const {
-
     fetchHome,
     home,
   } = useStore();
@@ -72,7 +74,7 @@ export default function Home() {
     {
       label: "No Recent Task",
       value: total === 0,
-      color: "#5240D6",
+      color: primaryColor,
     },
   ];
 
@@ -93,7 +95,7 @@ export default function Home() {
      {
       label: "No Recent Payment",
       value: totalpayment === 0,
-      color: "#5240D6",
+      color: primaryColor,
     },
 
   ]
@@ -348,7 +350,7 @@ export default function Home() {
               className="quick-buttons"
               style={{
                 gridTemplateColumns: "1fr",
-                backgroundColor: " #5240D6",
+                backgroundColor: primaryColor,
                 borderRadius: "8px",
 
               }}
@@ -382,7 +384,7 @@ export default function Home() {
                 onClick={() => navigate("/task/new")}
               >
                 <div className="action-holder">
-                  <PlusSquare size={20} stroke="#5240D6" className="icon" />
+                  <PlusSquare size={20} stroke={primaryColor} className="icon" />
                   <div className="action-text">Create new task</div>
                 </div>
               </button>

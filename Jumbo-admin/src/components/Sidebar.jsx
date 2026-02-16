@@ -44,6 +44,9 @@ export default function Sidebar({
     return userAccess?.includes(accessKey);
   };
 
+  const storedModules = JSON.parse(localStorage.getItem("restaurantModules") || "{}");
+  const isPosVisible = storedModules?.pos !== false; // Visible by default if undefined, or explicit check necessary
+
   return (
     <>
       {isOpen && <div className="sidebar-overlay" onClick={onClose} />}
@@ -56,6 +59,23 @@ export default function Sidebar({
               Home
             </NavLink>
           </li>
+          
+          {userRole !== "superadmin" && isPosVisible && (
+            <li>
+              <NavLink to="/pos" className={linkClass} onClick={handleLinkClick}>
+                {/* Reusing a Monitor icon or similar until custom icon is available */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "20px" }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                    <line x1="8" y1="21" x2="16" y2="21"></line>
+                    <line x1="12" y1="17" x2="12" y2="21"></line>
+                  </svg>
+                </div>
+                POS
+              </NavLink>
+            </li>
+          )}
+
           {userRole !== "superadmin" && (
             <>
               {hasAccess("task") && (
@@ -250,6 +270,18 @@ export default function Sidebar({
               <div
                 style={{ borderBottom: "1px solid #ccc", marginTop: "15px" }}
               ></div>
+            </li>
+          )}
+          {userRole === "admin" && (
+            <li>
+              <NavLink
+                to="/settings"
+                className={linkClass}
+                onClick={handleLinkClick}
+              >
+                <UserProfileIconOn /> {/* Reusing icon for now or use PortalIcon */}
+                Settings
+              </NavLink>
             </li>
           )}
         </ul>

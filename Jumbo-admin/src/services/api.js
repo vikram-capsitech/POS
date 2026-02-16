@@ -735,6 +735,54 @@ export const addRestaurant = async (restaurantData) => {
   }
 };
 
+export const updateRestaurantTheme = async (arg1, arg2) => {
+  try {
+    let url = "/admin/restaurants/theme";
+    // Check if called as (restaurantId, updateData) or just (updateData)
+    // If arg1 is ID (string) and arg2 is object, behave appropriately.
+    let updateData = arg1;
+
+    if (arg2 && typeof arg2 === "object") {
+      url = `/admin/restaurants/${arg1}/theme`;
+      updateData = arg2;
+    }
+
+    // Support both { theme: ..., modules: ... } format and older format where arg2 was just theme
+    // If updateData has 'theme' or 'modules' as keys, use it directly.
+    // If not, assume it's legacy theme object and wrap it in { theme: ... }
+    let body = updateData;
+    if (!updateData.theme && !updateData.modules && updateData.primary) {
+         body = { theme: updateData };
+         // Actually, if updateData has `primary` key then it's likely a theme object.
+         // But what if modules is passed?
+    }
+    // But wait, existing code was: 
+    // const response = await api.put(url, { theme: themeData });
+    // This forcibly wraps it.
+    
+    // To maintain compatibility but allow modules:
+    // If arg2 has 'modules' key, we pass it as is (merging theme if needed).
+    // Or simpler: check if 'modules' inside arg2.
+    
+    if (updateData.modules) {
+        body = updateData; // Pass as is: { modules: {...}, maybe theme: {...} }
+    } else {
+        // Assume it's just theme data if no modules key, for backward compat with existing calls
+        // Existing calls pass { primary: '...' }
+        // We wrap it in { theme: { primary: '...' } }
+        if (!updateData.theme) {
+             body = { theme: updateData };
+        }
+    }
+
+    const response = await api.put(url, body);
+    return response.data;
+  } catch (error) {
+    console.error("Error updating restaurant settings:", error);
+    throw error;
+  }
+};
+
 export const updateEmployee = async (id, employeeData) => {
   try {
     const response = await api.put(`/employees/${id}`, employeeData, {

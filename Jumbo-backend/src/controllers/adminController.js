@@ -29,7 +29,7 @@ exports.getUsersById = asyncHandler(async (req, res) => {
     const user = await User.findOne({
       _id: req.params.id,
       role: { $in: ["admin", "superadmin"] },
-    }).select("-password");
+    }).select("-password").populate("restaurantID");
 
     if (!user) {
       return res.status(404).json({
@@ -37,7 +37,8 @@ exports.getUsersById = asyncHandler(async (req, res) => {
         message: "User not found or not an admin/superadmin",
       });
     }
-    const restaurantID = user.restaurantID;
+    const restaurantObj = user.restaurantID;
+    const restaurantID = restaurantObj?._id;
 
     const totalEmployee = await Employee.countDocuments({
       restaurantID,
@@ -53,6 +54,7 @@ exports.getUsersById = asyncHandler(async (req, res) => {
       success: true,
       data: {
         ...user.toObject(),
+        restaurant: restaurantObj, // Ensure frontend can access via .restaurant
         totalEmployee,
         managerCount,
       }
@@ -222,5 +224,46 @@ exports.getRestaurants = asyncHandler(async (req, res) => {
     success: true,
     count: restaurants.length,
     data: restaurants,
+  });
+});
+
+exports.updateRestaurantTheme = asyncHandler(async (req, res) => {
+  const { theme, modules } = req.body;
+  const user = req.user;
+
+  let restaurantID = user.restaurant;
+
+  // If superadmin and trying to update a specific restaurant via params
+  if (user.role === "superadmin" && req.params.id) {
+    restaurantID = req.params.id;
+  }
+
+  if (!restaurantID) {
+    return res.status(400).json({
+      success: false,
+      message: "Restaurant ID required",
+    });
+  }
+
+  const updateData = {};
+  if (theme) updateData.theme = theme;
+  if (modules) updateData.modules = modules;
+
+  const updatedRestaurant = await Restaurant.findByIdAndUpdate(
+    restaurantID,
+    updateData,
+    { new: true, runValidators: true }
+  );
+
+  if (!updatedRestaurant) {
+    return res.status(404).json({
+      success: false,
+      message: "Restaurant not found",
+    });
+  }
+
+  res.status(200).json({
+    success: true,
+    data: updatedRestaurant,
   });
 });

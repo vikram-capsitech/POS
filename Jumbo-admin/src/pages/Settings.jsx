@@ -1,5 +1,8 @@
 import { useState } from 'react'
 import { Palette, Bell, Shield,  Save, Moon, Sun, Monitor } from 'lucide-react'
+import { useAppTheme } from "../context/ThemeContext";
+import { updateRestaurantTheme } from "../services/api";
+import { toast } from "sonner";
 
 export default function Settings() {
 	const [settings, setSettings] = useState({
@@ -20,6 +23,9 @@ export default function Settings() {
 		}
 	})
 
+	const { primaryColor, setPrimaryColor } = useAppTheme();
+	const [selectedColor, setSelectedColor] = useState(primaryColor);
+
 	const handleSettingChange = (category, key, value) => {
 		setSettings(prev => ({
 			...prev,
@@ -30,9 +36,17 @@ export default function Settings() {
 		}))
 	}
 
-	const handleSave = () => {
-		// Here you would typically save to backend
-		alert('Settings saved successfully!')
+	const handleSave = async () => {
+		try {
+			if (selectedColor !== primaryColor) {
+				await updateRestaurantTheme({ primary: selectedColor });
+				setPrimaryColor(selectedColor);
+			}
+			toast.success('Settings saved successfully!');
+		} catch (error) {
+			console.error(error);
+			toast.error('Failed to save settings');
+		}
 	}
 
 	const themes = [
@@ -71,7 +85,7 @@ export default function Settings() {
 						<div className="setting-group">
 							<label className="setting-label">Theme</label>
 							<div className="theme-options">
-								{themes.map(({ value, label}) => (
+								{themes.map(({ value, label, icon: Icon }) => (
 									<button
 										key={value}
 										className={`theme-option ${settings.theme === value ? 'active' : ''}`}
@@ -81,6 +95,43 @@ export default function Settings() {
 										<span>{label}</span>
 									</button>
 								))}
+							</div>
+						</div>
+
+						<div className="setting-group">
+							<label className="setting-label">Primary Color</label>
+							<div className="theme-options" style={{ flexWrap: 'wrap', gap: '1rem' }}>
+								{[
+									{ value: '#5240d6', label: 'Default' },
+									{ value: '#ec4899', label: 'Pink' },
+									{ value: '#10b981', label: 'Emerald' },
+									{ value: '#3b82f6', label: 'Blue' },
+									{ value: '#f97316', label: 'Orange' },
+									{ value: '#ef4444', label: 'Red' },
+								].map(({ value, label }) => (
+									<button
+										key={value}
+										className={`theme-option ${selectedColor === value ? 'active' : ''}`}
+										onClick={() => setSelectedColor(value)}
+										style={{ 
+											borderColor: selectedColor === value ? value : 'transparent',
+											borderWidth: '2px',
+											background: 'transparent'
+										}}
+									>
+										<div style={{ width: 16, height: 16, borderRadius: '50%', background: value }}></div>
+										<span>{label}</span>
+									</button>
+								))}
+								<div className="theme-option" style={{ padding: '0.5rem' }}>
+									<input 
+										type="color" 
+										value={selectedColor} 
+										onChange={(e) => setSelectedColor(e.target.value)} 
+										style={{ border: 'none', background: 'transparent', width: 32, height: 32, cursor: 'pointer' }}
+									/>
+									<span>Custom</span>
+								</div>
 							</div>
 						</div>
 
