@@ -22,25 +22,25 @@
   --error-mid: #fd9f9f;
 
   /* Typography */
-  --font-xs: 1.2rem;
-  --font-sm: 1.4rem;
-  --font-md: 1.6rem;
-  --font-lg: 1.8rem;
-  --font-xl: 2.0rem;
-  --font-2xl: 2.4rem;
-  --font-3xl: 3.2rem;
+  --font-xs: 1rem;
+  --font-sm: 1.2rem;
+  --font-md: 1.4rem;
+  --font-lg: 1.6rem;
+  --font-xl: 1.8rem;
+  --font-2xl: 2rem;
+  --font-3xl: 2.4rem;
   
   /* Border Radius */
-  --radius-xxs: 0.4rem;
-  --radius-xs: 0.6rem;
-  --radius-sm: 0.8rem;
-  --radius-md: 1rem;
-  --radius-lg: 2rem;
-  --radius-xl: 2.4rem;
+  --radius-xxs: 0.2rem;
+  --radius-xs: 0.4rem;
+  --radius-sm: 0.6rem;
+  --radius-md: 0.8rem;
+  --radius-lg: 1rem;
+  --radius-xl: 2rem;
   --radius-full: 50%;
 
   /* Spacing */
-  --space-xs: 0.4rem;
+  --space-xs: 0.2rem;
   --space-sm: 0.8rem;
   --space-md: 1.6rem;
   --space-lg: 2.4rem;
@@ -91,7 +91,7 @@ body {
   background: var(--white);
   border: 0.1rem solid var(--border);
   border-radius: var(--radius-lg) 0 0 var(--radius-lg);
-  padding: 1.6rem;
+  /* padding: 1.6rem; */
   display: flex;
   flex-direction: column;
   /* gap: 3.5rem; */
@@ -103,7 +103,7 @@ body {
   color: var(--purple);
   font-weight: 500;
   font-size: var(--font-2xl);
-  margin-bottom: 3.5rem;
+  margin-bottom: 3rem;
 }
 
 .nav-list {
@@ -122,7 +122,7 @@ body {
   gap: 1.2rem;
   color: var(--grey-100);
   padding: 1.1rem 1.3rem;
-  border-radius: var(--radius-sm);
+  /* border-radius: var(--radius-sm); */
   text-decoration: none;
 }
 
@@ -147,11 +147,10 @@ body {
   left: 26.9rem;
   /* Push to the right of sidebar */
   right: 0;
-  height: 8.8rem;
   background: var(--white);
   border-bottom: 0.1rem solid var(--border);
   border-radius: 0 var(--radius-lg) 0 0;
-  padding: 1.8rem 3.6rem 1.8rem 1.5rem;
+  padding: 1rem 2rem 1rem 1rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -190,7 +189,7 @@ body {
   color: #a8b8c9;
   flex-shrink: 0;
   width: 2.2rem;
-  height: 2.2rem;
+  height: 2rem;
 }
 
 .navbar-search-wrapper .search-input {
@@ -484,12 +483,12 @@ body {
   justify-content: space-between;
   align-items: center;
   gap: 2rem;
-  margin-bottom: 2.2rem;
+  /* margin-bottom: 2.2rem; */
 }
 
 .task-title {
   font-weight: 600;
-  font-size: 2.6rem;
+  font-size: 2rem;
   color: var(--charcoal);
 }
 
@@ -512,7 +511,7 @@ body {
   border-radius: var(--radius-sm);
   font-size: 1.5rem;
   font-weight: 500;
-  line-height: 120%;
+  line-height: 100%;
   font-family: inherit;
 }
 

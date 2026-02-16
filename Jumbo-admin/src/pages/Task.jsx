@@ -1,4 +1,4 @@
-import { useState,  useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import FilterIcon from "../assets/taskScreen/FilterIcon.svg";
 import FilterModal from "../components/FilterModal";
@@ -73,12 +73,9 @@ export default function Task() {
     getTasks(1);
   };
 
-
   const handleViewDetails = async (taskId) => {
     navigate(`/task/${taskId}`);
   };
-
-
 
   const getTasks = async (
     page = Number(import.meta.env.VITE_PAGE),

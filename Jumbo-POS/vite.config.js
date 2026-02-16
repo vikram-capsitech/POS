@@ -1,19 +1,17 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import svgr from "vite-plugin-svgr";
 import federation from "@originjs/vite-plugin-federation";
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
     react(),
-    svgr({
-      exportAsDefault: true, // <-- add this!
-    }),
     federation({
-      name: "jumbo_admin",
-      remotes: {
-        pos_app: "http://localhost:3001/assets/remoteEntry.js",
+      name: "pos_app",
+      filename: "remoteEntry.js",
+      // Modules to expose
+      exposes: {
+        "./App": "./src/App.jsx",
       },
       shared: ["react", "react-dom"],
     }),
@@ -23,5 +21,13 @@ export default defineConfig({
     target: "esnext",
     minify: false,
     cssCodeSplit: false,
+  },
+  server: {
+    port: 3001,
+    strictPort: true,
+  },
+  preview: {
+    port: 3001,
+    strictPort: true,
   },
 });
