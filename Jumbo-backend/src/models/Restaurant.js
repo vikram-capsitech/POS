@@ -44,6 +44,21 @@ const restaurantSchema = new Schema(
         default: true,
       },
     },
+    logo: {
+      type: String, // URL to image
+    },
+    gstIn: {
+      type: String, 
+      trim: true,
+    },
+    fssaiLicense: {
+      type: String,
+      trim: true,
+    },
+    contactPhone: { // Restaurant specific contact
+       type: String,
+       trim: true,
+    },
   },
   {
     timestamps: true,

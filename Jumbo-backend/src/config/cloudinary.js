@@ -21,9 +21,15 @@ const storage = new CloudinaryStorage({
 
 const photoStorage = new CloudinaryStorage({
   cloudinary,
-  params: {
-    folder: "employee_photos",
-    resource_type: "image",
+  params: async (req, file) => {
+    let folderName = "employee_photos";
+    if (file.fieldname === "restaurantLogo") {
+      folderName = "restaurant_logos";
+    }
+    return {
+      folder: folderName,
+      resource_type: "image",
+    };
   },
 });
 const uploadPhoto = multer({ storage: photoStorage });

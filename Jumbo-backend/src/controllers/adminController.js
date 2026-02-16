@@ -158,9 +158,24 @@ exports.addRestaurant = asyncHandler(async (req, res) => {
 exports.addAdmin = asyncHandler(async (req, res) => {
   
   try {
-    const { email, name, organizationName, restaurantName, restaurantAddress } =
+    const { email, name, organizationName, restaurantName, restaurantAddress, gstIn, fssaiLicense, contactPhone } =
       req.body;
-    const profilePhoto = req.file ? req.file.path : null;
+
+    // Handle files (profilePhoto and restaurantLogo)
+    let profilePhoto = null;
+    let restaurantLogo = null;
+
+    if (req.files) {
+        if (req.files.profilePhoto && req.files.profilePhoto.length > 0) {
+            profilePhoto = req.files.profilePhoto[0].path;
+        }
+        if (req.files.restaurantLogo && req.files.restaurantLogo.length > 0) {
+            restaurantLogo = req.files.restaurantLogo[0].path;
+        }
+    } else if (req.file) {
+        // Fallback for single file upload if only profilePhoto sent via .single() (though route changed to .fields())
+        profilePhoto = req.file.path;
+    }
 
     // Check if user already exists
     const userExists = await User.findOne({ email });
@@ -175,7 +190,11 @@ exports.addAdmin = asyncHandler(async (req, res) => {
       name: restaurantName || name,
       organizationName: organizationName,
       address: restaurantAddress || "Not specified",
-      contactEmail: email,
+      contactEmail: email, // Admin email as default contact email
+      logo: restaurantLogo,
+      gstIn,
+      fssaiLicense,
+      contactPhone,
     });
 
     // Create admin user with the new restaurant ID

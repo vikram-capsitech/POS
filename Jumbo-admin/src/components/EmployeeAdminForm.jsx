@@ -22,8 +22,41 @@ export default function EmployeeAdminForm({
 
   const [errors, setErrors] = useState({});
   const [imageURL, setImageURL] = useState(null);
+  const [restaurantLogoURL, setRestaurantLogoURL] = useState(null);
   const [selectedAccess, setSelectedAccess] = useState([]);
   const [allotedItems, setAllotedItems] = useState([]);
+
+// ... (options array)
+
+  const handleRestaurantLogoChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/jpg", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Only JPG, PNG, or WEBP images are allowed");
+      e.target.value = null;
+      setFormData((prev) => ({ ...prev, restaurantLogo: null }));
+      setRestaurantLogoURL(null);
+      return;
+    }
+
+    const isLt5MB = file.size / (1024 * 1024) < 5;
+    if (!isLt5MB) {
+        toast.error("Image must be smaller than 5MB");
+        return;
+    }
+
+    setFormData({ ...formData, restaurantLogo: file });
+    setRestaurantLogoURL(URL.createObjectURL(file));
+  };
+  
+  const handleDeleteRestaurantLogo = () => {
+      setRestaurantLogoURL(null);
+      setFormData((prev) => ({ ...prev, restaurantLogo: null }));
+      const input = document.getElementById("restaurantLogoInput");
+      if(input) input.value = "";
+  };
 
   const options = [
     { value: "task", label: "Task" },
@@ -62,6 +95,10 @@ export default function EmployeeAdminForm({
     organizationName: "",
     leavesProvided: "",
     CoinsPerMonth: "",
+    gstIn: "",
+    fssaiLicense: "",
+    contactPhone: "",
+    restaurantLogo: "",
   });
 
   // --- Fetch Data for Edit Mode ---
@@ -268,6 +305,12 @@ export default function EmployeeAdminForm({
     if (type !== "employee") {
       fd.append("organizationName", formData.organizationName);
       fd.append("monthlyfee", formData.monthlyfee);
+      fd.append("gstIn", formData.gstIn);
+      fd.append("fssaiLicense", formData.fssaiLicense);
+      fd.append("contactPhone", formData.contactPhone);
+      if (formData.restaurantLogo) {
+          fd.append("restaurantLogo", formData.restaurantLogo);
+      }
     }
     if (formData.profilePhoto) fd.append("profilePhoto", formData.profilePhoto);
 
@@ -372,6 +415,7 @@ export default function EmployeeAdminForm({
                 </div>
               </>
             ) : (
+              <>
               <div className="form-row">
                 <div className="form-col">
                   <label className="label-lg">Admin Name</label>
@@ -400,6 +444,48 @@ export default function EmployeeAdminForm({
                   )}
                 </div>
               </div>
+                <div style={{ padding: '10px 0', borderTop: '1px dashed #eee', marginTop: '15px' }}>
+                    <div className="form-row" style={{ alignItems: 'flex-start' }}>
+                        <div className="form-col">
+                            <label className="label-lg">Restaurant Logo</label>
+                            <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
+                                {restaurantLogoURL ? (
+                                    <img src={restaurantLogoURL} style={{ width: 60, height: 60, borderRadius: '8px', objectFit: 'cover', border: '1px solid #ddd' }} />
+                                ) : (
+                                    <div style={{ width: 60, height: 60, borderRadius: '8px', background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px dashed #ccc' }}>
+                                        <span style={{ fontSize: '10px', color: '#999' }}>No Logo</span>
+                                    </div>
+                                )}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                    <label className="userButton" style={{cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0.4rem 1rem', fontSize: '13px'}}>
+                                        Upload Logo
+                                        <input type="file" id="restaurantLogoInput" accept="image/*" style={{display: 'none'}} onChange={handleRestaurantLogoChange} />
+                                    </label>
+                                    {restaurantLogoURL && (
+                                        <button type="button" className="userButton2" style={{ fontSize: '12px', padding: '0.3rem' }} onClick={handleDeleteRestaurantLogo}>
+                                            Remove
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="form-col">
+                            <label className="label-lg">Restaurant Contact Phone</label>
+                            <input type="tel" name="contactPhone" className="input" placeholder="Restaurant Contact" value={formData.contactPhone} onChange={handleInputChange} maxLength={15} />
+                        </div>
+                    </div>
+                    <div className="form-row" style={{ marginTop: '1rem' }}>
+                        <div className="form-col">
+                            <label className="label-lg">GSTIN / Tax ID</label>
+                            <input type="text" name="gstIn" className="input" placeholder="GSTIN / Tax Number" value={formData.gstIn} onChange={handleInputChange} />
+                        </div>
+                        <div className="form-col">
+                            <label className="label-lg">FSSAI License (Optional)</label>
+                            <input type="text" name="fssaiLicense" className="input" placeholder="FSSAI License" value={formData.fssaiLicense} onChange={handleInputChange} />
+                        </div>
+                    </div>
+                </div>
+              </>
             )}
 
             {/** Address */}

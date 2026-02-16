@@ -343,12 +343,25 @@ export default function Navbar({ onLogout }) {
           </div>
         )}
       </div>
-      <ProfileMenu
-        userName={userName}
-        onLogout={onLogout}
-        data={data}
-        photo={photo}
-      />
+      <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
+        {data?.restaurant?.logo && (
+          <img
+            src={data.restaurant.logo}
+            alt="Restaurant Logo"
+            style={{
+              height: "40px",
+              maxWidth: "120px",
+              objectFit: "contain",
+            }}
+          />
+        )}
+        <ProfileMenu
+          userName={userName}
+          onLogout={onLogout}
+          data={data}
+          photo={photo}
+        />
+      </div>
     </header>
   );
 }

@@ -22,7 +22,7 @@ router.put("/restaurants/theme", protect, authorize("admin", "superadmin"), upda
 router.put("/restaurants/:id/theme", protect, authorize("superadmin"), updateRestaurantTheme);
 
 // Admin user routes
-router.post("/admins",protect,uploadPhoto.single("profilePhoto"),addAdmin);
+router.post("/admins", protect, uploadPhoto.fields([{ name: 'profilePhoto', maxCount: 1 }, { name: 'restaurantLogo', maxCount: 1 }]), addAdmin);
 router.get("/users",protect, getUsers);
 router.get("/user/:id",protect, authorize("superadmin"), getUsersById);
 router.put('/user/:id',protect, authorize("superadmin"),uploadPhoto.single("profilePhoto"),updateUserById);
