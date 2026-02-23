@@ -16,10 +16,10 @@ export default function Login({ onLogin }) {
   const performLogin = async (loginEmail, loginPassword) => {
     setLoading(true);
     setError("");
-
+    debugger;
     try {
       const response = await loginUser(loginEmail, loginPassword, "web");
-
+      debugger;
       localStorage.setItem("token", response.token);
       localStorage.setItem("role", response.role);
       localStorage.setItem("userId", response._id);

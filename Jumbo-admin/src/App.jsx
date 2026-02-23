@@ -1,5 +1,12 @@
+// App.jsx
 import { useState, useEffect } from "react";
-import { Routes, Route, useNavigate } from "react-router-dom";
+import {
+  Routes,
+  Route,
+  Outlet,
+  useNavigate,
+  useLocation,
+} from "react-router-dom";
 import { createAdminCheckOut, createManagerCheckOut } from "./services/api";
 import Sidebar from "./components/Sidebar";
 import Navbar from "./components/Navbar";
@@ -13,14 +20,12 @@ import SalaryManagement from "./pages/SalaryManagement";
 import StaffProfile from "./pages/StaffProfile";
 import StaffProfileDetails from "./pages/StaffProfileDetails";
 import AddEmployee from "./pages/AddEmployee";
-import AdminPortal from "./pages/AdminPortal";
 import CreateTask from "./pages/CreateTask";
 import TaskDetails from "./pages/TaskDetails";
 import RaiseIssue from "./pages/RaiseIssue";
 import RequestDetails from "./pages/RequestDetails";
 import CreateSOP from "./pages/CreateSOP";
 import SOPDetails from "./pages/SOPDetails";
-import AdminProfile from "./pages/AdminProfile";
 import Settings from "./pages/Settings";
 import Login from "./pages/Login";
 import AddRestaurant from "./pages/AddRestaurant";
@@ -40,6 +45,57 @@ import CreateVOUCHER from "./pages/VoucherCreate";
 import moment from "moment-timezone";
 import POS from "./pages/POS";
 
+/** Layout with Sidebar + Navbar */
+function AppLayout({
+  isMobileMenuOpen,
+  isMenuVisible,
+  toggleMobileMenu,
+  closeMobileMenu,
+  userRole,
+  userAccess,
+  notifications,
+  clearNotification,
+  handleLogout,
+}) {
+  return (
+    <div className="app-layout">
+      <button
+        className={`mobile-menu-toggle ${isMenuVisible ? "visible" : "hidden"}`}
+        onClick={toggleMobileMenu}
+      >
+        ☰
+      </button>
+
+      <Sidebar
+        isOpen={isMobileMenuOpen}
+        onClose={closeMobileMenu}
+        userRole={userRole}
+        userAccess={userAccess}
+        notifications={notifications}
+        clearNotification={clearNotification}
+      />
+
+      <div className="main">
+        <Navbar onLogout={handleLogout} />
+
+        <div className="content">
+          <Toaster position="top-right" />
+          <Outlet />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Fullscreen layout (no host Sidebar/Navbar) */
+function PosLayout() {
+  return (
+    <div style={{ width: "100vw", height: "100vh" }}>
+      <Outlet />
+    </div>
+  );
+}
+
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [notifications, setNotifications] = useState({
@@ -52,7 +108,10 @@ export default function App() {
   const [userAccess, setUserAccess] = useState([]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMenuVisible, setIsMenuVisible] = useState(true);
+
   const navigate = useNavigate();
+  const location = useLocation();
+
   useEffect(() => {
     if (!isLoggedIn) return;
 
@@ -60,24 +119,16 @@ export default function App() {
     const restaurantID = localStorage.getItem("restaurantID");
 
     if (role === "admin" && restaurantID) {
-      if (!socket.connected) {
-        socket.connect();
-      }
+      if (!socket.connected) socket.connect();
 
       socket.on("connect", () => {
         console.log("✅ Socket connected:", socket.id);
         socket.emit("JOIN_ADMIN", { restaurantID });
       });
 
-      //  CENTRALIZED HANDLER
       const handleNotification = (type, message, variant = "info") => {
-        setNotifications((prev) => ({
-          ...prev,
-          [type]: prev[type] + 1,
-        }));
-        toast[variant](message, {
-          icon: "🔔",
-        });
+        setNotifications((prev) => ({ ...prev, [type]: prev[type] + 1 }));
+        toast[variant](message, { icon: "🔔" });
       };
 
       socket.on("TASK_EVENT", () =>
@@ -86,10 +137,10 @@ export default function App() {
       socket.on("REQUEST_EVENT", () =>
         handleNotification("request", "New request received", "info"),
       );
-
       socket.on("ISSUE_EVENT", () =>
         handleNotification("issue", "New issue raised", "warning"),
       );
+
       socket.on("CHECKIN_EVENT", (data) => {
         const checkInTime = moment(data.checkInTime)
           .tz("Asia/Kolkata")
@@ -118,38 +169,34 @@ export default function App() {
     setUserRole(role);
     setUserAccess(access);
   };
-  
+
   const handleLogout = async () => {
     socket.disconnect();
-    localStorage.getItem("token");
-    localStorage.getItem("role");
-
     const Id = localStorage.getItem("attendanceId");
 
     if (userRole === "admin") {
       try {
-        await createAdminCheckOut({
-          attendanceId: Id,
-        });
+        await createAdminCheckOut({ attendanceId: Id });
       } catch (err) {
         console.error("not check out", err);
       }
     }
-       if (userRole === "employee") {
+
+    if (userRole === "employee") {
       try {
-        await createManagerCheckOut({
-          attendanceId: Id,
-        });
+        await createManagerCheckOut({ attendanceId: Id });
       } catch (err) {
         console.error("not check out", err);
       }
     }
+
     localStorage.removeItem("token");
     localStorage.removeItem("role");
     localStorage.removeItem("userId");
     localStorage.removeItem("access");
     localStorage.removeItem("restaurantID");
     localStorage.removeItem("restaurantModules");
+
     setIsLoggedIn(false);
     setUserRole(null);
     setUserAccess([]);
@@ -157,20 +204,11 @@ export default function App() {
     navigate("/");
   };
 
-            {/* <Route path="/admin-portal" element={<AdminPortal />} /> */}
+  const toggleMobileMenu = () => setIsMobileMenuOpen((p) => !p);
+  const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
-  const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
-  };
-
-  const closeMobileMenu = () => {
-    setIsMobileMenuOpen(false);
-  };
   const clearNotification = (type) => {
-    setNotifications((prev) => ({
-      ...prev,
-      [type]: 0,
-    }));
+    setNotifications((prev) => ({ ...prev, [type]: 0 }));
   };
 
   useEffect(() => {
@@ -178,535 +216,508 @@ export default function App() {
 
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
-      if (currentScrollY > lastScrollY) {
-        // Scrolling down
-        setIsMenuVisible(false);
-      } else {
-        // Scrolling up
-        setIsMenuVisible(true);
-      }
+      setIsMenuVisible(currentScrollY <= lastScrollY);
       lastScrollY = currentScrollY;
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
-
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-    };
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   useEffect(() => {
-    // Check if user is already logged in on app start
     const token = localStorage.getItem("token");
     const role = localStorage.getItem("role");
     const access = JSON.parse(localStorage.getItem("access") || "[]");
+
     if (token && role) {
       setIsLoggedIn(true);
       setUserRole(role);
       setUserAccess(access);
 
-      // Refresh profile to get latest modules config
       import("./services/api").then(async ({ getProfile }) => {
-         try {
-            const profile = await getProfile();
-            if (profile.modules) {
-               localStorage.setItem("restaurantModules", JSON.stringify(profile.modules));
-               // Force re-render if necessary, but for now localStorage is enough for next page load/route change
-               // Ideally, we lift 'modules' state to App, but for now this ensures sync on refresh.
-            }
-         } catch (err) {
-            console.error("Failed to refresh profile config", err);
-         }
+        try {
+          const profile = await getProfile();
+          if (profile.modules) {
+            localStorage.setItem(
+              "restaurantModules",
+              JSON.stringify(profile.modules),
+            );
+          }
+        } catch (err) {
+          console.error("Failed to refresh profile config", err);
+        }
       });
     }
   }, []);
 
-  if (!isLoggedIn) {
-    return <Login onLogin={handleLogin} />;
-  }
+  if (!isLoggedIn) return <Login onLogin={handleLogin} />;
 
   return (
-    <div className="app-layout">
-      <button
-        className={`mobile-menu-toggle ${isMenuVisible ? "visible" : "hidden"}`}
-        onClick={toggleMobileMenu}
+    <Routes>
+      {/* FULLSCREEN POS */}
+      <Route element={<PosLayout />}>
+        <Route
+          path="/pos/*"
+          element={
+            <ProtectedRoute
+              userRole={userRole}
+              userAccess={userAccess}
+              requiredAccess="pos"
+              allowedRoles={["admin", "superadmin", "employee"]}
+              Component={POS}
+            />
+          }
+        />
+      </Route>
+
+      {/* DEFAULT APP LAYOUT */}
+      <Route
+        element={
+          <AppLayout
+            isMobileMenuOpen={isMobileMenuOpen}
+            isMenuVisible={isMenuVisible}
+            toggleMobileMenu={toggleMobileMenu}
+            closeMobileMenu={closeMobileMenu}
+            userRole={userRole}
+            userAccess={userAccess}
+            notifications={notifications}
+            clearNotification={clearNotification}
+            handleLogout={handleLogout}
+          />
+        }
       >
-        ☰
-      </button>
-      <Sidebar
-        isOpen={isMobileMenuOpen}
-        onClose={closeMobileMenu}
-        userRole={userRole}
-        userAccess={userAccess}
-        notifications={notifications}
-        clearNotification={clearNotification}
-      />
-      <div className="main">
-        <Navbar onLogout={handleLogout} />
-        <div className="content">
-          <Toaster position="top-right" />
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute
+              userRole={userRole}
+              allowedRoles={["admin", "superadmin", "employee"]}
+              Component={Home}
+            />
+          }
+        />
 
-          <Routes>
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute
-                  userRole={userRole}
-                  // requiredRole="superadmin"
-                  allowedRoles={["admin", "superadmin", "employee"]}
-                  Component={Home}
-                />
-              }
+        <Route
+          path="/task"
+          element={
+            <ProtectedRoute
+              userRole={userRole}
+              userAccess={userAccess}
+              allowedRoles={["admin", "employee"]}
+              requiredAccess="task"
+              Component={Task}
             />
+          }
+        />
 
-            <Route
-              path="/task"
-              element={
-                <ProtectedRoute
-                  userRole={userRole}
-                  userAccess={userAccess}
-                  allowedRoles={["admin", "employee"]}
-                  requiredAccess="task"
-                  // requiredRole="admin"
-                  Component={Task}
-                />
-              }
+        <Route
+          path="/task/new"
+          element={
+            <ProtectedRoute
+              userRole={userRole}
+              userAccess={userAccess}
+              requiredAccess="task"
+              allowedRoles={["admin", "employee"]}
+              Component={CreateTask}
             />
+          }
+        />
 
-            <Route
-              path="/task/new"
-              element={
-                <ProtectedRoute
-                  userRole={userRole}
-                  userAccess={userAccess}
-                  requiredAccess="task"
-                  allowedRoles={["admin", "employee"]}
-                  Component={CreateTask}
-                />
-              }
+        <Route
+          path="/task/:id"
+          element={
+            <ProtectedRoute
+              userRole={userRole}
+              userAccess={userAccess}
+              requiredAccess="task"
+              allowedRoles={["admin", "employee"]}
+              Component={TaskDetails}
             />
+          }
+        />
 
-            <Route
-              path="/task/:id"
-              element={
-                <ProtectedRoute
-                  userRole={userRole}
-                  userAccess={userAccess}
-                  requiredAccess="task"
-                  allowedRoles={["admin", "employee"]}
-                  Component={TaskDetails}
-                />
-              }
+        <Route
+          path="/task/edit/:id"
+          element={
+            <ProtectedRoute
+              userRole={userRole}
+              userAccess={userAccess}
+              requiredAccess="task"
+              allowedRoles={["admin", "employee"]}
+              Component={CreateTask}
             />
+          }
+        />
 
-            <Route
-              path="/task/edit/:id"
-              element={
-                <ProtectedRoute
-                  userRole={userRole}
-                  userAccess={userAccess}
-                  requiredAccess="task"
-                  allowedRoles={["admin", "employee"]}
-                  Component={CreateTask}
-                />
-              }
+        <Route
+          path="/issue/"
+          element={
+            <ProtectedRoute
+              userRole={userRole}
+              userAccess={userAccess}
+              requiredAccess="issueRaised"
+              allowedRoles={["admin", "employee"]}
+              Component={IssueRaise}
             />
+          }
+        />
 
-            {/* <Route path="/issue/" element={<IssueRaise />} /> */}
-            <Route
-              path="/issue/"
-              element={
-                <ProtectedRoute
-                  userRole={userRole}
-                  userAccess={userAccess}
-                  requiredAccess="issueRaised"
-                  allowedRoles={["admin", "employee"]}
-                  Component={IssueRaise}
-                />
-              }
+        <Route
+          path="/issue/:id"
+          element={
+            <ProtectedRoute
+              userRole={userRole}
+              userAccess={userAccess}
+              requiredAccess="issueRaised"
+              allowedRoles={["admin", "employee"]}
+              Component={IssueDetails}
             />
+          }
+        />
 
-            <Route
-              path="/issue/:id"
-              element={
-                <ProtectedRoute
-                  userRole={userRole}
-                  userAccess={userAccess}
-                  requiredAccess="issueRaised"
-                  allowedRoles={["admin", "employee"]}
-                  Component={IssueDetails}
-                />
-              }
+        <Route
+          path="/issue/raise"
+          element={
+            <ProtectedRoute
+              userRole={userRole}
+              userAccess={userAccess}
+              requiredAccess="issueRaised"
+              allowedRoles={["admin", "employee"]}
+              Component={RaiseIssue}
             />
-            <Route
-              path="/issue/raise"
-              element={
-                <ProtectedRoute
-                  userRole={userRole}
-                  userAccess={userAccess}
-                  requiredAccess="issueRaised"
-                  allowedRoles={["admin", "employee"]}
-                  Component={RaiseIssue}
-                />
-              }
-            />
-            <Route
-              path="/issue/edit/:id"
-              element={
-                <ProtectedRoute
-                  userRole={userRole}
-                  userAccess={userAccess}
-                  requiredAccess="issueRaised"
-                  allowedRoles={["admin", "employee"]}
-                  Component={RaiseIssue}
-                />
-              }
-            />
+          }
+        />
 
-            <Route
-              path="/request"
-              element={
-                <ProtectedRoute
-                  userRole={userRole}
-                  userAccess={userAccess}
-                  requiredAccess="request"
-                  allowedRoles={["admin", "employee"]}
-                  Component={Request}
-                />
-              }
+        <Route
+          path="/issue/edit/:id"
+          element={
+            <ProtectedRoute
+              userRole={userRole}
+              userAccess={userAccess}
+              requiredAccess="issueRaised"
+              allowedRoles={["admin", "employee"]}
+              Component={RaiseIssue}
             />
-            <Route
-              path="/request/:type/:id"
-              element={
-                <ProtectedRoute
-                  userRole={userRole}
-                  userAccess={userAccess}
-                  requiredAccess="request"
-                  allowedRoles={["admin", "employee"]}
-                  Component={RequestDetails}
-                />
-              }
-            />
-            <Route
-              path="/attendance"
-              element={
-                <ProtectedRoute
-                  userRole={userRole}
-                  userAccess={userAccess}
-                  requiredAccess="attendance"
-                  allowedRoles={["admin", "employee"]}
-                  Component={Attendance}
-                />
-              }
-            />
-            <Route
-              path="/sop"
-              element={
-                <ProtectedRoute
-                  userRole={userRole}
-                  userAccess={userAccess}
-                  requiredAccess="sop"
-                  allowedRoles={["admin", "employee"]}
-                  Component={SOP}
-                />
-              }
-            />
-            <Route
-              path="/sop/new"
-              element={
-                <ProtectedRoute
-                  userRole={userRole}
-                  userAccess={userAccess}
-                  requiredAccess="sop"
-                  allowedRoles={["admin", "employee"]}
-                  Component={CreateSOP}
-                />
-              }
-            />
-            <Route
-              path="/sop/new/:id"
-              element={
-                <ProtectedRoute
-                  userRole={userRole}
-                  userAccess={userAccess}
-                  requiredAccess="sop"
-                  allowedRoles={["admin", "employee"]}
-                  Component={CreateSOP}
-                />
-              }
-            />
-            <Route
-              path="/sop/draft"
-              element={
-                <ProtectedRoute
-                  userRole={userRole}
-                  userAccess={userAccess}
-                  requiredAccess="sop"
-                  allowedRoles={["admin", "employee"]}
-                  Component={SopDraft}
-                />
-              }
-            />
-            <Route
-              path="/sop/:id"
-              element={
-                <ProtectedRoute
-                  userRole={userRole}
-                  userAccess={userAccess}
-                  requiredAccess="sop"
-                  allowedRoles={["admin", "employee"]}
-                  Component={SOPDetails}
-                />
-              }
-            />
-            <Route
-              path="/voucher"
-              element={
-                <ProtectedRoute
-                  userRole={userRole}
-                  userAccess={userAccess}
-                  requiredAccess="sop"
-                  allowedRoles={["admin", "employee"]}
-                  Component={VOUCHER}
-                />
-              }
-            />
-            <Route
-              path="/voucher/:id"
-              element={
-                <ProtectedRoute
-                  userRole={userRole}
-                  userAccess={userAccess}
-                  requiredAccess="sop"
-                  allowedRoles={["admin", "employee"]}
-                  Component={VoucherDetails}
-                />
-              }
-            />
-            <Route
-              path="/voucher/new"
-              element={
-                <ProtectedRoute
-                  userRole={userRole}
-                  userAccess={userAccess}
-                  requiredAccess="sop"
-                  allowedRoles={["admin", "employee"]}
-                  Component={CreateVOUCHER}
-                />
-              }
-            />
-            <Route
-              path="/voucher/new/:id"
-              element={
-                <ProtectedRoute
-                  userRole={userRole}
-                  userAccess={userAccess}
-                  requiredAccess="sop"
-                  allowedRoles={["admin", "employee"]}
-                  Component={CreateVOUCHER}
-                />
-              }
-            />
-            <Route
-              path="/ai-review"
-              element={
-                <ProtectedRoute
-                  userRole={userRole}
-                  userAccess={userAccess}
-                  requiredAccess="ai-Review"
-                  allowedRoles={["admin", "employee"]}
-                  Component={AIReview}
-                />
-              }
-            />
-            <Route
-              path="/ai-review/:id"
-              element={
-                <ProtectedRoute
-                  userRole={userRole}
-                  userAccess={userAccess}
-                  requiredAccess="ai-Review"
-                  allowedRoles={["admin", "employee"]}
-                  Component={AIReviewDetails}
-                />
-              }
-            />
-            <Route
-              path="/salary-management"
-              element={
-                <ProtectedRoute
-                  userRole={userRole}
-                  userAccess={userAccess}
-                  requiredAccess="salaryManagement"
-                  // requiredRole="admin"
-                  allowedRoles={["admin", "superadmin", "employee"]}
-                  Component={SalaryManagement}
-                />
-              }
-            />
+          }
+        />
 
-            {/*****************For both     **************** */}
-            <Route
-              path="/payments"
-              element={
-                <ProtectedRoute
-                  userRole={userRole}
-                  allowedRoles={"superadmin"}
-                  Component={Payments}
-                />
-              }
+        <Route
+          path="/request"
+          element={
+            <ProtectedRoute
+              userRole={userRole}
+              userAccess={userAccess}
+              requiredAccess="request"
+              allowedRoles={["admin", "employee"]}
+              Component={Request}
             />
+          }
+        />
 
-            <Route
-              path="/checkin"
-              element={
-                <ProtectedRoute
-                  userRole={userRole}
-                  allowedRoles={"superadmin"}
-                  Component={AdminCheckIns}
-                />
-              }
+        <Route
+          path="/request/:type/:id"
+          element={
+            <ProtectedRoute
+              userRole={userRole}
+              userAccess={userAccess}
+              requiredAccess="request"
+              allowedRoles={["admin", "employee"]}
+              Component={RequestDetails}
             />
-            <Route
-              path="/user-profile"
-              element={
-                <ProtectedRoute
-                  userRole={userRole}
-                  userAccess={userAccess}
-                  requiredAccess="userProfile"
-                  // requiredRole="admin"
-                  allowedRoles={["admin", "superadmin", "employee"]}
-                  // Component={(StaffProfile roleCheck ={userRole})}
-                  Component={() => <StaffProfile roleCheck={userRole} />}
-                />
-              }
-            />
+          }
+        />
 
-            {/* element={<StaffProfile roleCheck={userRole} />}
-            /> */}
+        <Route
+          path="/attendance"
+          element={
+            <ProtectedRoute
+              userRole={userRole}
+              userAccess={userAccess}
+              requiredAccess="attendance"
+              allowedRoles={["admin", "employee"]}
+              Component={Attendance}
+            />
+          }
+        />
 
-            <Route
-              path="/user-profile/add"
-              element={
-                <ProtectedRoute
-                  userRole={userRole}
-                  userAccess={userAccess}
-                  requiredAccess="userProfile"
-                  requiredRole="admin"
-                  Component={AddEmployee}
-                />
-              }
+        <Route
+          path="/sop"
+          element={
+            <ProtectedRoute
+              userRole={userRole}
+              userAccess={userAccess}
+              requiredAccess="sop"
+              allowedRoles={["admin", "employee"]}
+              Component={SOP}
             />
-            <Route
-              path="/user-profile/add/:id"
-              element={
-                <ProtectedRoute
-                  userRole={userRole}
-                  userAccess={userAccess}
-                  requiredAccess="userProfile"
-                  requiredRole="admin"
-                  Component={AddEmployee}
-                />
-              }
-            />
+          }
+        />
 
-            {/* <Route
-              path="/user-profile/:role/:id"
-              element={<StaffProfileDetails />}
-            /> */}
-            <Route
-              path="/user-profile/:role/:id"
-              element={
-                <ProtectedRoute
-                  userRole={userRole}
-                  Component={() => <StaffProfileDetails />}
-                  checkParam={({ userRole, params }) => {
-                    const roleInUrl = params.role; // :role from the URL
-                    if (userRole === "superadmin" && roleInUrl === "admins")
-                      return true;
-                    if (userRole === "admin" && roleInUrl !== "admins")
-                      return true;
-                    return false; // otherwise block
-                  }}
-                />
-              }
+        <Route
+          path="/sop/new"
+          element={
+            <ProtectedRoute
+              userRole={userRole}
+              userAccess={userAccess}
+              requiredAccess="sop"
+              allowedRoles={["admin", "employee"]}
+              Component={CreateSOP}
             />
+          }
+        />
 
-            <Route
-              path="/admin-profile"
-              element={
-                <ProtectedRoute
-                  userRole={userRole}
-                  Component={() => <StaffProfileDetails />}
-                  checkParam={({ userRole, params }) => {
-                    const roleInUrl = params.role; // :role from the URL
-                    if (userRole === "superadmin" && roleInUrl === "admins")
-                      return true;
-                    if (userRole === "admin" && roleInUrl !== "admins")
-                      return true;
-                    return false; // otherwise block
-                  }}
-                />
-              }
+        <Route
+          path="/sop/new/:id"
+          element={
+            <ProtectedRoute
+              userRole={userRole}
+              userAccess={userAccess}
+              requiredAccess="sop"
+              allowedRoles={["admin", "employee"]}
+              Component={CreateSOP}
             />
-            <Route
-              path="/pos"
-              element={
-                <ProtectedRoute
-                  userRole={userRole}
-                  allowedRoles={["admin", "superadmin", "employee"]}
-                  requiredAccess="pos"
-                  Component={POS}
-                />
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                <ProtectedRoute
-                  userRole={userRole}
-                  allowedRoles={["admin", "superadmin"]}
-                  Component={Settings}
-                />
-              }
-            />
-            {/* <Route path="/admin-portal" element={<AdminPortal />} /> */}
+          }
+        />
 
-            <Route
-              path="/user-profile/add/admin"
-              element={
-                <ProtectedRoute
-                  userRole={userRole}
-                  requiredRole="superadmin"
-                  Component={AddAdmin}
-                />
-              }
+        <Route
+          path="/sop/draft"
+          element={
+            <ProtectedRoute
+              userRole={userRole}
+              userAccess={userAccess}
+              requiredAccess="sop"
+              allowedRoles={["admin", "employee"]}
+              Component={SopDraft}
             />
-            <Route
-              path="/user-profile/add/admin/:id"
-              element={
-                <ProtectedRoute
-                  userRole={userRole}
-                  requiredRole="superadmin"
-                  Component={AddAdmin}
-                />
-              }
-            />
+          }
+        />
 
-            <Route
-              path="/add-restaurant"
-              element={
-                <ProtectedRoute
-                  userRole={userRole}
-                  requiredRole="superadmin"
-                  Component={AddRestaurant}
-                />
-              }
+        <Route
+          path="/sop/:id"
+          element={
+            <ProtectedRoute
+              userRole={userRole}
+              userAccess={userAccess}
+              requiredAccess="sop"
+              allowedRoles={["admin", "employee"]}
+              Component={SOPDetails}
             />
-            {/* <Route path="/add-admin" element={<AddAdmin />} /> */}
-          </Routes>
-        </div>
-      </div>
-    </div>
+          }
+        />
+
+        <Route
+          path="/voucher"
+          element={
+            <ProtectedRoute
+              userRole={userRole}
+              userAccess={userAccess}
+              requiredAccess="sop"
+              allowedRoles={["admin", "employee"]}
+              Component={VOUCHER}
+            />
+          }
+        />
+
+        <Route
+          path="/voucher/:id"
+          element={
+            <ProtectedRoute
+              userRole={userRole}
+              userAccess={userAccess}
+              requiredAccess="sop"
+              allowedRoles={["admin", "employee"]}
+              Component={VoucherDetails}
+            />
+          }
+        />
+
+        <Route
+          path="/voucher/new"
+          element={
+            <ProtectedRoute
+              userRole={userRole}
+              userAccess={userAccess}
+              requiredAccess="sop"
+              allowedRoles={["admin", "employee"]}
+              Component={CreateVOUCHER}
+            />
+          }
+        />
+
+        <Route
+          path="/voucher/new/:id"
+          element={
+            <ProtectedRoute
+              userRole={userRole}
+              userAccess={userAccess}
+              requiredAccess="sop"
+              allowedRoles={["admin", "employee"]}
+              Component={CreateVOUCHER}
+            />
+          }
+        />
+
+        <Route
+          path="/ai-review"
+          element={
+            <ProtectedRoute
+              userRole={userRole}
+              userAccess={userAccess}
+              requiredAccess="ai-Review"
+              allowedRoles={["admin", "employee"]}
+              Component={AIReview}
+            />
+          }
+        />
+
+        <Route
+          path="/ai-review/:id"
+          element={
+            <ProtectedRoute
+              userRole={userRole}
+              userAccess={userAccess}
+              requiredAccess="ai-Review"
+              allowedRoles={["admin", "employee"]}
+              Component={AIReviewDetails}
+            />
+          }
+        />
+
+        <Route
+          path="/salary-management"
+          element={
+            <ProtectedRoute
+              userRole={userRole}
+              userAccess={userAccess}
+              requiredAccess="salaryManagement"
+              allowedRoles={["admin", "superadmin", "employee"]}
+              Component={SalaryManagement}
+            />
+          }
+        />
+
+        <Route
+          path="/payments"
+          element={
+            <ProtectedRoute
+              userRole={userRole}
+              allowedRoles={"superadmin"}
+              Component={Payments}
+            />
+          }
+        />
+
+        <Route
+          path="/checkin"
+          element={
+            <ProtectedRoute
+              userRole={userRole}
+              allowedRoles={"superadmin"}
+              Component={AdminCheckIns}
+            />
+          }
+        />
+
+        <Route
+          path="/user-profile"
+          element={
+            <ProtectedRoute
+              userRole={userRole}
+              userAccess={userAccess}
+              requiredAccess="userProfile"
+              allowedRoles={["admin", "superadmin", "employee"]}
+              Component={() => <StaffProfile roleCheck={userRole} />}
+            />
+          }
+        />
+
+        <Route
+          path="/user-profile/add"
+          element={
+            <ProtectedRoute
+              userRole={userRole}
+              userAccess={userAccess}
+              requiredAccess="userProfile"
+              requiredRole="admin"
+              Component={AddEmployee}
+            />
+          }
+        />
+
+        <Route
+          path="/user-profile/add/:id"
+          element={
+            <ProtectedRoute
+              userRole={userRole}
+              userAccess={userAccess}
+              requiredAccess="userProfile"
+              requiredRole="admin"
+              Component={AddEmployee}
+            />
+          }
+        />
+
+        <Route
+          path="/user-profile/:role/:id"
+          element={
+            <ProtectedRoute
+              userRole={userRole}
+              Component={() => <StaffProfileDetails />}
+              checkParam={({ userRole, params }) => {
+                const roleInUrl = params.role;
+                if (userRole === "superadmin" && roleInUrl === "admins")
+                  return true;
+                if (userRole === "admin" && roleInUrl !== "admins") return true;
+                return false;
+              }}
+            />
+          }
+        />
+
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute
+              userRole={userRole}
+              allowedRoles={["admin", "superadmin"]}
+              Component={Settings}
+            />
+          }
+        />
+
+        <Route
+          path="/user-profile/add/admin"
+          element={
+            <ProtectedRoute
+              userRole={userRole}
+              requiredRole="superadmin"
+              Component={AddAdmin}
+            />
+          }
+        />
+
+        <Route
+          path="/user-profile/add/admin/:id"
+          element={
+            <ProtectedRoute
+              userRole={userRole}
+              requiredRole="superadmin"
+              Component={AddAdmin}
+            />
+          }
+        />
+
+        <Route
+          path="/add-restaurant"
+          element={
+            <ProtectedRoute
+              userRole={userRole}
+              requiredRole="superadmin"
+              Component={AddRestaurant}
+            />
+          }
+        />
+      </Route>
+    </Routes>
   );
 }

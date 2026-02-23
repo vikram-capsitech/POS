@@ -12,6 +12,10 @@ const attendanceRoutes = require("./routes/attendanceRoutes");
 const salaryRecordRoutes = require("./routes/salaryRecordRoutes");
 const adminAttendanceRoutes = require("./routes/adminAttendanceRoutes");
 const homeRouter = require("./routes/homeRoutes");
+const menuRoutes = require('./routes/pos/menuRoutes');
+const tableRoutes = require('./routes/pos/tableRoutes');
+const orderRoutes = require('./routes/pos/orderRoutes');
+const restaurantRoutes = require('./routes/pos/restaurantRoutes');
 const { server, app } = require("./server");
 
 dotenv.config();
@@ -71,6 +75,14 @@ app.use("/api/admin", require("./routes/adminRoutes"));
 app.use("/api/task", require("./routes/taskRoutes"));
 app.use("/api/notifications", require("./routes/notificationRoutes"));
 app.use("/api/voucher", require("./routes/voucherRoutes"));
+
+//POS MODULE
+app.use('/api/pos/menu', menuRoutes);
+app.use('/api/pos/tables', tableRoutes);
+app.use('/api/pos/orders', orderRoutes);
+app.use('/api/pos/restaurant', restaurantRoutes);
+app.use('/api/pos/inventory', require('./routes/pos/inventoryRoutes'));
+app.use('/api/pos/reports', require('./routes/pos/reportRoutes'));
 
 require("./services/taskNotificationCron");
 // Root route

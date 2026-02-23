@@ -78,6 +78,6 @@ module.exports = {
   protect,
   authorize,
   isSuperAdmin,
-
+  isAdmin,
   isEmployee,
 };
