@@ -26,7 +26,6 @@ const AdminAttendanceSchema = new mongoose.Schema(
     //   enum:["admin","employee"],
     //  },  
 
-
     date: {
       type: Date,
       required: true,

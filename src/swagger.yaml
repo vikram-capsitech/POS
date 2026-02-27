@@ -1,0 +1,731 @@
+openapi: 3.0.3
+info:
+  title: Scraawl API
+  description: >- 
+  version: 1.0.0
+  contact: {}
+servers:
+  - url: 'http://localhost:8080/scraawl/api'
+paths:
+  /users/register:
+    post:
+      tags:
+        
+        - 🔐 Authentication
+      summary: Register user
+      description: >-
+        The API endpoint allows users to register or signup to create their
+        accounts.
+      operationId: registerUser
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  example: user.email@domain.com
+                password:
+                  type: string
+                  example: test@123
+                role:
+                  type: string
+                  example: ADMIN
+                username:
+                  type: string
+                  example: doejohn
+            example:
+              email: user.email@domain.com
+              password: test@123
+              role: ADMIN
+              username: doejohn
+      responses:
+        '201':
+          description: Register user
+          headers:
+            Access-Control-Allow-Credentials:
+              schema:
+                type: string
+                example: 'true'
+            Access-Control-Allow-Origin:
+              schema:
+                type: string
+                example: '*'
+            Connection:
+              schema:
+                type: string
+                example: keep-alive
+            Content-Length:
+              schema:
+                type: string
+                example: '500'
+            Date:
+              schema:
+                type: string
+                example: Fri, 30 Jun 2023 06:44:09 GMT
+            ETag:
+              schema:
+                type: string
+                example: W/"1f4-1q38Sbu25p0UVmeYQmrEv2VrgPg"
+            Keep-Alive:
+              schema:
+                type: string
+                example: timeout=5
+            RateLimit-Limit:
+              schema:
+                type: string
+                example: '500'
+            RateLimit-Remaining:
+              schema:
+                type: string
+                example: '495'
+            RateLimit-Reset:
+              schema:
+                type: string
+                example: '772'
+            X-Powered-By:
+              schema:
+                type: string
+                example: Express
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        type: object
+                        properties:
+                          __v:
+                            type: number
+                            example: 0
+                          _id:
+                            type: string
+                            example: 649e795264e7dba29b726936
+                          avatar:
+                            type: object
+                            properties:
+                              _id:
+                                type: string
+                                example: 649e795264e7dba29b726935
+                              localPath:
+                                type: string
+                                example: ''
+                              url:
+                                type: string
+                                example: https://via.placeholder.com/200x200.png
+                          createdAt:
+                            type: string
+                            example: '2023-06-30T06:42:26.163Z'
+                          email:
+                            type: string
+                            example: user.email@domain.com
+                          isEmailVerified:
+                            type: boolean
+                            example: false
+                          loginType:
+                            type: string
+                            example: EMAIL_PASSWORD
+                          role:
+                            type: string
+                            example: ADMIN
+                          updatedAt:
+                            type: string
+                            example: '2023-06-30T06:42:26.247Z'
+                          username:
+                            type: string
+                            example: doejohn
+                  message:
+                    type: string
+                    example: >-
+                      Users registered successfully and verification email has
+                      been sent on your email.
+                  statusCode:
+                    type: number
+                    example: 200
+                  success:
+                    type: boolean
+                    example: true
+              examples:
+                Register user:
+                  value:
+                    data:
+                      user:
+                        __v: 0
+                        _id: 649e795264e7dba29b726936
+                        avatar:
+                          _id: 649e795264e7dba29b726935
+                          localPath: ''
+                          url: https://via.placeholder.com/200x200.png
+                        createdAt: '2023-06-30T06:42:26.163Z'
+                        email: user.email@domain.com
+                        isEmailVerified: false
+                        loginType: EMAIL_PASSWORD
+                        role: ADMIN
+                        updatedAt: '2023-06-30T06:42:26.247Z'
+                        username: doejohn
+                    message: >-
+                      Users registered successfully and verification email has
+                      been sent on your email.
+                    statusCode: 200
+                    success: true
+  /users/login:
+    post:
+      tags:
+        
+        - 🔐 Authentication
+      summary: Login user
+      description: >-
+        The API endpoint allows users to log into the application securely and
+        also returns an access token.
+
+
+        When accessing this endpoint with valid login credentials, users will
+        receive an access token in the response.
+
+
+        Additionally, the API endpoint securely sets the access token within the
+        browser/client httpOnly cookies for future authentication and
+        authorization purposes.
+
+
+        This functionality ensures a secure and efficient login process for
+        users, providing them with an access token that can be used to
+        authenticate subsequent API requests.
+
+
+        By securely storing the access token in browser cookies, the endpoint
+        enables automatic inclusion of the access token in future API requests,
+        eliminating the need for users to manually manage and provide the token
+        with each request.
+      operationId: loginUser
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                password:
+                  type: string
+                  example: test@123
+                username:
+                  type: string
+                  example: doejohn
+            example:
+              password: test@123
+              username: doejohn
+      responses:
+        '200':
+          description: Login user
+          headers:
+            Access-Control-Allow-Credentials:
+              schema:
+                type: string
+                example: 'true'
+            Access-Control-Allow-Origin:
+              schema:
+                type: string
+                example: '*'
+            Connection:
+              schema:
+                type: string
+                example: keep-alive
+            Content-Length:
+              schema:
+                type: string
+                example: '926'
+            Date:
+              schema:
+                type: string
+                example: Fri, 30 Jun 2023 06:44:29 GMT
+            ETag:
+              schema:
+                type: string
+                example: W/"39e-a7Fdn0Th2/i/29/rw1he3r/pebo"
+            Keep-Alive:
+              schema:
+                type: string
+                example: timeout=5
+            RateLimit-Limit:
+              schema:
+                type: string
+                example: '500'
+            RateLimit-Remaining:
+              schema:
+                type: string
+                example: '494'
+            RateLimit-Reset:
+              schema:
+                type: string
+                example: '648'
+            Set-Cookie:
+              schema:
+                type: string
+                example: >-
+                  refreshToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NDllNzk1MjY0ZTdkYmEyOWI3MjY5MzYiLCJpYXQiOjE2ODgxMDc0NjksImV4cCI6MTY4ODk3MTQ2OX0.7or55Coj0K_UY4YpzYzkNR9hcOIhusxk9FRz7eMV8Ho;
+                  Path=/; HttpOnly
+            X-Powered-By:
+              schema:
+                type: string
+                example: Express
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      accessToken:
+                        type: string
+                        example: >-
+                          eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NDllNzk1MjY0ZTdkYmEyOWI3MjY5MzYiLCJlbWFpbCI6IndhamUuc2h1YmhhbTExMUBnbWFpbC5jb20iLCJ1c2VybmFtZSI6IndhamVzaHViaGFtIiwicm9sZSI6IkFETUlOIiwiaWF0IjoxNjg4MTA3NDY5LCJleHAiOjE2ODgxOTM4Njl9.40qfVrWi8x8fGBRB9JBVCVsdMYvlwzjIRpffz5z7DK4
+                      refreshToken:
+                        type: string
+                        example: >-
+                          eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NDllNzk1MjY0ZTdkYmEyOWI3MjY5MzYiLCJpYXQiOjE2ODgxMDc0NjksImV4cCI6MTY4ODk3MTQ2OX0.7or55Coj0K_UY4YpzYzkNR9hcOIhusxk9FRz7eMV8Ho
+                      user:
+                        type: object
+                        properties:
+                          __v:
+                            type: number
+                            example: 0
+                          _id:
+                            type: string
+                            example: 649e795264e7dba29b726936
+                          avatar:
+                            type: object
+                            properties:
+                              _id:
+                                type: string
+                                example: 649e795264e7dba29b726935
+                              localPath:
+                                type: string
+                                example: ''
+                              url:
+                                type: string
+                                example: https://via.placeholder.com/200x200.png
+                          createdAt:
+                            type: string
+                            example: '2023-06-30T06:42:26.163Z'
+                          email:
+                            type: string
+                            example: user.email@domain.com
+                          isEmailVerified:
+                            type: boolean
+                            example: false
+                          loginType:
+                            type: string
+                            example: EMAIL_PASSWORD
+                          role:
+                            type: string
+                            example: ADMIN
+                          updatedAt:
+                            type: string
+                            example: '2023-06-30T06:44:29.831Z'
+                          username:
+                            type: string
+                            example: doejohn
+                  message:
+                    type: string
+                    example: User logged in successfully
+                  statusCode:
+                    type: number
+                    example: 200
+                  success:
+                    type: boolean
+                    example: true
+              examples:
+                Login user:
+                  value:
+                    data:
+                      accessToken: >-
+                        eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NDllNzk1MjY0ZTdkYmEyOWI3MjY5MzYiLCJlbWFpbCI6IndhamUuc2h1YmhhbTExMUBnbWFpbC5jb20iLCJ1c2VybmFtZSI6IndhamVzaHViaGFtIiwicm9sZSI6IkFETUlOIiwiaWF0IjoxNjg4MTA3NDY5LCJleHAiOjE2ODgxOTM4Njl9.40qfVrWi8x8fGBRB9JBVCVsdMYvlwzjIRpffz5z7DK4
+                      refreshToken: >-
+                        eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NDllNzk1MjY0ZTdkYmEyOWI3MjY5MzYiLCJpYXQiOjE2ODgxMDc0NjksImV4cCI6MTY4ODk3MTQ2OX0.7or55Coj0K_UY4YpzYzkNR9hcOIhusxk9FRz7eMV8Ho
+                      user:
+                        __v: 0
+                        _id: 649e795264e7dba29b726936
+                        avatar:
+                          _id: 649e795264e7dba29b726935
+                          localPath: ''
+                          url: https://via.placeholder.com/200x200.png
+                        createdAt: '2023-06-30T06:42:26.163Z'
+                        email: user.email@domain.com
+                        isEmailVerified: false
+                        loginType: EMAIL_PASSWORD
+                        role: ADMIN
+                        updatedAt: '2023-06-30T06:44:29.831Z'
+                        username: doejohn
+                    message: User logged in successfully
+                    statusCode: 200
+                    success: true
+  /users/logout:
+    post:
+      tags:
+        
+        - 🔐 Authentication
+      summary: Logout user
+      description: >-
+        The API endpoint is responsible for logging out users from the
+        application and destroying the access token cookies stored on the
+        client-side.
+
+
+        When accessing this endpoint, it triggers the logout process, revoking
+        the user's authentication and terminating their active session.
+
+
+        Additionally, it ensures that any access token cookies associated with
+        the user's session are removed from the client's browser, effectively
+        logging them out from the application.
+      operationId: logoutUser
+      responses:
+        '200':
+          description: Logout user
+          headers:
+            Access-Control-Allow-Credentials:
+              schema:
+                type: string
+                example: 'true'
+            Access-Control-Allow-Origin:
+              schema:
+                type: string
+                example: '*'
+            Connection:
+              schema:
+                type: string
+                example: keep-alive
+            Content-Length:
+              schema:
+                type: string
+                example: '71'
+            Date:
+              schema:
+                type: string
+                example: Sun, 04 Jun 2023 14:53:17 GMT
+            ETag:
+              schema:
+                type: string
+                example: W/"47-As20QlSbGGTq515zdhzWHPjwWhg"
+            Keep-Alive:
+              schema:
+                type: string
+                example: timeout=5
+            Set-Cookie:
+              schema:
+                type: string
+                example: >-
+                  refreshToken=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT;
+                  HttpOnly
+            X-Powered-By:
+              schema:
+                type: string
+                example: Express
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties: {}
+                  message:
+                    type: string
+                    example: User logged out
+                  statusCode:
+                    type: number
+                    example: 200
+                  success:
+                    type: boolean
+                    example: true
+              examples:
+                Logout user:
+                  value:
+                    data: {}
+                    message: User logged out
+                    statusCode: 200
+                    success: true
+  /users/refresh-token:
+    post:
+      tags:
+        
+        - 🔐 Authentication
+      summary: Refresh token
+      description: >-
+        The Refresh Access Token API is responsible for refreshing the access
+        token when it expires.
+
+
+        It allows you to make a request to this endpoint with the refresh token,
+        which has a lengthy expiry time, to obtain a new access token.
+
+
+        Simultaneously, the API sets the new access token in a cookie for future
+        authentication purposes while replacing the expired one.
+
+
+        This functionality ensures continuous access to protected resources by
+        automatically renewing the access token **without requiring the user to
+        reauthenticate manually**.
+
+
+        By utilizing the refresh token, the API securely refreshes the access
+        token and updates it in the cookie, ensuring seamless and uninterrupted
+        access to authorized endpoints.
+      operationId: refreshToken
+      responses:
+        '200':
+          description: Refresh token
+          headers:
+            Access-Control-Allow-Credentials:
+              schema:
+                type: string
+                example: 'true'
+            Access-Control-Allow-Origin:
+              schema:
+                type: string
+                example: '*'
+            Connection:
+              schema:
+                type: string
+                example: keep-alive
+            Content-Length:
+              schema:
+                type: string
+                example: '556'
+            Date:
+              schema:
+                type: string
+                example: Wed, 31 May 2023 20:00:21 GMT
+            ETag:
+              schema:
+                type: string
+                example: W/"22c-gnaKNqPZuv/nGCkHvGfPrASxDPw"
+            Keep-Alive:
+              schema:
+                type: string
+                example: timeout=5
+            Set-Cookie:
+              schema:
+                type: string
+                example: >-
+                  refreshToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NDc2ZTM0ZWJlMWNmYjljYzA4YmQ0NDYiLCJpYXQiOjE2ODU1NjMyMjEsImV4cCI6MTY4NjQyNzIyMX0.TJpj8-2qU__GI_dKDdrHwQvUWCFSFXCfgOuV6MV05UI;
+                  Path=/; HttpOnly
+            X-Powered-By:
+              schema:
+                type: string
+                example: Express
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      accessToken:
+                        type: string
+                        example: >-
+                          eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NDc2ZTM0ZWJlMWNmYjljYzA4YmQ0NDYiLCJlbWFpbCI6IndhamUuc2h1YmhhbTExMUBnbWFpbC5jb20iLCJ1c2VybmFtZSI6IndhamVzaHViaGFtIiwicm9sZSI6IlVTRVIiLCJpYXQiOjE2ODU1NjMyMjEsImV4cCI6MTY4NTY0OTYyMX0.o6vbC9qrMHV_FfQNFZX3h053eOHvBgbl0iQJSB5NeNc
+                      refreshToken:
+                        type: string
+                        example: >-
+                          eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NDc2ZTM0ZWJlMWNmYjljYzA4YmQ0NDYiLCJpYXQiOjE2ODU1NjMyMjEsImV4cCI6MTY4NjQyNzIyMX0.TJpj8-2qU__GI_dKDdrHwQvUWCFSFXCfgOuV6MV05UI
+                  message:
+                    type: string
+                    example: Access token refreshed
+                  statusCode:
+                    type: number
+                    example: 200
+                  success:
+                    type: boolean
+                    example: true
+              examples:
+                Refresh token:
+                  value:
+                    data:
+                      accessToken: >-
+                        eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NDc2ZTM0ZWJlMWNmYjljYzA4YmQ0NDYiLCJlbWFpbCI6IndhamUuc2h1YmhhbTExMUBnbWFpbC5jb20iLCJ1c2VybmFtZSI6IndhamVzaHViaGFtIiwicm9sZSI6IlVTRVIiLCJpYXQiOjE2ODU1NjMyMjEsImV4cCI6MTY4NTY0OTYyMX0.o6vbC9qrMHV_FfQNFZX3h053eOHvBgbl0iQJSB5NeNc
+                      refreshToken: >-
+                        eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NDc2ZTM0ZWJlMWNmYjljYzA4YmQ0NDYiLCJpYXQiOjE2ODU1NjMyMjEsImV4cCI6MTY4NjQyNzIyMX0.TJpj8-2qU__GI_dKDdrHwQvUWCFSFXCfgOuV6MV05UI
+                    message: Access token refreshed
+                    statusCode: 200
+                    success: true
+  
+  /users/avatar:
+    patch:
+      tags:
+        
+        - 🔐 Authentication
+      summary: Update avatar
+      description: >-
+        The API endpoint enables users to update their avatar or profile
+        picture.
+
+
+        By accessing this endpoint and providing the necessary parameters, users
+        can upload a new image file for their desired avatar.
+      operationId: updateAvatar
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                avatar:
+                  description: File
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Update avatar
+          headers:
+            Access-Control-Allow-Credentials:
+              schema:
+                type: string
+                example: 'true'
+            Access-Control-Allow-Origin:
+              schema:
+                type: string
+                example: '*'
+            Connection:
+              schema:
+                type: string
+                example: keep-alive
+            Content-Length:
+              schema:
+                type: string
+                example: '910'
+            Date:
+              schema:
+                type: string
+                example: Fri, 30 Jun 2023 06:45:46 GMT
+            ETag:
+              schema:
+                type: string
+                example: W/"38e-+vTTKQiTCppZaCs9tEWJWWsmzZI"
+            Keep-Alive:
+              schema:
+                type: string
+                example: timeout=5
+            RateLimit-Limit:
+              schema:
+                type: string
+                example: '500'
+            RateLimit-Remaining:
+              schema:
+                type: string
+                example: '490'
+            RateLimit-Reset:
+              schema:
+                type: string
+                example: '572'
+            X-Powered-By:
+              schema:
+                type: string
+                example: Express
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      __v:
+                        type: number
+                        example: 0
+                      _id:
+                        type: string
+                        example: 649e795264e7dba29b726936
+                      avatar:
+                        type: object
+                        properties:
+                          _id:
+                            type: string
+                            example: 649e7a1a64e7dba29b726965
+                          localPath:
+                            type: string
+                            example: public/images/plastic168810754602425641.jpeg
+                          url:
+                            type: string
+                            example: >-
+                              http://localhost:8080/images/plastic168810754602425641.jpeg
+                      createdAt:
+                        type: string
+                        example: '2023-06-30T06:42:26.163Z'
+                      email:
+                        type: string
+                        example: user.email@domain.com
+                      emailVerificationExpiry:
+                        type: string
+                        example: '2023-06-30T07:02:26.246Z'
+                      emailVerificationToken:
+                        type: string
+                        example: >-
+                          d2749e5298e1acf73cf09d06477669415503bb81e3c6505eff4560c6522ad263
+                      isEmailVerified:
+                        type: boolean
+                        example: false
+                      loginType:
+                        type: string
+                        example: EMAIL_PASSWORD
+                      password:
+                        type: string
+                        example: >-
+                          $2b$10$hyujCc82BcVxlKL42YH2N.bES5gr3SbSt1njbzYh1Deim/KI2sx0i
+                      refreshToken:
+                        type: string
+                        example: >-
+                          eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NDllNzk1MjY0ZTdkYmEyOWI3MjY5MzYiLCJpYXQiOjE2ODgxMDc1MjAsImV4cCI6MTY4ODk3MTUyMH0.Y9w5ZbXs8S8n2kuTLBHA5co8ez4KvebyJS2_o-9mxKU
+                      role:
+                        type: string
+                        example: ADMIN
+                      updatedAt:
+                        type: string
+                        example: '2023-06-30T06:45:46.055Z'
+                      username:
+                        type: string
+                        example: doejohn
+                  message:
+                    type: string
+                    example: Avatar updated successfully
+                  statusCode:
+                    type: number
+                    example: 200
+                  success:
+                    type: boolean
+                    example: true
+              examples:
+                Update avatar:
+                  value:
+                    data:
+                      __v: 0
+                      _id: 649e795264e7dba29b726936
+                      avatar:
+                        _id: 649e7a1a64e7dba29b726965
+                        localPath: public/images/plastic168810754602425641.jpeg
+                        url: >-
+                          http://localhost:8080/images/plastic168810754602425641.jpeg
+                      createdAt: '2023-06-30T06:42:26.163Z'
+                      email: user.email@domain.com
+                      emailVerificationExpiry: '2023-06-30T07:02:26.246Z'
+                      emailVerificationToken: >-
+                        d2749e5298e1acf73cf09d06477669415503bb81e3c6505eff4560c6522ad263
+                      isEmailVerified: false
+                      loginType: EMAIL_PASSWORD
+                      password: >-
+                        $2b$10$hyujCc82BcVxlKL42YH2N.bES5gr3SbSt1njbzYh1Deim/KI2sx0i
+                      refreshToken: >-
+                        eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NDllNzk1MjY0ZTdkYmEyOWI3MjY5MzYiLCJpYXQiOjE2ODgxMDc1MjAsImV4cCI6MTY4ODk3MTUyMH0.Y9w5ZbXs8S8n2kuTLBHA5co8ez4KvebyJS2_o-9mxKU
+                      role: ADMIN
+                      updatedAt: '2023-06-30T06:45:46.055Z'
+                      username: doejohn
+                    message: Avatar updated successfully
+                    statusCode: 200
+                    success: true
+  
