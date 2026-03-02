@@ -1,20 +1,15 @@
 import Router from "./Routes/Index";
-import { useDispatch, useSelector } from "react-redux";
 import React from "react";
-import { closeSnackBar } from "./redux/slices/app";
 import "./App.css";
 import { SocketProvider } from "./Contexts/SocketContext";
 import "antd/dist/reset.css";
 import { notification } from "antd";
 import { ToastContainer } from "react-toastify";
 import { ThemeProvider } from "./Contexts/ThemeContext";
+import { useAppStore } from "./Store/app.store";
 
 function App() {
-  const dispatch = useDispatch();
-
-  const { severity, message, open } = useSelector(
-    (state: any) => state.app.snackbar
-  );
+  const { open, severity, message } = useAppStore((s) => s.snackbar);
 
   React.useEffect(() => {
     if (open && message) {
@@ -23,17 +18,17 @@ function App() {
           severity === "success"
             ? "Success"
             : severity === "error"
-            ? "Error"
-            : "Info",
+              ? "Error"
+              : "Info",
         description: message,
         placement: "bottom",
         duration: 4,
         onClose: () => {
-          dispatch(closeSnackBar() as any);
+          useAppStore.getState().closeSnackBar();
         },
       });
     }
-  }, [open, message, severity, dispatch]);
+  }, [open, message, severity]);
 
   return (
     <>
@@ -42,8 +37,8 @@ function App() {
           <div
             style={{
               overflow: "hidden",
-              maxHeight: "100%",
-              minHeight: "100%",
+              height: "100vh",
+              width: "100vw",
               display: "flex",
               flexDirection: "column",
             }}

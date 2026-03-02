@@ -7,6 +7,7 @@ import {
 import { sendNotification } from "../../Services/Notificationservice.js";
 import asyncHandler from "../../Utils/AsyncHandler.js";
 import ApiError from "../../Utils/ApiError.js";
+import { logUserAction } from "../../Utils/Logger.js";
 
 // ─────────────────────────────────────────────
 //  POST /api/advance-requests
@@ -45,6 +46,8 @@ const createAdvanceRequest = asyncHandler(async (req, res) => {
     event: "REQUEST_CREATED",
     request: request._id,
   });
+
+  await logUserAction(req, "ADVANCE_REQUESTED", "PAYROLL", request._id, { amount: askedMoney, description });
 
   res.status(201).json({ success: true, data: request });
 });
@@ -187,6 +190,9 @@ const approveAdvanceRequest = asyncHandler(async (req, res) => {
     { advanceId: request._id.toString(), amount: request.askedMoney },
   );
 
+  const changes = { status: { from: "Pending", to: "Completed" } };
+  await logUserAction(req, "ADVANCE_STATUS_CHANGED", "PAYROLL", request._id, { changes, amount: request.askedMoney });
+
   res.json({
     success: true,
     message: "Advance request approved",
@@ -216,6 +222,9 @@ const rejectAdvanceRequest = asyncHandler(async (req, res) => {
     `Your advance request of ₹${request.askedMoney} has been rejected.`,
     { advanceId: request._id.toString(), amount: request.askedMoney },
   );
+
+  const changes = { status: { from: "Pending", to: "Rejected" } };
+  await logUserAction(req, "ADVANCE_STATUS_CHANGED", "PAYROLL", request._id, { changes, amount: request.askedMoney });
 
   res.json({
     success: true,

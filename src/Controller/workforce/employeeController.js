@@ -9,6 +9,7 @@ import SalaryTransaction from "../../Models/workforce/SalaryTransaction.js";
 import asyncHandler from "../../Utils/AsyncHandler.js";
 import ApiError from "../../Utils/ApiError.js";
 import ApiResponse from "../../Utils/ApiResponse.js";
+import { logUserAction } from "../../Utils/Logger.js";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -81,6 +82,11 @@ export const addEmployee = asyncHandler(async (req, res) => {
     employeeID: user._id,
     totalEarned: coinsPerMonth ?? 0,
     totalSpent: 0,
+  });
+
+  await logUserAction(req, "EMPLOYEE_ADDED", "EMPLOYEE", user._id, { 
+    name: user.displayName,
+    jobRole: profile.jobRole 
   });
 
   return res
@@ -199,6 +205,11 @@ export const updateEmployeeById = asyncHandler(async (req, res) => {
   if (req.body.access)
     profileUpdate.access = parseJsonField(req.body.access, []);
 
+  const [oldUser, oldProfile] = await Promise.all([
+    User.findById(req.params.id),
+    EmployeeProfile.findOne({ userID: req.params.id })
+  ]);
+
   const [user, profile] = await Promise.all([
     User.findByIdAndUpdate(
       req.params.id,
@@ -214,6 +225,13 @@ export const updateEmployeeById = asyncHandler(async (req, res) => {
 
   if (!user) throw new ApiError(404, "Employee not found");
 
+  const changes = {};
+  if (oldUser?.displayName !== user.displayName) changes.name = { from: oldUser.displayName, to: user.displayName };
+  if (oldProfile?.jobRole !== profile.jobRole) changes.jobRole = { from: oldProfile.jobRole, to: profile.jobRole };
+  if (oldProfile?.employeeStatus !== profile.employeeStatus) changes.status = { from: oldProfile.employeeStatus, to: profile.employeeStatus };
+
+  await logUserAction(req, "EMPLOYEE_UPDATED", "EMPLOYEE", user._id, { name: user.displayName, changes });
+
   return res.json(new ApiResponse(200, { user, profile }, "Employee updated"));
 });
 
@@ -224,6 +242,9 @@ export const deleteEmployeeById = asyncHandler(async (req, res) => {
   const user = await User.findByIdAndDelete(req.params.id);
   if (!user) throw new ApiError(404, "Employee not found");
   await EmployeeProfile.deleteOne({ userID: req.params.id });
+
+  await logUserAction(req, "EMPLOYEE_DELETED", "EMPLOYEE", req.params.id, { name: user.displayName });
+
   return res.json(new ApiResponse(200, {}, "Employee deleted successfully"));
 });
 

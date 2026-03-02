@@ -2,6 +2,7 @@ import asyncHandler from "express-async-handler";
 import { Task, Notification } from "../../Models/index.js";
 import ApiError from "../../Utils/ApiError.js";
 import ApiResponse from "../../Utils/ApiResponse.js";
+import { logUserAction } from "../../Utils/Logger.js";
 
 // ─── POST /api/tasks ─────────────────────────────────────────────────────────
 export const createTask = asyncHandler(async (req, res) => {
@@ -19,7 +20,10 @@ export const createTask = asyncHandler(async (req, res) => {
     sop,
     voiceNote: req.file?.path ?? null,
     organizationID: req.organizationID,
+    createdBy: req.user?._id,
   });
+  
+  await logUserAction(req, "TASK_CREATED", "TASK", task._id, { title: task.title });
 
   return res.status(201).json(new ApiResponse(201, task, "Task created"));
 });
@@ -88,6 +92,20 @@ export const updateTask = asyncHandler(async (req, res) => {
   const task = await Task.findByIdAndUpdate(req.params.id, update, {
     new: true,
   }).populate("assignTo");
+
+  const changes = {};
+  const fieldsToTrack = ["status", "priority", "title", "category"];
+  fieldsToTrack.forEach(field => {
+    if (old[field] !== task[field]) {
+      changes[field] = { from: old[field], to: task[field] };
+    }
+  });
+
+  await logUserAction(req, "TASK_UPDATED", "TASK", task._id, { 
+    changes,
+    title: task.title
+  });
+
   return res.json(new ApiResponse(200, task, "Task updated"));
 });
 
@@ -95,6 +113,9 @@ export const updateTask = asyncHandler(async (req, res) => {
 export const deleteTask = asyncHandler(async (req, res) => {
   const task = await Task.findByIdAndDelete(req.params.id);
   if (!task) throw new ApiError(404, "Task not found");
+
+  await logUserAction(req, "TASK_DELETED", "TASK", task._id, { title: task.title });
+
   return res.json(new ApiResponse(200, {}, "Task deleted"));
 });
 

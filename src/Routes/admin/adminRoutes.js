@@ -15,6 +15,7 @@ import {
   updateRole,
   deleteRole,
   getAllRoles,
+  getOrganization
 } from "../../Controller/admin/adminController.js";
 import {
   userAssignRoleValidator,
@@ -26,6 +27,11 @@ import { validate } from "../../Middlewares/Validate.middleware.js";
 const router = express.Router();
 
 // ── Organization ──────────────────────────────────────────────────────────────
+router.get("/organizations", protect, authorize("superadmin", "admin"), getOrganizations);
+
+router.get("/organization/:id", protect, authorize("superadmin", "admin"), getOrganization);
+
+
 router.post(
   "/organizations",
   protect,
@@ -36,7 +42,7 @@ router.post(
 router.get(
   "/organizations",
   protect,
-  authorize("superadmin"),
+  authorize("superadmin", "admin"),
   getOrganizations,
 );
 router.put(

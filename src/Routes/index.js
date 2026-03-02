@@ -1,5 +1,6 @@
 import authRoutes from "./core/authRoutes.js";
 import homeRoutes from "./core/homeRoutes.js";
+import userLogRoutes from "./core/userLogRoutes.js";
 
 import attendanceRoutes from "./workforce/attendanceRoutes.js";
 import employeeRoutes from "./workforce/employeeRoutes.js";
@@ -35,6 +36,7 @@ const registerRoutes = (app) => {
   // ── Core ───────────────────────────────────────────────────────────────────
   app.use("/api/auth", authRoutes);
   app.use("/api/home", homeRoutes);
+  app.use("/api/logs", userLogRoutes);
 
   // ── Workforce ───────────────────────────────────────────────────────────────
   app.use("/api/attendance", attendanceRoutes);

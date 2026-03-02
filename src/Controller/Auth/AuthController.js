@@ -4,6 +4,7 @@ import EmployeeProfile from "../../Models/core/EmployeeProfile.js";
 import asyncHandler from "../../Utils/AsyncHandler.js";
 import ApiError from "../../Utils/ApiError.js";
 import ApiResponse from "../../Utils/ApiResponse.js";
+import { logUserAction } from "../../Utils/Logger.js";
 
 // ─── Token cookie helpers ─────────────────────────────────────────────────────
 
@@ -79,10 +80,10 @@ export const setupSuperAdmin = asyncHandler(async (req, res) => {
 //  POST /api/auth/login
 // ─────────────────────────────────────────────
 export const loginUser = asyncHandler(async (req, res) => {
-  const { email, userName, password } = req.body;
-  const identifier = email || userName;
+  const { loginEmail, loginPassword } = req.body;
+  const identifier = loginEmail;
 
-  if (!identifier || !password) {
+  if (!identifier || !loginPassword) {
     throw new ApiError(400, "Please provide email/username and password");
   }
 
@@ -104,7 +105,7 @@ export const loginUser = asyncHandler(async (req, res) => {
     );
   }
 
-  const isMatch = await user.isPasswordCorrect(password);
+  const isMatch = await user.isPasswordCorrect(loginPassword);
   if (!isMatch) {
     await user.incrementLoginAttempts();
     throw new ApiError(401, "Invalid credentials");
@@ -113,6 +114,10 @@ export const loginUser = asyncHandler(async (req, res) => {
   await user.resetLoginAttempts();
 
   const { accessToken, refreshToken } = await issueTokens(user);
+
+  // Manual request augmentation because 'protect' middleware isn't run yet
+  const logReq = { ...req, user: user, organizationID: user.organizationID?._id || user.organizationID };
+  await logUserAction(logReq, "USER_LOGIN", "AUTH", user._id);
 
   const safe = user.toObject();
   delete safe.password;
@@ -132,6 +137,8 @@ export const loginUser = asyncHandler(async (req, res) => {
 // ─────────────────────────────────────────────
 export const logoutUser = asyncHandler(async (req, res) => {
   await User.findByIdAndUpdate(req.user._id, { $set: { refreshToken: null } });
+
+  await logUserAction(req, "USER_LOGOUT", "AUTH", req.user._id);
 
   return res
     .status(200)
@@ -237,6 +244,8 @@ export const changePassword = asyncHandler(async (req, res) => {
 
   user.password = newPassword;
   await user.save();
+
+  await logUserAction(req, "PASSWORD_CHANGED", "AUTH", user._id);
 
   return res.json(new ApiResponse(200, {}, "Password changed successfully"));
 });

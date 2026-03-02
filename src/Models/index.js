@@ -4,6 +4,7 @@ export { default as Organization } from "./core/Organization.js";
 export { default as Permission } from "./core/Permission.js";
 export { default as Role } from "./core/Role.js";
 export { default as EmployeeProfile } from "./core/EmployeeProfile.js";
+export { default as UserLog } from "./core/UserLog.js";
 
 // ─── Workforce (HR) ───────────────────────────────────────────────────────────
 export { default as Attendance } from "./workforce/Attendance.js";

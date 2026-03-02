@@ -11,7 +11,7 @@ import {
 } from "../Utils/theme";
 import { requestHandler } from "../Utils";
 import { getAppSetting, saveAppSetting } from "../Api";
-import { useSelector } from "../redux/store";
+import { useAuthStore } from "../Store/store";
 
 interface ThemeContextType {
   theme: AppTheme;
@@ -36,11 +36,11 @@ const ThemeContext = createContext<ThemeContextType>({
   sizeLevel: "m",
   isSystemDefault: false,
   fontSizes: getFontSizesForLevel("m"),
-  setTheme: () => {},
-  setThemeType: () => {},
-  setFontFamily: () => {},
-  setSizeLevel: () => {},
-  setSystemDefaultTheme: () => {},
+  setTheme: () => { },
+  setThemeType: () => { },
+  setFontFamily: () => { },
+  setSizeLevel: () => { },
+  setSystemDefaultTheme: () => { },
 });
 
 export const SaveData = async (
@@ -58,7 +58,7 @@ export const SaveData = async (
         fontFamily: font,
         sizeLevel: size,
         isSystemDefault,
-      }),
+      }) as any,
     null,
     (res) => {
       if (res.success) {
@@ -72,6 +72,7 @@ export const SaveData = async (
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
+  const token = useAuthStore((s) => s.session.token);
   const [themeName, setThemeName] = useState<ThemeType>("default");
   const [themeTypeState, setThemeTypeState] = useState<"light" | "dark">(
     "light"
@@ -79,16 +80,15 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
   const [fontFamilyState, setFontFamilyState] = useState<FontFamily | string>(
     defaultFont
   );
-  const [loading, setLoading] = useState(true); // 👈 Add loading state
+  const [loading, setLoading] = useState(false); // 👈 Start with false to avoid initial blank screen
   const [sizeLevelState, setSizeLevelState] = useState<SizeLevel>("m");
-  const { isLoggedIn } = useSelector((state: any) => state.auth);
+  const isLoggedIn = !!token;
   const [isSystemDefault, setIsSystemDefault] = React.useState(false);
 
   const getSetting = async () => {
-    setLoading(true);
     await requestHandler(
-      async () => await getAppSetting(),
-      null,
+      async () => await getAppSetting() as any,
+      setLoading,
       (res) => {
         if (res.success) {
           const settings = res.data;
@@ -106,28 +106,27 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
           setThemeTypeState(initialThemeType);
           setIsSystemDefault(settings.isSystemDefault ?? false);
         }
-        setLoading(false);
       },
       (err) => console.error("Error fetching theme settings:", err)
     );
   };
 
- useEffect(() => {
-  if (!isSystemDefault) return;
+  useEffect(() => {
+    if (!isSystemDefault) return;
 
-  const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
 
-  const handleSystemThemeChange = (e: MediaQueryListEvent) => {
-    const systemThemeType = e.matches ? "dark" : "light";
-    setThemeTypeState(systemThemeType);
-  };
+    const handleSystemThemeChange = (e: MediaQueryListEvent) => {
+      const systemThemeType = e.matches ? "dark" : "light";
+      setThemeTypeState(systemThemeType);
+    };
 
-  setThemeTypeState(mediaQuery.matches ? "dark" : "light");
-  mediaQuery.addEventListener("change", handleSystemThemeChange);
-  return () => {
-    mediaQuery.removeEventListener("change", handleSystemThemeChange);
-  };
-}, [isSystemDefault]);
+    setThemeTypeState(mediaQuery.matches ? "dark" : "light");
+    mediaQuery.addEventListener("change", handleSystemThemeChange);
+    return () => {
+      mediaQuery.removeEventListener("change", handleSystemThemeChange);
+    };
+  }, [isSystemDefault]);
 
   useEffect(() => {
     if (isLoggedIn) {

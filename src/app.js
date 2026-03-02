@@ -93,6 +93,36 @@ try {
 // ── API Routes ────────────────────────────────────────────────────────────────
 registerRoutes(app);
 
+// ── Serve Frontend ──────────────────────────────────────────────────────────
+/**
+ * DEPLOYMENT SCENARIO TOGGLE:
+ * 1. UNIFIED DEPLOYMENT (Vercel/Single Server): Set SERVE_FRONTEND=true in .env
+ *    The backend will handle both API and Frontend.
+ * 2. SPLIT DEPLOYMENT (Frontend on Netlify/Vercel, Backend on Render/AWS): Set SERVE_FRONTEND=false
+ *    The backend will only behave as an API server.
+ */
+if (process.env.SERVE_FRONTEND === "true") {
+  const __clientPath = path.join(__dirname, "../client/dist");
+  app.use(express.static(__clientPath));
+
+  // Fallback for React routing (SPA)
+  app.get("*", (req, res, next) => {
+    // Skip if it's an API call or documentation
+    if (req.url.startsWith("/api") || req.url.startsWith("/api-docs")) {
+      return next();
+    }
+    // Send index.html for all other routes so React Router handles them
+    res.sendFile(path.join(__clientPath, "index.html"), (err) => {
+      if (err) next();
+    });
+  });
+} else {
+  // Optional: Add a simple welcome message for standalone API mode
+  app.get("/", (req, res) => {
+    res.json({ message: "POS API is running in Standalone Mode." });
+  });
+}
+
 // ── 404 handler ───────────────────────────────────────────────────────────────
 app.use(notFound);
 

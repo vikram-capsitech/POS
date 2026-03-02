@@ -2,6 +2,7 @@ import asyncHandler from "express-async-handler";
 import { SOP } from "../../Models/index.js";
 import ApiError from "../../Utils/ApiError.js";
 import ApiResponse from "../../Utils/ApiResponse.js";
+import { logUserAction } from "../../Utils/Logger.js";
 
 const parseSteps = (raw) => {
   if (Array.isArray(raw)) return raw;
@@ -38,6 +39,9 @@ export const createSOP = asyncHandler(async (req, res) => {
     voiceNote: req.file?.path ?? null,
     organizationID: req.organizationID,
   });
+
+  await logUserAction(req, "SOP_CREATED", "SOP", sop._id, { title: sop.title });
+
   return res.status(201).json(new ApiResponse(201, sop, "SOP created"));
 });
 
@@ -74,17 +78,31 @@ export const updateSOP = asyncHandler(async (req, res) => {
   const update = { ...rest };
   if (rawSteps !== undefined) update.steps = parseSteps(rawSteps);
   if (req.file) update.voiceNote = req.file.path;
+  const old = await SOP.findById(req.params.id);
   const sop = await SOP.findByIdAndUpdate(req.params.id, update, {
     new: true,
     runValidators: true,
   });
   if (!sop) throw new ApiError(404, "SOP not found");
+
+  const changes = {};
+  ["title", "category"].forEach(field => {
+    if (old && old[field] !== sop[field]) {
+      changes[field] = { from: old[field], to: sop[field] };
+    }
+  });
+
+  await logUserAction(req, "SOP_UPDATED", "SOP", sop._id, { title: sop.title, changes });
+
   return res.json(new ApiResponse(200, sop, "SOP updated"));
 });
 
 export const deleteSOP = asyncHandler(async (req, res) => {
   const sop = await SOP.findByIdAndDelete(req.params.id);
   if (!sop) throw new ApiError(404, "SOP not found");
+
+  await logUserAction(req, "SOP_DELETED", "SOP", sop._id, { title: sop.title });
+
   return res.json(new ApiResponse(200, {}, "SOP deleted"));
 });
 

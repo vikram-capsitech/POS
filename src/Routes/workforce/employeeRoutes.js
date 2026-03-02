@@ -1,5 +1,6 @@
 import express from "express";
 import { protect, checkPermission } from "../../Middlewares/Auth.middleware.js";
+import { orgScope } from "../../Middlewares/Orgscope.middleware.js";
 import { upload } from "../../Middlewares/Multer.middleware.js";
 import {
   addEmployee,
@@ -15,24 +16,32 @@ import {
 const router = express.Router();
 
 // ── Current Employee ──────────────────────────────────────────────────────────
-router.get("/profile", protect, getCurrentEmployeeProfile);
-router.get("/overview/:employeeId", protect, getEmployeeOverview);
-router.put("/received/:id", protect, receiveAllotedItem);
+router.get("/profile", protect, orgScope, getCurrentEmployeeProfile);
+router.get("/overview/:employeeId", protect, orgScope, getEmployeeOverview);
+router.put("/received/:id", protect, orgScope, receiveAllotedItem);
 
 // ── CRUD ──────────────────────────────────────────────────────────────────────
-router.get("/", protect, checkPermission("staff:read"), getAllEmployees);
+router.get("/", protect, orgScope, checkPermission("staff:read"), getAllEmployees);
 router.post(
   "/",
   protect,
+  orgScope,
   checkPermission("staff:write"),
   upload.single("profilePhoto"),
   addEmployee,
 );
 
-router.get("/:id", protect, checkPermission("staff:read"), getEmployeeById);
+router.get(
+  "/:id",
+  protect,
+  orgScope,
+  checkPermission("staff:read"),
+  getEmployeeById,
+);
 router.put(
   "/:id",
   protect,
+  orgScope,
   checkPermission("staff:write"),
   upload.single("profilePhoto"),
   updateEmployeeById,
@@ -40,6 +49,7 @@ router.put(
 router.delete(
   "/:id",
   protect,
+  orgScope,
   checkPermission("staff:delete"),
   deleteEmployeeById,
 );

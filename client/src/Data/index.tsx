@@ -43,7 +43,7 @@ const Message_options = [
 const Nav_Buttons = [
   {
     index: 0,
-    icon: <House strokeWidth={1.5} size={20} style={{ stroke: "A3A3A3" }} />,
+    icon: <House strokeWidth={1.5} size={20} style={{ stroke: "#A3A3A3" }} />,
     activeIcon: (
       <House strokeWidth={1.5} size={20} style={{ stroke: "#FFFFFF" }} />
     ),
@@ -55,7 +55,7 @@ const Nav_Buttons = [
       <MessageCircleMore
         strokeWidth={1.5}
         size={20}
-        style={{ stroke: "A3A3A3" }}
+        style={{ stroke: "#A3A3A3" }}
       />
     ),
     activeIcon: (
@@ -69,7 +69,7 @@ const Nav_Buttons = [
   },
   {
     index: 2,
-    icon: <Hash size={20} strokeWidth={1.5} style={{ stroke: "A3A3A3" }} />,
+    icon: <Hash size={20} strokeWidth={1.5} style={{ stroke: "#A3A3A3" }} />,
     activeIcon: (
       <Hash size={20} strokeWidth={1.5} style={{ stroke: "#FFFFFF" }} />
     ),

@@ -1,11 +1,17 @@
 // Import necessary modules and utilities
 import axios from "axios";
-import { store } from "../redux/store";
 import { SizeLevel } from "../Utils/theme";
+import { useAuthStore } from "../Store/store";
 
 // Create an Axios instance for API requests
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_SERVER_URI, // Root server URL, e.g., http://localhost:8080
+  /**
+   * BASE URL CONFIGURATION:
+   * 1. UNIFIED DEPLOYMENT: Leave VITE_SERVER_URI blank/undefined in production. 
+   *    It will fallback to "" (same-origin), which is correct for unified hosting.
+   * 2. SPLIT DEPLOYMENT: Set VITE_SERVER_URI to your backend URL (e.g., https://api.yourdomain.com).
+   */
+  baseURL: import.meta.env.VITE_SERVER_URI || "", 
   withCredentials: true,
   timeout: 120000,
 });
@@ -21,13 +27,65 @@ export interface ThemeSettings {
 // Add an interceptor to set authorization header with user token before requests
 apiClient.interceptors.request.use(
   function (config) {
-    const state = store.getState();
-    if (state.auth?.token) {
-      config.headers.Authorization = `Bearer ${state.auth.token}`;
+    const token = useAuthStore.getState().session.token;
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
   function (error) {
+    return Promise.reject(error);
+  },
+);
+
+// Add an interceptor to handle token refresh on 401/403 responses
+apiClient.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  async (error) => {
+    const originalRequest = error.config;
+
+    // Skip refresh logic for logout or refresh requests to avoid infinite loops
+    if (
+      originalRequest.url === "/api/auth/refresh-token" ||
+      originalRequest.url === "/api/auth/logout"
+    ) {
+      return Promise.reject(error);
+    }
+
+    // Check if error is 401 or 403 (Backend uses statusCode in body sometimes)
+    const status = error.response?.status || error.response?.data?.statusCode;
+
+    if ([401, 403].includes(status) && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      try {
+        // Attempt to refresh the access token
+        const rt = useAuthStore.getState().session.refreshToken;
+        const res = await refreshAccessToken(rt || undefined);
+        const data = res.data?.data ?? res.data;
+        const newToken = data?.accessToken ?? data?.token;
+        const newRefreshToken = data?.refreshToken;
+
+        if (newToken) {
+          // Update the store with the new tokens
+          useAuthStore.getState().updateSession({
+            token: newToken,
+            ...(newRefreshToken && { refreshToken: newRefreshToken }),
+          });
+
+          // Retry the original request with the new token
+          originalRequest.headers.Authorization = `Bearer ${newToken}`;
+          return apiClient(originalRequest);
+        }
+      } catch (refreshError) {
+        // Refresh failed, clear session and redirect (handled by requestHandler usually, but good to be safe)
+        // useAuthStore.getState().clearSession();
+        return Promise.reject(refreshError);
+      }
+    }
+
     return Promise.reject(error);
   },
 );
@@ -76,6 +134,11 @@ export const changePassword = (data: any) =>
 export const updateFcmToken = (fcmToken: string) =>
   apiClient.put("/api/auth/fcm-token", { fcmToken });
 
+export const getOrganizationById = (id: string) =>
+  apiClient.get(`/api/admin/organization/${id}`);
+
+export const getOrganizations = () =>
+  apiClient.get(`/api/admin/organizations`);
 // ── 🏢 ADMIN MODULE ──────────────────────────────────────────────────────────
 
 export const adminCreateOrg = (data: FormData) =>
@@ -206,11 +269,15 @@ export const hrmUpdateAdvanceStatus = (id: string, data: any) =>
   apiClient.put(`/api/advance-requests/${id}`, data);
 
 // Tasks & SOPs
-export const hrmListTasks = (params?: any) =>
+export const fetchTasks = (params?: any) =>
   apiClient.get("/api/tasks", { params });
 export const hrmCreateTask = (data: any) => apiClient.post("/api/tasks", data);
+export const hrmGetTaskById = (id: string) => apiClient.get(`/api/tasks/${id}`);
 export const hrmUpdateTask = (id: string, data: any) =>
-  apiClient.put(`/api/tasks/${id}`, data);
+{
+  debugger;
+    return apiClient.put(`/api/tasks/${id}`, data);
+}
 export const hrmDeleteTask = (id: string) =>
   apiClient.delete(`/api/tasks/${id}`);
 export const hrmListSops = () => apiClient.get("/api/sops");
@@ -238,9 +305,12 @@ export const getNotifications = (params?: any) =>
 export const markNotificationRead = (id: string) =>
   apiClient.put(`/api/notifications/${id}/read`);
 export const getDashboardHome = () => apiClient.get("/api/home");
+export const fetchUserLogs = (params: any) => apiClient.get("/api/logs", { params });
 
 // Legacy support placeholders (to prevent immediate build break if referenced)
 export const getAvailableUsers = () => Promise.resolve({ data: [] });
 export const getUserChats = () => Promise.resolve({ data: [] });
+export const getAppSetting = () => Promise.resolve({} as any);
+export const saveAppSetting = (data:any) => Promise.resolve({} as any);
 
 export default apiClient;

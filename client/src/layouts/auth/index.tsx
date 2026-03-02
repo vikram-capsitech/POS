@@ -1,34 +1,50 @@
+// src/layouts/auth/AuthLayout.tsx
 import React from "react";
-import { useSelector } from "react-redux";
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { Layout, Space } from "antd";
 import Background from "../../Assets/Images/Background.png";
+import { useAuthStore } from "../../Store/store";
+
 const { Content } = Layout;
 
-const AuthLayout = () => {
-  const { isLoggedIn, currentOrganization } = useSelector(
-    (state: any) => state.auth
-  );
+const AuthLayout: React.FC = () => {
+  const location = useLocation();
 
-  // Redirect logic
-  if (isLoggedIn && currentOrganization?.id === undefined) {
-    return <Navigate to={"/client/organization"} />;
+  // ✅ Zustand selectors (NO useStore from zustand)
+  const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
+  const token = useAuthStore((s) => s.session.token);
+
+  // If your app has an org-selection store, plug it here.
+  // For now, we infer "has any org access" from auth store.
+  const hasAnyOrgAccess = useAuthStore((s) => Object.keys(s.session.orgAccess || {}).length > 0);
+
+  // Treat token or isLoggedIn as logged-in
+  const authed = Boolean(token) || Boolean(isLoggedIn);
+
+  // ✅ Redirect logic
+  // If logged in and no org access -> go to org selection page
+  if (authed && !hasAnyOrgAccess) {
+    return (
+      <Navigate
+        to="/client/organization"
+        replace
+        state={{ from: location.pathname }}
+      />
+    );
   }
 
-  if (isLoggedIn && currentOrganization?.id !== undefined) {
-    return <Navigate to={"/"} />;
-  }
-
-  // Styles for the layout
+  // NOTE: Redirection to /client is handled by Login component or guards.
+  // Removing early redirect to avoid conflict with specific orgId redirects.
 
   const layoutStyle: React.CSSProperties = {
     minHeight: "100vh",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor:
+    // backgroundColor doesn't accept gradients; use background instead
+    background:
       "linear-gradient(180deg, #F4F9FF 0%, #FBFBFB 47.23%, #F4F9FF 101.21%)",
-    paddingTop: "100px",
+    paddingTop: 100,
     backgroundImage: `url(${Background})`,
     backgroundSize: "cover",
     backgroundPosition: "center",

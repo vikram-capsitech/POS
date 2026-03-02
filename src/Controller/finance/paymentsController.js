@@ -2,6 +2,7 @@ import Payments from "../../Models/finance/Payments.js";
 import User from "../../Models/core/User.js";
 import asyncHandler from "../../Utils/AsyncHandler.js";
 import ApiError from "../../Utils/ApiError.js";
+import { logUserAction } from "../../Utils/Logger.js";
 
 // ─────────────────────────────────────────────
 //  POST /api/payments  (superadmin creates payment records)
@@ -26,6 +27,8 @@ const createRecord = asyncHandler(async (req, res) => {
       }),
     ),
   );
+
+  await logUserAction(req, "PAYMENT_RECORDS_CREATED", "FINANCE", null, { createdCount: payments.length });
 
   res.status(201).json({
     success: true,
@@ -103,12 +106,16 @@ const updatePaymentStatus = asyncHandler(async (req, res) => {
   if (!VALID.includes(status))
     throw new ApiError(400, `Status must be one of: ${VALID.join(", ")}`);
 
+  const old = await Payments.findById(req.params.id);
   const payment = await Payments.findByIdAndUpdate(
     req.params.id,
     { status },
     { new: true },
   );
   if (!payment) throw new ApiError(404, "Payment record not found");
+
+  const changes = old && old.status !== payment.status ? { status: { from: old.status, to: payment.status } } : undefined;
+  await logUserAction(req, "PAYMENT_STATUS_UPDATED", "FINANCE", payment._id, { changes });
 
   res.json({ success: true, message: "Payment status updated", data: payment });
 });

@@ -1,6 +1,7 @@
 import MenuItem from "../../Models/pos/MenuItem.js";
 import asyncHandler from "../../Utils/AsyncHandler.js";
 import ApiError from "../../Utils/ApiError.js";
+import { logUserAction } from "../../Utils/Logger.js";
 
 // ─────────────────────────────────────────────
 //  POST /api/menu
@@ -35,6 +36,8 @@ const createMenuItem = asyncHandler(async (req, res) => {
     ingredients: ingredients ?? [],
     imageUrl,
   });
+
+  await logUserAction(req, "MENU_ITEM_CREATED", "POS", item._id, { name });
 
   res
     .status(201)
@@ -97,11 +100,21 @@ const updateMenuItem = asyncHandler(async (req, res) => {
   if (updateData.price) updateData.price = Number(updateData.price);
   if (updateData.prepTime) updateData.prepTime = Number(updateData.prepTime);
 
+  const old = await MenuItem.findById(req.params.id);
   const item = await MenuItem.findByIdAndUpdate(req.params.id, updateData, {
     new: true,
     runValidators: true,
   });
   if (!item) throw new ApiError(404, "Menu item not found");
+
+  const changes = {};
+  ["name", "category", "price", "available"].forEach(field => {
+    if (old && old[field] !== item[field]) {
+      changes[field] = { from: old[field], to: item[field] };
+    }
+  });
+
+  await logUserAction(req, "MENU_ITEM_UPDATED", "POS", item._id, { name: item.name, changes });
 
   res.json({ success: true, message: "Menu item updated", data: item });
 });
@@ -116,6 +129,9 @@ const toggleAvailability = asyncHandler(async (req, res) => {
   item.available = !item.available;
   await item.save();
 
+  const changes = { available: { from: !item.available, to: item.available } };
+  await logUserAction(req, "MENU_ITEM_UPDATED", "POS", item._id, { name: item.name, changes });
+
   res.json({
     success: true,
     message: `Item marked as ${item.available ? "available" : "unavailable"}`,
@@ -129,6 +145,9 @@ const toggleAvailability = asyncHandler(async (req, res) => {
 const deleteMenuItem = asyncHandler(async (req, res) => {
   const item = await MenuItem.findByIdAndDelete(req.params.id);
   if (!item) throw new ApiError(404, "Menu item not found");
+
+  await logUserAction(req, "MENU_ITEM_DELETED", "POS", item._id, { name: item.name });
+
   res.json({ success: true, message: "Menu item deleted" });
 });
 

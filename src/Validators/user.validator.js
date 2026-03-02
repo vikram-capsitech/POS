@@ -81,7 +81,7 @@ export const userRegisterValidator = () => {
 
 export const userLoginValidator = () => {
   return [
-    body("email")
+    body("loginEmail")
       .optional()
       .isEmail()
       .withMessage("Email is invalid"),
@@ -89,7 +89,7 @@ export const userLoginValidator = () => {
     body("userName")
       .optional(),
 
-    body("password")
+    body("loginPassword")
       .notEmpty()
       .withMessage("Password is required"),
   ];

@@ -3,6 +3,7 @@ import Break from "../../Models/workforce/Break.js";
 import asyncHandler from "../../Utils/AsyncHandler.js";
 import ApiError from "../../Utils/ApiError.js";
 import ApiResponse from "../../Utils/ApiResponse.js";
+import { logUserAction } from "../../Utils/Logger.js";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -42,6 +43,8 @@ export const checkIn = asyncHandler(async (req, res) => {
     dressCheck,
     dressReason,
   });
+
+  await logUserAction(req, "ATTENDANCE_CHECK_IN", "ATTENDANCE", attendance._id);
 
   return res
     .status(201)
@@ -88,6 +91,8 @@ export const checkOut = asyncHandler(async (req, res) => {
   attendance.checkOut = new Date();
   attendance.hoursWorked = hoursWorked(attendance.checkIn, attendance.checkOut);
   await attendance.save();
+
+  await logUserAction(req, "ATTENDANCE_CHECK_OUT", "ATTENDANCE", attendance._id);
 
   return res.json(new ApiResponse(200, attendance, "Check-out recorded"));
 });

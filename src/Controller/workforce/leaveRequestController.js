@@ -4,6 +4,7 @@ import asyncHandler from "../../Utils/AsyncHandler.js";
 import ApiError from "../../Utils/ApiError.js";
 import ApiResponse from "../../Utils/ApiResponse.js";
 import { sendNotification } from "../../Services/Notificationservice.js";
+import { logUserAction } from "../../Utils/Logger.js";
 
 // ─────────────────────────────────────────────
 //  POST /api/leave-requests
@@ -32,6 +33,8 @@ export const createLeaveRequest = asyncHandler(async (req, res) => {
     event: "REQUEST_CREATED",
     request: leave._id,
   });
+
+  await logUserAction(req, "LEAVE_REQUESTED", "HRM", leave._id, { title, reason, startDate, endDate });
 
   return res
     .status(201)
@@ -204,6 +207,9 @@ export const approveOrRejectLeave = asyncHandler(async (req, res) => {
       : `Your leave from ${startFmt} to ${endFmt} has been rejected.`,
     { leaveId: leaveRequest._id.toString(), status: newStatus },
   );
+
+  const changes = { status: { from: "Pending", to: newStatus } };
+  await logUserAction(req, "LEAVE_STATUS_CHANGED", "HRM", leaveRequest._id, { changes, title: leaveRequest.title });
 
   return res.json(
     new ApiResponse(200, {}, `Leave ${newStatus.toLowerCase()} successfully`),

@@ -1,6 +1,7 @@
 import asyncHandler from "../../Utils/AsyncHandler.js";
 import Order from "../../Models/pos/Order.js";
 import Table from "../../Models/pos/Table.js";
+import { logUserAction } from "../../Utils/Logger.js";
 
 // @desc    Get all orders (Active)
 // @route   GET /api/pos/orders
@@ -51,6 +52,8 @@ const createOrder = asyncHandler(async (req, res) => {
       }
     }
 
+    await logUserAction(req, "ORDER_CREATED", "POS", createdOrder._id, { total });
+
     res.status(201).json(createdOrder);
   }
 });
@@ -62,9 +65,13 @@ const updateOrder = asyncHandler(async (req, res) => {
   const { status } = req.body;
   const order = await Order.findById(req.params.id);
 
+  const oldStatus = order ? order.status : null;
   if (order) {
     order.status = status;
     const updatedOrder = await order.save();
+
+    const changes = { status: { from: oldStatus, to: status } };
+    await logUserAction(req, "ORDER_STATUS_CHANGED", "POS", order._id, { changes });
 
     // If paid, free up table (logic depends on requirements, freeing on 'paid' usually)
     if (status === "paid") {
@@ -97,6 +104,9 @@ const addOrderItems = asyncHandler(async (req, res) => {
     order.total = (order.total || 0) + total;
 
     const updatedOrder = await order.save();
+    
+    await logUserAction(req, "ORDER_ITEMS_ADDED", "POS", order._id, { addedItems: items.length });
+    
     res.json(updatedOrder);
   } else {
     res.status(404);
@@ -121,6 +131,9 @@ const deleteOrder = asyncHandler(async (req, res) => {
   const order = await Order.findById(req.params.id);
   if (order) {
     await order.remove();
+
+    await logUserAction(req, "ORDER_DELETED", "POS", order._id);
+
     res.json({ message: "Order removed" });
   } else {
     res.status(404);

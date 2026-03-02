@@ -2,6 +2,7 @@ import asyncHandler from "express-async-handler";
 import { Request } from "../../Models/index.js";
 import ApiError from "../../Utils/ApiError.js";
 import ApiResponse from "../../Utils/ApiResponse.js";
+import { logUserAction } from "../../Utils/Logger.js";
 
 export const createRequest = asyncHandler(async (req, res) => {
   const { title, description, requestType, assignTo, priority } = req.body;
@@ -17,6 +18,9 @@ export const createRequest = asyncHandler(async (req, res) => {
     organizationID: req.organizationID,
     createdBy: req.user._id,
   });
+
+  await logUserAction(req, "REQUEST_CREATED", "REQUEST", request._id, { title: request.title });
+
   return res.status(201).json(new ApiResponse(201, request, "Request created"));
 });
 
@@ -62,17 +66,31 @@ export const getRequestById = asyncHandler(async (req, res) => {
 export const updateRequest = asyncHandler(async (req, res) => {
   const update = { ...req.body };
   if (req.file) update.voiceNote = req.file.path;
+  const old = await Request.findById(req.params.id);
   const request = await Request.findByIdAndUpdate(req.params.id, update, {
     new: true,
     runValidators: true,
   });
   if (!request) throw new ApiError(404, "Request not found");
+
+  const changes = {};
+  ["status", "priority", "title"].forEach(field => {
+    if (old && old[field] !== request[field]) {
+      changes[field] = { from: old[field], to: request[field] };
+    }
+  });
+
+  await logUserAction(req, "REQUEST_UPDATED", "REQUEST", request._id, { title: request.title, changes });
+
   return res.json(new ApiResponse(200, request, "Request updated"));
 });
 
 export const deleteRequest = asyncHandler(async (req, res) => {
   const request = await Request.findByIdAndDelete(req.params.id);
   if (!request) throw new ApiError(404, "Request not found");
+
+  await logUserAction(req, "REQUEST_DELETED", "REQUEST", request._id, { title: request.title });
+
   return res.json(new ApiResponse(200, {}, "Request deleted"));
 });
 
