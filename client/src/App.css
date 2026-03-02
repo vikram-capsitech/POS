@@ -1,0 +1,382 @@
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@100;200;300;400;500;600;700;800;900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
+
+
+/* App container */
+.App {
+  height: 100%;
+}
+
+/* width and height for the scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 10px;
+}
+
+/* scrollbar track */
+::-webkit-scrollbar-track {
+  background: transparent; /* make scrollbar track transparent */
+}
+
+/* scrollbar thumb */
+::-webkit-scrollbar-thumb {
+  background: rgba(154, 151, 151, 0.5); /* semi-transparent black */
+  border-radius: 5px; /* round the corners of the thumb */
+}
+
+/* scrollbar thumb on hover */
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(121, 121, 121, 0.7); /* darker semi-transparent black */
+}
+
+/* scrollbar corner (between vertical and horizontal scrollbar) */
+::-webkit-scrollbar-corner {
+  background: transparent; /* make the corner transparent */
+}
+
+/* Root variables */
+:root {
+  --body-bg: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  --msger-bg: #fff;
+  --border: 2px solid #ddd;
+  --left-msg-bg: #d0f0dc;
+  --right-msg-bg: #d4ebf8;
+}
+
+/* Error message */
+.error {
+  color: red !important;
+}
+
+
+
+/* Root element */
+#root {
+  background-color: rgba(225, 223, 221, 0.2);
+}
+
+/* Media queries for responsiveness */
+@media only screen and (max-width: 768px) {
+  /* Adjust styles for smaller screens */
+}
+
+@media only screen and (max-width: 480px) {
+  /* Adjust styles for even smaller screens */
+}
+
+/* App container */
+.App {
+  height: 100vh; /* Use viewport height for full height */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Snackbar container */
+.Snackbar-root {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Media queries for responsiveness */
+@media only screen and (max-width: 768px) {
+  /* Adjust styles for smaller screens */
+  .App {
+    padding: 20px;
+  }
+}
+
+@media only screen and (max-width: 480px) {
+  /* Adjust styles for even smaller screens */
+  .App {
+    padding: 10px;
+  }
+}
+.custom-menu .ant-menu-item,
+.custom-menu .ant-menu-submenu-title {
+  padding-left: 5px !important;
+}
+
+/* Sidebar Specific Contrast Fixes */
+.custom-sidebar .ant-menu,
+.custom-sidebar .ant-menu-item,
+.custom-sidebar .ant-menu-item a,
+.custom-sidebar .ant-menu-item .ant-menu-item-icon {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.custom-sidebar .ant-menu-item:hover,
+.custom-sidebar .ant-menu-item:hover a,
+.custom-sidebar .ant-menu-item-selected,
+.custom-sidebar .ant-menu-item-selected a {
+  color: #FFFFFF !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.custom-sidebar .ant-menu-item-selected {
+  border-radius: 8px !important;
+}
+
+
+.custom-menu .ant-menu-item-group-list {
+  padding-left: 5px !important;
+}
+.ant-modal-content {
+  border-radius: 10px !important;
+}
+.ant-modal {
+  overflow: hidden; /* Ensures rounded edges apply */
+}
+/* Targeting Ant Design Divider */
+/* Targeting horizontal dividers in Ant Design */
+/* General targeting for the Ant Design Divider component */
+
+/* If you want to further customize the horizontal divider (if you are using the orientation prop) */
+.custom-divider.ant-divider-horizontal {
+  margin: 15px 0 !important;
+}
+
+.custom-dividersidenave.ant-divider-horizontal {
+  margin: 0 !important;
+  margin-bottom: 10px !important;
+}
+/* More specific selector to ensure it overrides AntD styles */
+.custom-list-tight .ant-list .ant-list-item {
+  padding-top: 4px !important;
+  padding-bottom: 4px !important;
+}
+
+body {
+  font-family: "Outfit", sans-serif !important;
+}
+
+.avatar-container {
+  position: relative;
+  display: inline-block;
+}
+
+.offline-icon {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+}
+
+.active-icon {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+}
+
+.idle-icon {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+}
+
+.dnd-icon {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+}
+/* Removes box-shadow from Ant Design Tooltip */
+.ant-tooltip-inner {
+  box-shadow: none !important;
+}
+
+.ant-tooltip-content {
+  box-shadow: none !important;
+}
+
+.custom-input::placeholder {
+  font-weight: 400;
+  color: #a3a3a3;
+  font-size: 13px;
+  line-height: 16.38px;
+}
+
+.custom-item {
+  background-color: transparent !important;
+  color: #a3a3a3 !important;
+}
+
+.custom-item:hover {
+  background-color: #f2f7fc !important;
+  color: #333333 !important;
+  border-radius: 10px;
+}
+
+.header-item:hover {
+  background-color: #f2f7fc !important;
+}
+
+.header-item {
+  border-radius: 6px;
+  background-color: transparent !important;
+}
+
+.ant-list-split .ant-list-header {
+  border-bottom: none !important;
+}
+
+/* Remove Ant Design's default selection styles */
+.ant-menu-item::after,
+.ant-menu-submenu-title::after,
+.ant-menu-vertical-right .ant-menu-item::after,
+.ant-menu-inline .ant-menu-item::after {
+  display: none !important;
+}
+
+.ant-menu-item-selected {
+  background: none !important;
+  border: none !important;
+  color: inherit !important;
+}
+
+.menu-item-custom2 {
+  width: 100%;
+  background-color: #ffffff;
+  cursor: pointer;
+  transition: background 0.2s ease-in-out;
+  border-radius: 8px;
+  margin-bottom: 4px;
+}
+
+/* Hover effect */
+.menu-item-custom2:hover {
+  background-color: #003b7308;
+}
+
+/* Selected (Active) state */
+.menu-item-custom2.ant-menu-item-selected {
+  background-color: #003b7308 !important;
+  border-radius: 8px;
+}
+
+/* Change background color of submenu */
+.ant-menu-sub.ant-menu-inline {
+  background: #ffffff !important;
+  border-radius: 8px;
+}
+.ant-menu-inline,
+.ant-menu-vertical,
+.ant-menu-vertical-left {
+  border-right: none !important;
+}
+.menu-item-custom2 {
+  padding-left: 15px !important;
+}
+
+.ant-card-theme:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s;
+}
+
+.ant-image-preview-operations {
+  width: 100% !important;
+}
+
+/* Removes default padding from Popover */
+.custom-popover .ant-popover-inner {
+  padding: 0;
+}
+
+/* Optional: style the content if needed */
+.custom-popover-content {
+  padding: 0;
+}
+
+.custom-menu .ant-menu-item-group-title {
+  display: none !important; /* or padding: 0px !important; */
+}
+
+.highlighted {
+  animation: highlight-fade 1s ease-in-out;
+  background-color: #f0f8ff !important; /* soft blue highlight */
+  border-radius: 8px;
+}
+
+@keyframes highlight-fade {
+  0% {
+    background-color: #f0f8ff;
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+/* Initially hide the download icon */
+.file-row .download-icon {
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+}
+
+/* Show it when row is hovered */
+.file-row:hover .download-icon {
+  opacity: 1;
+}
+
+.ant-picker-input input::placeholder {
+  color: #a3a3a3 !important; 
+}
+
+.anticon.anticon-calendar svg {
+  fill: #a3a3a3 !important;
+}
+ 
+.ant-select .ant-select-arrow{
+  color: #a3a3a3 !important;
+} 
+
+.select-light .ant-select-selector{
+  color: black !important;
+  background: #ffffff !important;
+}
+
+.select-dark .ant-select-selector {
+  color: white !important;
+  background: #333333 !important;
+}
+
+.select-light .ant-modal-content{
+  color: black !important;
+  background: #ffffff !important;
+}
+
+.select-dark .ant-modal-content{
+  color: white !important;
+  background: #333333 !important;
+}
+
+.select-dark .ant-modal-title{
+  color: white !important;
+  background: #333333 !important;
+}
+
+.ant-modal .ant-modal-close{
+  color: #a3a3a3 !important;  
+}
+.ant-menu-submenu-arrow {
+  color: #a3a3a3 !important;
+}
+
+.ant-input::placeholder {
+  color: #a3a3a3; 
+}
+
+.custom-datepicker.ant-picker-disabled .ant-picker-input > input {
+  color: #a3a3a3 !important; 
+}
+
+.ant-empty-description{
+  color: #a3a3a3 !important; 
+}

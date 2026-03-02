@@ -1,0 +1,1942 @@
+openapi: 3.0.3
+info:
+  title: POS HRM API
+  description: Multi-purpose Point-of-Sale & HR Management platform API. Supports restaurants, retail, hospitals, logistics and more.
+  version: 2.0.0
+  contact:
+    name: POS HRM Support
+
+servers:
+  - url: http://localhost:8080/api
+    description: Local development server
+
+tags:
+  - name: 🔐 Auth
+    description: Authentication & profile management
+  - name: 🏢 Admin — Organizations
+    description: Organization CRUD (superadmin only)
+  - name: 👤 Admin — Users
+    description: User management (superadmin / admin)
+  - name: 🎭 Admin — Roles
+    description: Custom role management
+  - name: 👷 Employees
+    description: Employee lifecycle management
+  - name: 🕐 Attendance
+    description: Check-in / check-out & break tracking
+  - name: 🏖️ Leave Requests
+    description: Employee leave requests
+  - name: 💵 Advance Requests
+    description: Salary advance requests
+  - name: 💼 Salary Records
+    description: Payroll & salary records
+  - name: 📝 Tasks
+    description: Task management
+  - name: 📑 SOPs
+    description: Standard Operating Procedures
+  - name: 📬 Requests
+    description: General staff requests / approvals
+  - name: 🤖 AI Reviews
+    description: AI-assisted review generation
+  - name: 🗃️ Documents
+    description: Employee document management
+  - name: 🎁 Allocated Items
+    description: Asset allocation to employees
+  - name: 🎫 Vouchers
+    description: Reward / discount vouchers
+  - name: 💰 Payments
+    description: Payment records
+  - name: 🪙 Coins
+    description: Employee rewards coin system
+  - name: 🔔 Notifications
+    description: In-app notifications
+  - name: 🏠 Home
+    description: Dashboard summary endpoints
+  - name: 🍽️ POS — Menu
+    description: Menu item management
+  - name: 🪑 POS — Tables
+    description: Table management
+  - name: 📦 POS — Orders
+    description: Order management
+  - name: 📋 POS — Inventory
+    description: Inventory / stock requests
+  - name: 📊 POS — Reports
+    description: POS sales reports
+  - name: 🏪 POS — Organization
+    description: Organization settings for POS
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ApiResponse:
+      type: object
+      properties:
+        statusCode: { type: integer, example: 200 }
+        success: { type: boolean, example: true }
+        message: { type: string, example: Success }
+        data: { type: object }
+
+    ApiError:
+      type: object
+      properties:
+        statusCode: { type: integer, example: 400 }
+        success: { type: boolean, example: false }
+        message: { type: string, example: Something went wrong }
+        errors: { type: array, items: { type: object } }
+
+    User:
+      type: object
+      properties:
+        _id: { type: string, example: 64a1b2c3d4e5f6a7b8c9d0e1 }
+        userName: { type: string, example: john_doe }
+        email: { type: string, example: john@example.com }
+        displayName: { type: string, example: John Doe }
+        phoneNumber: { type: string, example: "9876543210" }
+        systemRole: { type: string, enum: [superadmin, admin], nullable: true }
+        organizationID: { type: string, nullable: true }
+        roleID: { type: string, nullable: true }
+        isEmailVerified: { type: boolean }
+        status: { type: string, enum: [Idle, Online, Offline, Do Not Disturb] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    Organization:
+      type: object
+      properties:
+        _id: { type: string }
+        name: { type: string, example: Burger Palace }
+        type:
+          {
+            type: string,
+            enum: [restaurant, retail, hospital, logistics, other],
+          }
+        slug: { type: string, example: burger-palace-delhi }
+        address: { type: string }
+        contactEmail: { type: string }
+        contactPhone: { type: string }
+        logo: { type: string, nullable: true }
+        modules:
+          type: object
+          properties:
+            pos: { type: boolean }
+            hrm: { type: boolean }
+            inventory: { type: boolean }
+            payroll: { type: boolean }
+            ai: { type: boolean }
+        isActive: { type: boolean }
+        createdAt: { type: string, format: date-time }
+
+    Role:
+      type: object
+      properties:
+        _id: { type: string }
+        name: { type: string, example: manager }
+        displayName: { type: string, example: Manager }
+        organizationID: { type: string }
+        permissions: { type: array, items: { type: string } }
+        isDefault: { type: boolean }
+        isActive: { type: boolean }
+
+    EmployeeProfile:
+      type: object
+      properties:
+        _id: { type: string }
+        userID: { type: string }
+        organizationID: { type: string }
+        position: { type: string }
+        jobRole: { type: string }
+        salary: { type: number }
+        employeeStatus: { type: string, enum: [active, inactive] }
+        hireDate: { type: string, format: date-time }
+        totalLeave: { type: number }
+        leaveTaken: { type: number }
+        coinsPerMonth: { type: number }
+
+    Attendance:
+      type: object
+      properties:
+        _id: { type: string }
+        userID: { type: string }
+        organizationID: { type: string }
+        date: { type: string, format: date }
+        checkIn: { type: string, format: date-time, nullable: true }
+        checkOut: { type: string, format: date-time, nullable: true }
+        hoursWorked: { type: number }
+        status: { type: string }
+        selfie: { type: string, nullable: true }
+
+security:
+  - BearerAuth: []
+
+paths:
+  # ── Auth ─────────────────────────────────────────────────────────────────────
+
+  /auth/setup:
+    post:
+      tags: [🔐 Auth]
+      summary: Create superadmin (one-time setup)
+      description: One-time endpoint to bootstrap the platform superadmin. Returns 400 if one already exists.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, userName, password, phoneNumber]
+              properties:
+                email: { type: string, example: superadmin@pos.com }
+                userName: { type: string, example: superadmin }
+                password: { type: string, example: "Admin@123" }
+                phoneNumber: { type: string, example: "0000000000" }
+                displayName: { type: string, example: Super Admin }
+      responses:
+        "201":
+          description: Superadmin created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiResponse" }
+        "400":
+          description: Super admin already exists
+
+  /auth/login:
+    post:
+      tags: [🔐 Auth]
+      summary: Login
+      description: Authenticates a user by email/username + password. Returns JWT access token and sets cookies.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                email: { type: string, example: john@example.com }
+                userName: { type: string, example: john_doe }
+                password: { type: string, example: "Employee@123" }
+      responses:
+        "200":
+          description: Login successful — access token returned + cookies set
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          accessToken: { type: string }
+                          user: { $ref: "#/components/schemas/User" }
+        "401": { description: Invalid credentials }
+        "423": { description: Account locked }
+
+  /auth/logout:
+    post:
+      tags: [🔐 Auth]
+      summary: Logout
+      description: Clears auth cookies and invalidates the refresh token in the database.
+      responses:
+        "200": { description: Logged out successfully }
+        "401": { description: Unauthorized }
+
+  /auth/refresh-token:
+    post:
+      tags: [🔐 Auth]
+      summary: Refresh access token
+      description: Uses the refresh token (from cookie or body) to issue a new access token.
+      security: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refreshToken: { type: string }
+      responses:
+        "200":
+          description: New access token issued
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          accessToken: { type: string }
+        "401": { description: Invalid or expired refresh token }
+
+  /auth/profile:
+    get:
+      tags: [🔐 Auth]
+      summary: Get my profile
+      responses:
+        "200":
+          description: User profile with org and role populated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/User" }
+    put:
+      tags: [🔐 Auth]
+      summary: Update my profile
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                displayName: { type: string }
+                phoneNumber: { type: string }
+                gender: { type: string, enum: [male, female, other] }
+                address: { type: string }
+                dob: { type: string, format: date }
+                designation: { type: string }
+                about: { type: string }
+                themeType: { type: string, enum: [light, dark] }
+                sizeLevel: { type: string, enum: [xs, s, m, l, xl] }
+                fontFamily: { type: string }
+                status:
+                  {
+                    type: string,
+                    enum: [Idle, Online, Offline, Do Not Disturb],
+                  }
+                profilePhoto: { type: string, format: binary }
+      responses:
+        "200": { description: Profile updated }
+
+  /auth/change-password:
+    put:
+      tags: [🔐 Auth]
+      summary: Change password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [oldPassword, newPassword]
+              properties:
+                oldPassword: { type: string }
+                newPassword: { type: string, minLength: 6 }
+      responses:
+        "200": { description: Password changed }
+        "401": { description: Current password incorrect }
+
+  /auth/fcm-token:
+    put:
+      tags: [🔐 Auth]
+      summary: Update FCM / push notification token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fcmToken]
+              properties:
+                fcmToken: { type: string }
+      responses:
+        "200": { description: FCM token updated }
+
+  # ── Admin — Organizations ─────────────────────────────────────────────────────
+
+  /admin/organizations:
+    post:
+      tags: [🏢 Admin — Organizations]
+      summary: Create organization (superadmin)
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+                type:
+                  {
+                    type: string,
+                    enum: [restaurant, retail, hospital, logistics, other],
+                  }
+                address: { type: string }
+                contactEmail: { type: string }
+                contactPhone: { type: string }
+                slug: { type: string }
+                logo: { type: string, format: binary }
+      responses:
+        "201": { description: Organization created }
+    get:
+      tags: [🏢 Admin — Organizations]
+      summary: List all organizations (superadmin)
+      responses:
+        "200": { description: List of organizations }
+
+  /admin/organizations/{id}/theme:
+    put:
+      tags: [🏢 Admin — Organizations]
+      summary: Update org theme / modules
+      description: Superadmin can update any org. Admin updates their own org (id param ignored for admin).
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                theme:
+                  type: object
+                  properties:
+                    primary: { type: string, example: "#5240d6" }
+                modules:
+                  type: object
+                  properties:
+                    pos: { type: boolean }
+                    hrm: { type: boolean }
+                    inventory: { type: boolean }
+                    payroll: { type: boolean }
+                    ai: { type: boolean }
+      responses:
+        "200": { description: Organization updated }
+
+  # ── Admin — Admins ────────────────────────────────────────────────────────────
+
+  /admin/admins:
+    post:
+      tags: [👤 Admin — Users]
+      summary: Create admin + organization (superadmin)
+      description: Creates a new organization and an admin user linked to it in one atomic operation.
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [email, userName, phoneNumber]
+              properties:
+                email: { type: string }
+                userName: { type: string }
+                phoneNumber: { type: string }
+                displayName: { type: string }
+                password: { type: string }
+                gender: { type: string, enum: [male, female, other] }
+                address: { type: string }
+                dob: { type: string, format: date }
+                organizationName: { type: string }
+                organizationAddress: { type: string }
+                contactPhone: { type: string }
+                orgType:
+                  {
+                    type: string,
+                    enum: [restaurant, retail, hospital, logistics, other],
+                  }
+                profilePhoto: { type: string, format: binary }
+                organizationLogo: { type: string, format: binary }
+      responses:
+        "201": { description: Admin and organization created }
+        "400": { description: Email or username already exists }
+
+  # ── Admin — Users ─────────────────────────────────────────────────────────────
+
+  /admin/users:
+    get:
+      tags: [👤 Admin — Users]
+      summary: List users
+      description: Superadmin sees all users (filterable by org). Admin sees only own org users.
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20 }
+        - name: systemRole
+          in: query
+          schema: { type: string, enum: [superadmin, admin] }
+        - name: orgId
+          in: query
+          schema: { type: string }
+      responses:
+        "200": { description: Paginated user list }
+
+  /admin/users/{id}:
+    get:
+      tags: [👤 Admin — Users]
+      summary: Get user by ID (with employee profile)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: User + employee profile }
+        "404": { description: User not found }
+    put:
+      tags: [👤 Admin — Users]
+      summary: Update user by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                displayName: { type: string }
+                phoneNumber: { type: string }
+                email: { type: string }
+                gender: { type: string }
+                address: { type: string }
+                designation: { type: string }
+                profilePhoto: { type: string, format: binary }
+      responses:
+        "200": { description: User updated }
+        "404": { description: User not found }
+    delete:
+      tags: [👤 Admin — Users]
+      summary: Delete user by ID (superadmin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: User deleted }
+        "404": { description: User not found }
+
+  /admin/users/{id}/role:
+    put:
+      tags: [👤 Admin — Users]
+      summary: Assign role to user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [roleID, organizationID]
+              properties:
+                roleID: { type: string, example: 64a1b2c3d4e5f6a7b8c9d0e1 }
+                organizationID:
+                  { type: string, example: 64a1b2c3d4e5f6a7b8c9d0e2 }
+      responses:
+        "200": { description: Role assigned }
+        "404": { description: User or role not found }
+
+  # ── Admin — Roles ─────────────────────────────────────────────────────────────
+
+  /admin/roles:
+    post:
+      tags: [🎭 Admin — Roles]
+      summary: Create role
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, displayName, permissions, organizationID]
+              properties:
+                name: { type: string, example: manager }
+                displayName: { type: string, example: Manager }
+                permissions:
+                  type: array
+                  items: { type: string }
+                  example: ["64a1b2c3d4e5f6a7b8c9d0e1"]
+                organizationID: { type: string }
+      responses:
+        "201": { description: Role created }
+    get:
+      tags: [🎭 Admin — Roles]
+      summary: List roles
+      description: Admin sees own org roles. Superadmin can filter by orgId query param.
+      parameters:
+        - name: orgId
+          in: query
+          schema: { type: string }
+      responses:
+        "200": { description: List of roles with populated permissions }
+
+  /admin/roles/{id}:
+    put:
+      tags: [🎭 Admin — Roles]
+      summary: Update role
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                displayName: { type: string }
+                permissions: { type: array, items: { type: string } }
+                isActive: { type: boolean }
+      responses:
+        "200": { description: Role updated }
+        "403": { description: Cannot modify default system roles }
+        "404": { description: Role not found }
+    delete:
+      tags: [🎭 Admin — Roles]
+      summary: Delete role
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Role deleted }
+        "403": { description: Cannot delete default system roles }
+
+  # ── Employees ─────────────────────────────────────────────────────────────────
+
+  /employees:
+    post:
+      tags: [👷 Employees]
+      summary: Add employee
+      description: Creates a User + EmployeeProfile + Coins wallet in one call.
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [email, userName, phoneNumber]
+              properties:
+                email: { type: string }
+                userName: { type: string }
+                phoneNumber: { type: string }
+                displayName: { type: string }
+                password: { type: string }
+                position: { type: string }
+                jobRole: { type: string }
+                salary: { type: number }
+                hireDate: { type: string, format: date }
+                totalLeave: { type: integer }
+                coinsPerMonth: { type: number }
+                access:
+                  {
+                    type: string,
+                    description: JSON array string of access keys,
+                  }
+                profilePhoto: { type: string, format: binary }
+      responses:
+        "201": { description: Employee created }
+        "400": { description: Email or username already exists }
+    get:
+      tags: [👷 Employees]
+      summary: List all employees (with profile)
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 10 }
+        - name: jobRole
+          in: query
+          schema: { type: string }
+      responses:
+        "200": { description: Paginated employee list }
+
+  /employees/profile:
+    get:
+      tags: [👷 Employees]
+      summary: Get my own employee profile
+      responses:
+        "200": { description: Current user + employee profile }
+
+  /employees/overview/{employeeId}:
+    get:
+      tags: [👷 Employees]
+      summary: Employee overview (salary, leave, coins, docs, items)
+      parameters:
+        - name: employeeId
+          in: path
+          required: true
+          schema: { type: string }
+        - name: type
+          in: query
+          schema: { type: string, enum: [salary, leave, coins] }
+        - name: month
+          in: query
+          schema: { type: integer }
+        - name: year
+          in: query
+          schema: { type: integer }
+      responses:
+        "200": { description: Employee overview data }
+
+  /employees/received/{id}:
+    put:
+      tags: [👷 Employees]
+      summary: Update allocated item status (Received / Returned)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: { type: string, enum: [Received, Returned] }
+      responses:
+        "200": { description: Item status updated }
+
+  /employees/{id}:
+    get:
+      tags: [👷 Employees]
+      summary: Get employee by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: User + employee profile }
+        "404": { description: Employee not found }
+    put:
+      tags: [👷 Employees]
+      summary: Update employee
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                displayName: { type: string }
+                email: { type: string }
+                phoneNumber: { type: string }
+                gender: { type: string }
+                address: { type: string }
+                position: { type: string }
+                jobRole: { type: string }
+                salary: { type: number }
+                employeeStatus: { type: string, enum: [active, inactive] }
+                totalLeave: { type: integer }
+                coinsPerMonth: { type: number }
+                profilePhoto: { type: string, format: binary }
+      responses:
+        "200": { description: Employee updated }
+    delete:
+      tags: [👷 Employees]
+      summary: Delete employee
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Employee deleted }
+
+  # ── Attendance ────────────────────────────────────────────────────────────────
+
+  /attendance/check-in:
+    post:
+      tags: [🕐 Attendance]
+      summary: Employee self check-in
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                lat: { type: number }
+                lng: { type: number }
+                dressCheck: { type: boolean, default: true }
+                dressReason: { type: string }
+                selfie: { type: string, format: binary }
+      responses:
+        "201": { description: Check-in recorded }
+        "400": { description: Already checked in today }
+
+  /attendance/check-in/manager:
+    post:
+      tags: [🕐 Attendance]
+      summary: Manager manual check-in for an employee
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [employeeId]
+              properties:
+                employeeId: { type: string }
+                date: { type: string, format: date }
+                status: { type: string, example: On time }
+      responses:
+        "201": { description: Check-in recorded (manager) }
+
+  /attendance/check-out:
+    post:
+      tags: [🕐 Attendance]
+      summary: Employee self check-out
+      responses:
+        "200": { description: Check-out recorded with hours worked }
+        "400": { description: Already checked out or no check-in found }
+
+  /attendance/check-out/manager:
+    post:
+      tags: [🕐 Attendance]
+      summary: Manager manual check-out for an employee
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [employeeId]
+              properties:
+                employeeId: { type: string }
+                date: { type: string, format: date }
+      responses:
+        "200": { description: Check-out recorded (manager) }
+
+  /attendance/break/start:
+    post:
+      tags: [🕐 Attendance]
+      summary: Start a break
+      responses:
+        "201": { description: Break started }
+        "404": { description: No check-in found for today }
+
+  /attendance/break/end:
+    post:
+      tags: [🕐 Attendance]
+      summary: End current break
+      responses:
+        "200": { description: Break ended, duration calculated }
+        "400": { description: No active break found }
+
+  /attendance/daily:
+    get:
+      tags: [🕐 Attendance]
+      summary: Get daily attendance for the org
+      parameters:
+        - name: date
+          in: query
+          schema: { type: string, format: date }
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50 }
+      responses:
+        "200": { description: Daily attendance records }
+
+  /attendance/monthly:
+    get:
+      tags: [🕐 Attendance]
+      summary: Get monthly attendance
+      parameters:
+        - name: month
+          in: query
+          schema: { type: integer }
+        - name: year
+          in: query
+          schema: { type: integer }
+        - name: employeeId
+          in: query
+          schema: { type: string }
+      responses:
+        "200": { description: Monthly attendance records }
+
+  /attendance/{id}:
+    get:
+      tags: [🕐 Attendance]
+      summary: Get attendance record by ID (with breaks)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Attendance record }
+        "404": { description: Record not found }
+    delete:
+      tags: [🕐 Attendance]
+      summary: Delete attendance record (and its breaks)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Record deleted }
+
+  # ── Leave Requests ────────────────────────────────────────────────────────────
+
+  /leave-requests:
+    post:
+      tags: [🏖️ Leave Requests]
+      summary: Apply for leave
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [startDate, endDate, reason]
+              properties:
+                startDate: { type: string, format: date }
+                endDate: { type: string, format: date }
+                reason: { type: string }
+                type: { type: string }
+      responses:
+        "201": { description: Leave request submitted }
+    get:
+      tags: [🏖️ Leave Requests]
+      summary: List leave requests (org-scoped)
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [pending, approved, rejected] }
+        - name: employeeId
+          in: query
+          schema: { type: string }
+      responses:
+        "200": { description: Leave requests list }
+
+  /leave-requests/{id}:
+    get:
+      tags: [🏖️ Leave Requests]
+      summary: Get leave request by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Leave request }
+    put:
+      tags: [🏖️ Leave Requests]
+      summary: Approve / reject leave request
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [approved, rejected] }
+                note: { type: string }
+      responses:
+        "200": { description: Leave request updated }
+    delete:
+      tags: [🏖️ Leave Requests]
+      summary: Delete leave request
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Leave request deleted }
+
+  # ── Advance Requests ──────────────────────────────────────────────────────────
+
+  /advance-requests:
+    post:
+      tags: [💵 Advance Requests]
+      summary: Apply for salary advance
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount, reason]
+              properties:
+                amount: { type: number }
+                reason: { type: string }
+      responses:
+        "201": { description: Advance request submitted }
+    get:
+      tags: [💵 Advance Requests]
+      summary: List advance requests (org-scoped)
+      responses:
+        "200": { description: Advance requests }
+
+  /advance-requests/{id}:
+    put:
+      tags: [💵 Advance Requests]
+      summary: Approve / reject advance request
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: { type: string, enum: [approved, rejected] }
+                note: { type: string }
+      responses:
+        "200": { description: Advance request updated }
+    delete:
+      tags: [💵 Advance Requests]
+      summary: Delete advance request
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Deleted }
+
+  # ── Salary Records ─────────────────────────────────────────────────────────────
+
+  /salary-records:
+    post:
+      tags: [💼 Salary Records]
+      summary: Create salary record / pay salary
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [employeeId, amount]
+              properties:
+                employeeId: { type: string }
+                amount: { type: number }
+                month: { type: integer }
+                year: { type: integer }
+                note: { type: string }
+      responses:
+        "201": { description: Salary record created }
+    get:
+      tags: [💼 Salary Records]
+      summary: List salary records (org-scoped)
+      parameters:
+        - name: employeeId
+          in: query
+          schema: { type: string }
+        - name: month
+          in: query
+          schema: { type: integer }
+        - name: year
+          in: query
+          schema: { type: integer }
+      responses:
+        "200": { description: Salary records }
+
+  # ── Tasks ─────────────────────────────────────────────────────────────────────
+
+  /tasks:
+    post:
+      tags: [📝 Tasks]
+      summary: Create task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title]
+              properties:
+                title: { type: string }
+                description: { type: string }
+                assignedTo: { type: string }
+                dueDate: { type: string, format: date-time }
+                priority: { type: string, enum: [low, medium, high] }
+      responses:
+        "201": { description: Task created }
+    get:
+      tags: [📝 Tasks]
+      summary: List tasks (org-scoped)
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string }
+        - name: assignedTo
+          in: query
+          schema: { type: string }
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20 }
+      responses:
+        "200": { description: Tasks list }
+
+  /tasks/{id}:
+    get:
+      tags: [📝 Tasks]
+      summary: Get task by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Task }
+        "404": { description: Task not found }
+    put:
+      tags: [📝 Tasks]
+      summary: Update task
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                description: { type: string }
+                status: { type: string }
+                priority: { type: string }
+                dueDate: { type: string, format: date-time }
+      responses:
+        "200": { description: Task updated }
+    delete:
+      tags: [📝 Tasks]
+      summary: Delete task
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Task deleted }
+
+  # ── SOPs ──────────────────────────────────────────────────────────────────────
+
+  /sops:
+    post:
+      tags: [📑 SOPs]
+      summary: Create SOP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, steps]
+              properties:
+                title: { type: string }
+                category: { type: string }
+                steps: { type: array, items: { type: string } }
+      responses:
+        "201": { description: SOP created }
+    get:
+      tags: [📑 SOPs]
+      summary: List SOPs (org-scoped)
+      responses:
+        "200": { description: SOPs list }
+
+  /sops/{id}:
+    get:
+      tags: [📑 SOPs]
+      summary: Get SOP by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: SOP }
+    put:
+      tags: [📑 SOPs]
+      summary: Update SOP
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                steps: { type: array, items: { type: string } }
+      responses:
+        "200": { description: SOP updated }
+    delete:
+      tags: [📑 SOPs]
+      summary: Delete SOP
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: SOP deleted }
+
+  # ── Requests ──────────────────────────────────────────────────────────────────
+
+  /requests:
+    post:
+      tags: [📬 Requests]
+      summary: Create request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, type]
+              properties:
+                title: { type: string }
+                type: { type: string }
+                description: { type: string }
+      responses:
+        "201": { description: Request created }
+    get:
+      tags: [📬 Requests]
+      summary: List requests (org-scoped)
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string }
+      responses:
+        "200": { description: Requests list }
+
+  /requests/{id}:
+    put:
+      tags: [📬 Requests]
+      summary: Update request status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  {
+                    type: string,
+                    enum: [pending, approved, rejected, resolved],
+                  }
+                note: { type: string }
+      responses:
+        "200": { description: Request updated }
+    delete:
+      tags: [📬 Requests]
+      summary: Delete request
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Deleted }
+
+  # ── AI Reviews ────────────────────────────────────────────────────────────────
+
+  /ai-reviews:
+    post:
+      tags: [🤖 AI Reviews]
+      summary: Generate AI review for an employee
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                employeeId: { type: string }
+                context: { type: string }
+                images:
+                  type: array
+                  items: { type: string, format: binary }
+      responses:
+        "201": { description: AI review generated }
+    get:
+      tags: [🤖 AI Reviews]
+      summary: List AI reviews (org-scoped)
+      responses:
+        "200": { description: AI reviews list }
+
+  # ── Documents ─────────────────────────────────────────────────────────────────
+
+  /documents:
+    post:
+      tags: [🗃️ Documents]
+      summary: Upload employee document
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [employeeID, documentType]
+              properties:
+                employeeID: { type: string }
+                documentType: { type: string }
+                note: { type: string }
+                file: { type: string, format: binary }
+      responses:
+        "201": { description: Document uploaded }
+    get:
+      tags: [🗃️ Documents]
+      summary: List documents (org-scoped)
+      parameters:
+        - name: employeeId
+          in: query
+          schema: { type: string }
+      responses:
+        "200": { description: Documents list }
+
+  /documents/{id}:
+    delete:
+      tags: [🗃️ Documents]
+      summary: Delete document
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Document deleted }
+
+  # ── Allocated Items ───────────────────────────────────────────────────────────
+
+  /alloted-items:
+    post:
+      tags: [🎁 Allocated Items]
+      summary: Allocate item to employee
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [issuedTo, itemName]
+              properties:
+                issuedTo: { type: string }
+                itemName: { type: string }
+                description: { type: string }
+      responses:
+        "201": { description: Item allocated }
+    get:
+      tags: [🎁 Allocated Items]
+      summary: List allocated items (org-scoped)
+      parameters:
+        - name: employeeId
+          in: query
+          schema: { type: string }
+      responses:
+        "200": { description: Allocated items }
+
+  /alloted-items/{id}:
+    put:
+      tags: [🎁 Allocated Items]
+      summary: Update item allocation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: { type: string, enum: [Pending, Received, Returned] }
+      responses:
+        "200": { description: Item updated }
+    delete:
+      tags: [🎁 Allocated Items]
+      summary: Delete allocation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Allocation deleted }
+
+  # ── Vouchers ──────────────────────────────────────────────────────────────────
+
+  /vouchers:
+    post:
+      tags: [🎫 Vouchers]
+      summary: Create voucher
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, value]
+              properties:
+                title: { type: string }
+                value: { type: number }
+                validUntil: { type: string, format: date }
+                issuedTo: { type: string }
+      responses:
+        "201": { description: Voucher created }
+    get:
+      tags: [🎫 Vouchers]
+      summary: List vouchers (org-scoped)
+      responses:
+        "200": { description: Vouchers list }
+
+  /vouchers/{id}:
+    put:
+      tags: [🎫 Vouchers]
+      summary: Update voucher
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                isRedeemed: { type: boolean }
+                status: { type: string }
+      responses:
+        "200": { description: Voucher updated }
+    delete:
+      tags: [🎫 Vouchers]
+      summary: Delete voucher
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Voucher deleted }
+
+  # ── Payments ──────────────────────────────────────────────────────────────────
+
+  /payments:
+    post:
+      tags: [💰 Payments]
+      summary: Record a payment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount, type]
+              properties:
+                amount: { type: number }
+                type: { type: string }
+                reference: { type: string }
+                note: { type: string }
+      responses:
+        "201": { description: Payment recorded }
+    get:
+      tags: [💰 Payments]
+      summary: List payments (org-scoped)
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20 }
+      responses:
+        "200": { description: Payments list }
+
+  /payments/{id}:
+    get:
+      tags: [💰 Payments]
+      summary: Get payment by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Payment }
+        "404": { description: Not found }
+    delete:
+      tags: [💰 Payments]
+      summary: Delete payment record
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Deleted }
+
+  # ── Coins ─────────────────────────────────────────────────────────────────────
+
+  /coins:
+    get:
+      tags: [🪙 Coins]
+      summary: Get my coin wallet balance
+      responses:
+        "200": { description: Coin wallet with balance }
+
+  /coins/transactions:
+    get:
+      tags: [🪙 Coins]
+      summary: Get my coin transaction history
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20 }
+      responses:
+        "200": { description: Coin transactions }
+
+  /coins/award:
+    post:
+      tags: [🪙 Coins]
+      summary: Award coins to employee (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [employeeId, amount, reason]
+              properties:
+                employeeId: { type: string }
+                amount: { type: number }
+                reason: { type: string }
+      responses:
+        "201": { description: Coins awarded }
+
+  # ── Notifications ─────────────────────────────────────────────────────────────
+
+  /notifications:
+    get:
+      tags: [🔔 Notifications]
+      summary: Get my notifications
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20 }
+        - name: isRead
+          in: query
+          schema: { type: boolean }
+      responses:
+        "200": { description: Notification list }
+
+  /notifications/{id}/read:
+    put:
+      tags: [🔔 Notifications]
+      summary: Mark notification as read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Notification marked read }
+
+  # ── Home ──────────────────────────────────────────────────────────────────────
+
+  /home:
+    get:
+      tags: [🏠 Home]
+      summary: Dashboard summary
+      description: Returns aggregated data for the logged-in user's dashboard.
+      responses:
+        "200": { description: Dashboard data }
+
+  # ── POS — Menu ────────────────────────────────────────────────────────────────
+
+  /pos/menu:
+    post:
+      tags: [🍽️ POS — Menu]
+      summary: Create menu item
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [name, price]
+              properties:
+                name: { type: string }
+                price: { type: number }
+                category: { type: string }
+                description: { type: string }
+                isAvailable: { type: boolean }
+                image: { type: string, format: binary }
+      responses:
+        "201": { description: Menu item created }
+    get:
+      tags: [🍽️ POS — Menu]
+      summary: List menu items (org-scoped)
+      parameters:
+        - name: category
+          in: query
+          schema: { type: string }
+        - name: isAvailable
+          in: query
+          schema: { type: boolean }
+      responses:
+        "200": { description: Menu items }
+
+  /pos/menu/{id}:
+    get:
+      tags: [🍽️ POS — Menu]
+      summary: Get menu item by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Menu item }
+    put:
+      tags: [🍽️ POS — Menu]
+      summary: Update menu item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                price: { type: number }
+                category: { type: string }
+                isAvailable: { type: boolean }
+                image: { type: string, format: binary }
+      responses:
+        "200": { description: Menu item updated }
+    delete:
+      tags: [🍽️ POS — Menu]
+      summary: Delete menu item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Menu item deleted }
+
+  # ── POS — Tables ──────────────────────────────────────────────────────────────
+
+  /pos/tables:
+    post:
+      tags: [🪑 POS — Tables]
+      summary: Create table
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tableNumber]
+              properties:
+                tableNumber: { type: string, example: "T-01" }
+                capacity: { type: integer }
+      responses:
+        "201": { description: Table created }
+    get:
+      tags: [🪑 POS — Tables]
+      summary: List tables (org-scoped)
+      responses:
+        "200": { description: Tables list }
+
+  /pos/tables/{id}:
+    put:
+      tags: [🪑 POS — Tables]
+      summary: Update table
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: { type: string, enum: [available, occupied, reserved] }
+                capacity: { type: integer }
+      responses:
+        "200": { description: Table updated }
+    delete:
+      tags: [🪑 POS — Tables]
+      summary: Delete table
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Table deleted }
+
+  # ── POS — Orders ──────────────────────────────────────────────────────────────
+
+  /pos/orders:
+    post:
+      tags: [📦 POS — Orders]
+      summary: Create order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tableID, items]
+              properties:
+                tableID: { type: string }
+                items:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      menuItemID: { type: string }
+                      quantity: { type: integer }
+                      note: { type: string }
+      responses:
+        "201": { description: Order created }
+    get:
+      tags: [📦 POS — Orders]
+      summary: List orders (org-scoped)
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string }
+        - name: tableID
+          in: query
+          schema: { type: string }
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20 }
+      responses:
+        "200": { description: Orders list }
+
+  /pos/orders/{id}:
+    get:
+      tags: [📦 POS — Orders]
+      summary: Get order by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Order }
+    put:
+      tags: [📦 POS — Orders]
+      summary: Update order status / items
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  {
+                    type: string,
+                    enum: [pending, preparing, ready, delivered, cancelled],
+                  }
+                paymentStatus: { type: string, enum: [unpaid, paid] }
+      responses:
+        "200": { description: Order updated }
+    delete:
+      tags: [📦 POS — Orders]
+      summary: Delete order
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Order deleted }
+
+  # ── POS — Inventory ───────────────────────────────────────────────────────────
+
+  /pos/inventory:
+    post:
+      tags: [📋 POS — Inventory]
+      summary: Create inventory request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [itemName, quantity]
+              properties:
+                itemName: { type: string }
+                quantity: { type: number }
+                unit: { type: string }
+                note: { type: string }
+      responses:
+        "201": { description: Inventory request created }
+    get:
+      tags: [📋 POS — Inventory]
+      summary: List inventory requests (org-scoped)
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string }
+      responses:
+        "200": { description: Inventory requests }
+
+  /pos/inventory/{id}:
+    put:
+      tags: [📋 POS — Inventory]
+      summary: Update inventory request status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: { type: string }
+      responses:
+        "200": { description: Updated }
+
+  # ── POS — Reports ─────────────────────────────────────────────────────────────
+
+  /pos/reports:
+    get:
+      tags: [📊 POS — Reports]
+      summary: Get POS sales report
+      parameters:
+        - name: from
+          in: query
+          schema: { type: string, format: date }
+        - name: to
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        "200": { description: Sales report data }
+
+  /pos/reports/daily:
+    get:
+      tags: [📊 POS — Reports]
+      summary: Get today's sales summary
+      responses:
+        "200": { description: Daily sales summary }
+
+  # ── POS — Organization ────────────────────────────────────────────────────────
+
+  /pos/organization:
+    get:
+      tags: [🏪 POS — Organization]
+      summary: Get current user's organization
+      responses:
+        "200": { description: Organization details }
+    post:
+      tags: [🏪 POS — Organization]
+      summary: Create organization (superadmin)
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+                type: { type: string }
+                address: { type: string }
+                contactEmail: { type: string }
+                contactPhone: { type: string }
+                slug: { type: string }
+                logo: { type: string, format: binary }
+      responses:
+        "201": { description: Organization created }
+
+  /pos/organization/{id}:
+    put:
+      tags: [🏪 POS — Organization]
+      summary: Update organization
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                address: { type: string }
+                contactEmail: { type: string }
+                contactPhone: { type: string }
+                theme: { type: object }
+                modules: { type: object }
+                logo: { type: string, format: binary }
+      responses:
+        "200": { description: Organization updated }
+        "404": { description: Not found }
