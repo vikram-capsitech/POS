@@ -5,10 +5,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon ./src/index.js",
-    "build-client": "cd ./client && yarn install && yarn run build",
-    "build": "yarn build-client",
-    "start-backend": "node ./src/index.js",
-    "prod": "yarn build && yarn run start-backend"
+    "start": "node ./src/index.js"
   },
   "dependencies": {
     "@babel/runtime": "^7.27.6",
