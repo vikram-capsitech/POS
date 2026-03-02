@@ -1,7 +1,7 @@
 // coinsController.js
 import Coins from "../../Models/finance/Coins.js";
-import CoinsTransaction from "../../Models/finance/CoinsTransaction.js";
-import { sendNotification } from "../../Services/notificationService.js";
+import CoinsTransaction from "../../Models/finance/Coinstransaction.js";
+import { sendNotification } from "../../Services/Notificationservice.js";
 import asyncHandler from "../../Utils/AsyncHandler.js";
 import ApiError from "../../Utils/ApiError.js";
 

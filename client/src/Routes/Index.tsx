@@ -48,6 +48,9 @@ export default function Router() {
       children: [{ path: "welcome", element: <WelcomePage /> }],
     },
 
+    // ROOT REDIRECT
+    { path: "/", element: <Navigate to="/client" replace /> },
+
     // ERRORS
     { path: "/403", element: <div>403 Forbidden</div> },
     { path: "/404", element: <div>404 Not Found</div> },
