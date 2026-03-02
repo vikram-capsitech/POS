@@ -1,0 +1,575 @@
+openapi: 3.0.3
+info:
+  title: POS HRM API — Core
+  description: Authentication, Organization Management, User Management, and Dashboard endpoints.
+  version: 2.0.0
+  contact:
+    name: POS HRM Support
+
+servers:
+  - url: http://localhost:8080/api
+    description: Local development server
+
+tags:
+  - name: 🔐 Auth
+    description: Authentication & profile management
+  - name: 🏢 Admin — Organizations
+    description: Organization CRUD (superadmin only)
+  - name: 👤 Admin — Users
+    description: User management (superadmin / admin)
+  - name: 🎭 Admin — Roles
+    description: Custom role management
+  - name: 🔔 Notifications
+    description: In-app notifications
+  - name: 🏠 Home
+    description: Dashboard summary endpoints
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ApiResponse:
+      type: object
+      properties:
+        statusCode: { type: integer, example: 200 }
+        success: { type: boolean, example: true }
+        message: { type: string, example: Success }
+        data: { type: object }
+
+    ApiError:
+      type: object
+      properties:
+        statusCode: { type: integer, example: 400 }
+        success: { type: boolean, example: false }
+        message: { type: string, example: Something went wrong }
+        errors: { type: array, items: { type: object } }
+
+    User:
+      type: object
+      properties:
+        _id: { type: string, example: 64a1b2c3d4e5f6a7b8c9d0e1 }
+        userName: { type: string, example: john_doe }
+        email: { type: string, example: john@example.com }
+        displayName: { type: string, example: John Doe }
+        phoneNumber: { type: string, example: "9876543210" }
+        systemRole: { type: string, enum: [superadmin, admin], nullable: true }
+        organizationID: { type: string, nullable: true }
+        roleID: { type: string, nullable: true }
+        isEmailVerified: { type: boolean }
+        status: { type: string, enum: [Idle, Online, Offline, Do Not Disturb] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    Organization:
+      type: object
+      properties:
+        _id: { type: string }
+        name: { type: string, example: Burger Palace }
+        type:
+          {
+            type: string,
+            enum: [restaurant, retail, hospital, logistics, other],
+          }
+        slug: { type: string, example: burger-palace-delhi }
+        address: { type: string }
+        contactEmail: { type: string }
+        contactPhone: { type: string }
+        logo: { type: string, nullable: true }
+        modules:
+          type: object
+          properties:
+            pos: { type: boolean }
+            hrm: { type: boolean }
+            inventory: { type: boolean }
+            payroll: { type: boolean }
+            ai: { type: boolean }
+        isActive: { type: boolean }
+        createdAt: { type: string, format: date-time }
+
+    Role:
+      type: object
+      properties:
+        _id: { type: string }
+        name: { type: string, example: manager }
+        displayName: { type: string, example: Manager }
+        organizationID: { type: string }
+        permissions: { type: array, items: { type: string } }
+        isDefault: { type: boolean }
+        isActive: { type: boolean }
+
+security:
+  - BearerAuth: []
+
+paths:
+  /auth/setup:
+    post:
+      tags: [🔐 Auth]
+      summary: Create superadmin (one-time setup)
+      description: One-time endpoint to bootstrap the platform superadmin. Returns 400 if one already exists.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, userName, password, phoneNumber]
+              properties:
+                email: { type: string, example: superadmin@pos.com }
+                userName: { type: string, example: superadmin }
+                password: { type: string, example: "Admin@123" }
+                phoneNumber: { type: string, example: "0000000000" }
+                displayName: { type: string, example: Super Admin }
+      responses:
+        "201":
+          description: Superadmin created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiResponse" }
+        "400":
+          description: Super admin already exists
+
+  /auth/login:
+    post:
+      tags: [🔐 Auth]
+      summary: Login
+      description: Authenticates a user by email/username + password. Returns JWT access token and sets cookies.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                email: { type: string, example: john@example.com }
+                userName: { type: string, example: john_doe }
+                password: { type: string, example: "Employee@123" }
+      responses:
+        "200":
+          description: Login successful — access token returned + cookies set
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          accessToken: { type: string }
+                          user: { $ref: "#/components/schemas/User" }
+        "401": { description: Invalid credentials }
+        "423": { description: Account locked }
+
+  /auth/logout:
+    post:
+      tags: [🔐 Auth]
+      summary: Logout
+      description: Clears auth cookies and invalidates the refresh token in the database.
+      responses:
+        "200": { description: Logged out successfully }
+        "401": { description: Unauthorized }
+
+  /auth/refresh-token:
+    post:
+      tags: [🔐 Auth]
+      summary: Refresh access token
+      description: Uses the refresh token (from cookie or body) to issue a new access token.
+      security: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refreshToken: { type: string }
+      responses:
+        "200":
+          description: New access token issued
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          accessToken: { type: string }
+        "401": { description: Invalid or expired refresh token }
+
+  /auth/profile:
+    get:
+      tags: [🔐 Auth]
+      summary: Get my profile
+      responses:
+        "200":
+          description: User profile with org and role populated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/User" }
+    put:
+      tags: [🔐 Auth]
+      summary: Update my profile
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                displayName: { type: string }
+                phoneNumber: { type: string }
+                gender: { type: string, enum: [male, female, other] }
+                address: { type: string }
+                dob: { type: string, format: date }
+                designation: { type: string }
+                about: { type: string }
+                themeType: { type: string, enum: [light, dark] }
+                sizeLevel: { type: string, enum: [xs, s, m, l, xl] }
+                fontFamily: { type: string }
+                status:
+                  {
+                    type: string,
+                    enum: [Idle, Online, Offline, Do Not Disturb],
+                  }
+                profilePhoto: { type: string, format: binary }
+      responses:
+        "200": { description: Profile updated }
+
+  /auth/change-password:
+    put:
+      tags: [🔐 Auth]
+      summary: Change password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [oldPassword, newPassword]
+              properties:
+                oldPassword: { type: string }
+                newPassword: { type: string, minLength: 6 }
+      responses:
+        "200": { description: Password changed }
+        "401": { description: Current password incorrect }
+
+  /auth/fcm-token:
+    put:
+      tags: [🔐 Auth]
+      summary: Update FCM / push notification token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fcmToken]
+              properties:
+                fcmToken: { type: string }
+      responses:
+        "200": { description: FCM token updated }
+
+  /admin/organizations:
+    post:
+      tags: [🏢 Admin — Organizations]
+      summary: Create organization (superadmin)
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+                type:
+                  {
+                    type: string,
+                    enum: [restaurant, retail, hospital, logistics, other],
+                  }
+                address: { type: string }
+                contactEmail: { type: string }
+                contactPhone: { type: string }
+                slug: { type: string }
+                logo: { type: string, format: binary }
+      responses:
+        "201": { description: Organization created }
+    get:
+      tags: [🏢 Admin — Organizations]
+      summary: List all organizations (superadmin)
+      responses:
+        "200": { description: List of organizations }
+
+  /admin/organizations/{id}/theme:
+    put:
+      tags: [🏢 Admin — Organizations]
+      summary: Update org theme / modules
+      description: Superadmin can update any org. Admin updates their own org (id param ignored for admin).
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                theme:
+                  type: object
+                  properties:
+                    primary: { type: string, example: "#5240d6" }
+                modules:
+                  type: object
+                  properties:
+                    pos: { type: boolean }
+                    hrm: { type: boolean }
+                    inventory: { type: boolean }
+                    payroll: { type: boolean }
+                    ai: { type: boolean }
+      responses:
+        "200": { description: Organization updated }
+
+  /admin/admins:
+    post:
+      tags: [👤 Admin — Users]
+      summary: Create admin + organization (superadmin)
+      description: Creates a new organization and an admin user linked to it in one atomic operation.
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [email, userName, phoneNumber]
+              properties:
+                email: { type: string }
+                userName: { type: string }
+                phoneNumber: { type: string }
+                displayName: { type: string }
+                password: { type: string }
+                gender: { type: string, enum: [male, female, other] }
+                address: { type: string }
+                dob: { type: string, format: date }
+                organizationName: { type: string }
+                organizationAddress: { type: string }
+                contactPhone: { type: string }
+                orgType:
+                  {
+                    type: string,
+                    enum: [restaurant, retail, hospital, logistics, other],
+                  }
+                profilePhoto: { type: string, format: binary }
+                organizationLogo: { type: string, format: binary }
+      responses:
+        "201": { description: Admin and organization created }
+        "400": { description: Email or username already exists }
+
+  /admin/users:
+    get:
+      tags: [👤 Admin — Users]
+      summary: List users
+      description: Superadmin sees all users (filterable by org). Admin sees only own org users.
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20 }
+        - name: systemRole
+          in: query
+          schema: { type: string, enum: [superadmin, admin] }
+        - name: orgId
+          in: query
+          schema: { type: string }
+      responses:
+        "200": { description: Paginated user list }
+
+  /admin/users/{id}:
+    get:
+      tags: [👤 Admin — Users]
+      summary: Get user by ID (with employee profile)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: User + employee profile }
+        "404": { description: User not found }
+    put:
+      tags: [👤 Admin — Users]
+      summary: Update user by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                displayName: { type: string }
+                phoneNumber: { type: string }
+                email: { type: string }
+                gender: { type: string }
+                address: { type: string }
+                designation: { type: string }
+                profilePhoto: { type: string, format: binary }
+      responses:
+        "200": { description: User updated }
+        "404": { description: User not found }
+    delete:
+      tags: [👤 Admin — Users]
+      summary: Delete user by ID (superadmin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: User deleted }
+        "404": { description: User not found }
+
+  /admin/users/{id}/role:
+    put:
+      tags: [👤 Admin — Users]
+      summary: Assign role to user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [roleID, organizationID]
+              properties:
+                roleID: { type: string, example: 64a1b2c3d4e5f6a7b8c9d0e1 }
+                organizationID:
+                  { type: string, example: 64a1b2c3d4e5f6a7b8c9d0e2 }
+      responses:
+        "200": { description: Role assigned }
+        "404": { description: User or role not found }
+
+  /admin/roles:
+    post:
+      tags: [🎭 Admin — Roles]
+      summary: Create role
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, displayName, permissions, organizationID]
+              properties:
+                name: { type: string, example: manager }
+                displayName: { type: string, example: Manager }
+                permissions:
+                  type: array
+                  items: { type: string }
+                  example: ["64a1b2c3d4e5f6a7b8c9d0e1"]
+                organizationID: { type: string }
+      responses:
+        "201": { description: Role created }
+    get:
+      tags: [🎭 Admin — Roles]
+      summary: List roles
+      description: Admin sees own org roles. Superadmin can filter by orgId query param.
+      parameters:
+        - name: orgId
+          in: query
+          schema: { type: string }
+      responses:
+        "200": { description: List of roles with populated permissions }
+
+  /admin/roles/{id}:
+    put:
+      tags: [🎭 Admin — Roles]
+      summary: Update role
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                displayName: { type: string }
+                permissions: { type: array, items: { type: string } }
+                isActive: { type: boolean }
+      responses:
+        "200": { description: Role updated }
+        "403": { description: Cannot modify default system roles }
+        "404": { description: Role not found }
+    delete:
+      tags: [🎭 Admin — Roles]
+      summary: Delete role
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Role deleted }
+        "403": { description: Cannot delete default system roles }
+
+  /notifications:
+    get:
+      tags: [🔔 Notifications]
+      summary: Get my notifications
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20 }
+        - name: isRead
+          in: query
+          schema: { type: boolean }
+      responses:
+        "200": { description: Notification list }
+
+  /notifications/{id}/read:
+    put:
+      tags: [🔔 Notifications]
+      summary: Mark notification as read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Notification marked read }
+
+  /home:
+    get:
+      tags: [🏠 Home]
+      summary: Dashboard summary
+      description: Returns aggregated data for the logged-in user's dashboard.
+      responses:
+        "200": { description: Dashboard data }

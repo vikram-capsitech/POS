@@ -1,6 +1,6 @@
 import { validationResult } from "express-validator";
 import ApiError from "../Utils/ApiError.js";
-import { errorHandler } from "../Middlewares/error.middleware.js";
+import { errorHandler } from "../Middlewares/Error.middleware.js";
 
 /**
  * @description This is the validate middleware responsible to centralize the error checking done by the `express-validator` `ValidationChains`.
@@ -22,6 +22,6 @@ export const validate = (req, res, next) => {
     extractedErrors,
     undefined,
     undefined,
-    false
+    false,
   );
 };

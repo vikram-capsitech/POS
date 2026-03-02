@@ -1,19 +1,29 @@
 import express from "express";
-import { protect, checkPermission } from "../../middleware/authMiddleware.js";
+import { protect, checkPermission } from "../../Middlewares/Auth.middleware.js";
 import {
   getRequests,
   createRequest,
-  updateRequest,
-  deleteRequest,
-} from "../../controllers/pos/inventoryController.js";
+  updateInventoryStatus,
+  deleteInventoryRequest,
+} from "../../Controller/operations/inventoryController.js";
 
 const router = express.Router();
 
 // any staff can raise a request, only managers/admins can view all & approve
-router.post("/",    protect, createRequest);
-router.get( "/",    protect, checkPermission("staff:read"),  getRequests);
+router.post("/", protect, createRequest);
+router.get("/", protect, checkPermission("staff:read"), getRequests);
 
-router.put(   "/:id", protect, checkPermission("staff:write"), updateRequest);
-router.delete("/:id", protect, checkPermission("staff:write"), deleteRequest);
+router.put(
+  "/:id",
+  protect,
+  checkPermission("staff:write"),
+  updateInventoryStatus,
+);
+router.delete(
+  "/:id",
+  protect,
+  checkPermission("staff:write"),
+  deleteInventoryRequest,
+);
 
 export default router;

@@ -105,7 +105,7 @@ const employeeProfileSchema = new mongoose.Schema(
     // ── Location (for check-in etc.) ──────────────────────────────────────────
 
     currentLocation: {
-      latitude:  { type: Number, default: null },
+      latitude: { type: Number, default: null },
       longitude: { type: Number, default: null },
     },
 
@@ -130,11 +130,14 @@ const employeeProfileSchema = new mongoose.Schema(
       },
     ],
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // Fast lookup: all employees in an org
 employeeProfileSchema.index({ organizationID: 1 });
 
-const EmployeeProfile = mongoose.model("EmployeeProfile", employeeProfileSchema);
+const EmployeeProfile =
+  mongoose.models.EmployeeProfile ||
+  mongoose.model("EmployeeProfile", employeeProfileSchema);
+
 export default EmployeeProfile;

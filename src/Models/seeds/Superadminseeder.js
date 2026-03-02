@@ -1,6 +1,6 @@
 import dotenv from "dotenv";
 import connectDB from "../config/db.js";
-import User from "../models/core/User.js";
+import User from "../Models/core/User.js";
 
 dotenv.config();
 
@@ -16,14 +16,14 @@ const seedSuperAdmin = async () => {
     }
 
     const user = new User({
-      userName:    "superadmin",
+      userName: "superadmin",
       displayName: "Super Admin",
-      email:       "superadmin@platform.com",
-      password:    "SuperAdmin@123",   // pre-save hook will hash this
+      email: "superadmin@platform.com",
+      password: "SuperAdmin@123", // pre-save hook will hash this
       phoneNumber: "0000000000",
-      systemRole:  "superadmin",
-      organizationID: null,            // superadmin has no org
-      roleID:         null,
+      systemRole: "superadmin",
+      organizationID: null, // superadmin has no org
+      roleID: null,
       isEmailVerified: true,
     });
 

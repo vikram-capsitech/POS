@@ -58,7 +58,7 @@ const notificationSchema = new mongoose.Schema(
       default: false,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
   // removed manual createdAt — timestamps: true handles this
 );
 
@@ -66,5 +66,7 @@ const notificationSchema = new mongoose.Schema(
 notificationSchema.index({ recipient: 1, read: 1 });
 notificationSchema.index({ organizationID: 1 });
 
-const Notification = mongoose.model("Notification", notificationSchema);
+const Notification =
+  mongoose.models.Notification ||
+  mongoose.model("Notification", notificationSchema);
 export default Notification;

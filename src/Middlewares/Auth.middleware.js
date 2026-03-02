@@ -7,16 +7,24 @@ import asyncHandler from "../Utils/AsyncHandler.js";
 // ─── Verify JWT ───────────────────────────────────────────────────────────────
 
 export const protect = asyncHandler(async (req, res, next) => {
-  const token = req.header("Authorization")?.replace("Bearer ", "");
+  // Support both cookie-based (browsers) and Bearer-token (mobile / Swagger) clients
+  const token =
+    req.cookies?.accessToken ||
+    req.header("Authorization")?.replace("Bearer ", "");
 
   if (!token) {
     throw new ApiError(401, "Unauthorized — no token provided");
   }
 
-  const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+  let decoded;
+  try {
+    decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+  } catch {
+    throw new ApiError(401, "Invalid or expired access token");
+  }
 
   const user = await User.findById(decoded._id).select(
-    "-password -refreshToken -emailVerificationToken -emailVerificationExpiry -emailVerificationRawOTP"
+    "-password -refreshToken -emailVerificationToken -emailVerificationExpiry -emailVerificationRawOTP",
   );
 
   if (!user) {
@@ -26,7 +34,7 @@ export const protect = asyncHandler(async (req, res, next) => {
   if (user.isLocked) {
     throw new ApiError(
       423,
-      "Account is temporarily locked due to too many failed login attempts"
+      "Account is temporarily locked due to too many failed login attempts",
     );
   }
 
@@ -46,7 +54,7 @@ export const authorize = (...roles) =>
     if (!roles.includes(req.user.systemRole)) {
       throw new ApiError(
         403,
-        `Access denied — requires one of: ${roles.join(", ")}`
+        `Access denied — requires one of: ${roles.join(", ")}`,
       );
     }
 
@@ -64,7 +72,10 @@ export const checkPermission = (requiredPermission) =>
     }
 
     // superadmin and admin bypass permission checks
-    if (req.user.systemRole === "superadmin" || req.user.systemRole === "admin") {
+    if (
+      req.user.systemRole === "superadmin" ||
+      req.user.systemRole === "admin"
+    ) {
       return next();
     }
 
@@ -83,13 +94,13 @@ export const checkPermission = (requiredPermission) =>
     }
 
     const hasPermission = role.permissions.some(
-      (p) => p.key === requiredPermission
+      (p) => p.key === requiredPermission,
     );
 
     if (!hasPermission) {
       throw new ApiError(
         403,
-        `Access denied — missing permission: ${requiredPermission}`
+        `Access denied — missing permission: ${requiredPermission}`,
       );
     }
 
@@ -111,7 +122,7 @@ export const optionalAuth = asyncHandler(async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
     const user = await User.findById(decoded._id).select(
-      "-password -refreshToken -emailVerificationToken -emailVerificationExpiry"
+      "-password -refreshToken -emailVerificationToken -emailVerificationExpiry",
     );
     if (user) req.user = user;
   } catch {

@@ -1,9 +1,9 @@
-// services/visionService.js
+// Services/visionService.js
 const fs = require("fs");
 const axios = require("axios");
 const OpenAI = require("openai");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-const { buildTaskPrompt } = require("../utils/aiPrompt");
+const { buildTaskPrompt } = require("../Utils/aiPrompt");
 
 // OpenAI (primary)
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;

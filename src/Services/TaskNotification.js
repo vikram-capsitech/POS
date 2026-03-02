@@ -1,6 +1,6 @@
 const cron = require("node-cron");
 const dayjs = require("dayjs");
-const Task = require("../models/Task");
+const Task = require("../Models/Task");
 const { sendNotification } = require("./Notificationservice");
 
 cron.schedule("* * * * *", async () => {

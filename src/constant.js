@@ -1,10 +1,3 @@
-//? User Roles this for temporary
-//TODO: make it dynamic admin can control roles add more roles for initial we have these two roles
-export const UserRoleEnum = {
-  ADMIN: "ADMIN",
-  USER: "USER",
-};
-
 export const ThemeEnum = {
   Default: "default",
   AquaSunset: "aquaSunset",
@@ -14,7 +7,7 @@ export const ThemeEnum = {
   VioletDream: "violetDream",
 };
 
-export const AvailableUserRoles = Object.values(UserRoleEnum);
+export const AvailableThemes = Object.values(ThemeEnum);
 
 //? This will be used for user token expiry time
 export const USER_TEMP_TOKEN_EXPIRY = 20 * 60 * 1000;

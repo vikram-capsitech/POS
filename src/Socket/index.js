@@ -1,9 +1,7 @@
 import cookie from "cookie";
 import jwt from "jsonwebtoken";
 import ApiError from "../Utils/ApiError.js";
-import User from "../Models/user.model.js";
-import ActiveUser from "../Models/activeUser.model.js";
-import { AvailableChatEvents, ChatEventEnum } from "../constant.js";
+import User from "../Models/core/User.js";
 
 /**
  * @param {Server} io
@@ -24,13 +22,13 @@ export const initializeSocketIO = (io) => {
           [],
           undefined,
           undefined,
-          false
+          false,
         );
       }
       const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
 
       const user = await User.findById(decodedToken?._id).select(
-        "-password -refreshToken -emailVerificationToken -emailVerificationExpiry"
+        "-password -refreshToken -emailVerificationToken -emailVerificationExpiry",
       );
 
       if (!user) {
@@ -40,7 +38,7 @@ export const initializeSocketIO = (io) => {
           [],
           undefined,
           undefined,
-          false
+          false,
         );
       }
 
@@ -49,19 +47,19 @@ export const initializeSocketIO = (io) => {
       console.log("User connected 🗼. userId: ", user._id.toString());
 
       // Initialize the events
-      socket.on("JOIN_ADMIN", ({ restaurantID }) => {
-        socket.join(`ADMIN_${restaurantID}`);
-        console.log("Admin joined room:", restaurantID);
+      socket.on("JOIN_ADMIN", ({ organizationID }) => {
+        socket.join(`ADMIN_${organizationID}`);
+        console.log("Admin joined room:", organizationID);
       });
 
       socket.on("disconnect", () => {
         console.log("Socket disconnected:", socket.id);
       });
-
     } catch (error) {
       socket.emit(
-        ChatEventEnum.SOCKET_ERROR_EVENT,
-        error?.message || "Something went wrong while connecting to the socket."
+        "socket_error",
+        error?.message ||
+          "Something went wrong while connecting to the socket.",
       );
     }
   });

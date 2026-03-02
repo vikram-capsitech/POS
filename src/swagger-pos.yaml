@@ -1,0 +1,386 @@
+openapi: 3.0.3
+info:
+  title: POS HRM API — POS
+  description: Point-of-Sale (POS) endpoints for Menu, Tables, Orders, Inventory, and Reports.
+  version: 2.0.0
+  contact:
+    name: POS HRM Support
+
+servers:
+  - url: http://localhost:8080/api
+    description: Local development server
+
+tags:
+  - name: 🍽️ POS — Menu
+    description: Menu item management
+  - name: 🪑 POS — Tables
+    description: Table management
+  - name: 📦 POS — Orders
+    description: Order management
+  - name: 📋 POS — Inventory
+    description: Inventory / stock requests
+  - name: 📊 POS — Reports
+    description: POS sales reports
+  - name: 🏪 POS — Organization
+    description: Organization settings for POS
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ApiResponse:
+      type: object
+      properties:
+        statusCode: { type: integer, example: 200 }
+        success: { type: boolean, example: true }
+        message: { type: string, example: Success }
+        data: { type: object }
+
+    ApiError:
+      type: object
+      properties:
+        statusCode: { type: integer, example: 400 }
+        success: { type: boolean, example: false }
+        message: { type: string, example: Something went wrong }
+        errors: { type: array, items: { type: object } }
+
+security:
+  - BearerAuth: []
+
+paths:
+  /pos/menu:
+    post:
+      tags: [🍽️ POS — Menu]
+      summary: Create menu item
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [name, price]
+              properties:
+                name: { type: string }
+                price: { type: number }
+                category: { type: string }
+                description: { type: string }
+                isAvailable: { type: boolean }
+                image: { type: string, format: binary }
+      responses:
+        "201": { description: Menu item created }
+    get:
+      tags: [🍽️ POS — Menu]
+      summary: List menu items (org-scoped)
+      parameters:
+        - name: category
+          in: query
+          schema: { type: string }
+        - name: isAvailable
+          in: query
+          schema: { type: boolean }
+      responses:
+        "200": { description: Menu items }
+
+  /pos/menu/{id}:
+    get:
+      tags: [🍽️ POS — Menu]
+      summary: Get menu item by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Menu item }
+    put:
+      tags: [🍽️ POS — Menu]
+      summary: Update menu item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                price: { type: number }
+                category: { type: string }
+                isAvailable: { type: boolean }
+                image: { type: string, format: binary }
+      responses:
+        "200": { description: Menu item updated }
+    delete:
+      tags: [🍽️ POS — Menu]
+      summary: Delete menu item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Menu item deleted }
+
+  /pos/tables:
+    post:
+      tags: [🪑 POS — Tables]
+      summary: Create table
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tableNumber]
+              properties:
+                tableNumber: { type: string, example: "T-01" }
+                capacity: { type: integer }
+      responses:
+        "201": { description: Table created }
+    get:
+      tags: [🪑 POS — Tables]
+      summary: List tables (org-scoped)
+      responses:
+        "200": { description: Tables list }
+
+  /pos/tables/{id}:
+    put:
+      tags: [🪑 POS — Tables]
+      summary: Update table
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: { type: string, enum: [available, occupied, reserved] }
+                capacity: { type: integer }
+      responses:
+        "200": { description: Table updated }
+    delete:
+      tags: [🪑 POS — Tables]
+      summary: Delete table
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Table deleted }
+
+  /pos/orders:
+    get:
+      tags: [📦 POS — Orders]
+      summary: List orders (org-scoped)
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string }
+        - name: tableID
+          in: query
+          schema: { type: string }
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20 }
+      responses:
+        "200": { description: Orders list }
+    post:
+      tags: [📦 POS — Orders]
+      summary: Create order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tableID, items]
+              properties:
+                tableID: { type: string }
+                items:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      menuItemID: { type: string }
+                      quantity: { type: integer }
+                      note: { type: string }
+      responses:
+        "201": { description: Order created }
+
+  /pos/orders/{id}:
+    get:
+      tags: [📦 POS — Orders]
+      summary: Get order by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Order }
+    put:
+      tags: [📦 POS — Orders]
+      summary: Update order status / items
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  {
+                    type: string,
+                    enum: [pending, preparing, ready, delivered, cancelled],
+                  }
+                paymentStatus: { type: string, enum: [unpaid, paid] }
+      responses:
+        "200": { description: Order updated }
+    delete:
+      tags: [📦 POS — Orders]
+      summary: Delete order
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Order deleted }
+
+  /pos/inventory:
+    post:
+      tags: [📋 POS — Inventory]
+      summary: Create inventory request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [itemName, quantity]
+              properties:
+                itemName: { type: string }
+                quantity: { type: number }
+                unit: { type: string }
+                note: { type: string }
+      responses:
+        "201": { description: Inventory request created }
+    get:
+      tags: [📋 POS — Inventory]
+      summary: List inventory requests (org-scoped)
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string }
+      responses:
+        "200": { description: Inventory requests }
+
+  /pos/inventory/{id}:
+    put:
+      tags: [📋 POS — Inventory]
+      summary: Update inventory request status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: { type: string }
+      responses:
+        "200": { description: Updated }
+
+  /pos/reports:
+    get:
+      tags: [📊 POS — Reports]
+      summary: Get POS sales report
+      parameters:
+        - name: from
+          in: query
+          schema: { type: string, format: date }
+        - name: to
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        "200": { description: Sales report data }
+
+  /pos/reports/daily:
+    get:
+      tags: [📊 POS — Reports]
+      summary: Get today's sales summary
+      responses:
+        "200": { description: Daily sales summary }
+
+  /pos/organization:
+    get:
+      tags: [🏪 POS — Organization]
+      summary: Get current user's organization
+      responses:
+        "200": { description: Organization details }
+    post:
+      tags: [🏪 POS — Organization]
+      summary: Create organization (superadmin)
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+                type: { type: string }
+                address: { type: string }
+                contactEmail: { type: string }
+                contactPhone: { type: string }
+                slug: { type: string }
+                logo: { type: string, format: binary }
+      responses:
+        "201": { description: Organization created }
+
+  /pos/organization/{id}:
+    put:
+      tags: [🏪 POS — Organization]
+      summary: Update organization
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                address: { type: string }
+                contactEmail: { type: string }
+                contactPhone: { type: string }
+                theme: { type: object }
+                modules: { type: object }
+                logo: { type: string, format: binary }
+      responses:
+        "200": { description: Organization updated }
+        "404": { description: Not found }

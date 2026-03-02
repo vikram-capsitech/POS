@@ -1,24 +1,29 @@
 import express from "express";
-import { protect, checkPermission } from "../../middleware/authMiddleware.js";
+import { protect, checkPermission } from "../../Middlewares/Auth.middleware.js";
 import {
-  getReports,
+  getAllReports,
   getReportById,
-  getStats,
+  getReportSummary,
   createReport,
-  updateReport,
+  reviewReport,
   deleteReport,
-} from "../../controllers/pos/reportController.js";
+} from "../../Controller/operations/reportController.js";
 
 const router = express.Router();
 
 // stats must be defined before /:id to avoid route conflict
-router.get("/stats", protect, checkPermission("reports:read"),   getStats);
+router.get(
+  "/stats",
+  protect,
+  checkPermission("reports:read"),
+  getReportSummary,
+);
 
-router.get( "/",     protect, checkPermission("reports:read"),   getReports);
-router.post("/",     protect, createReport);  // any staff can submit a report
+router.get("/", protect, checkPermission("reports:read"), getAllReports);
+router.post("/", protect, createReport); // any staff can submit a report
 
-router.get(   "/:id", protect, getReportById);
-router.put(   "/:id", protect, checkPermission("reports:read"),   updateReport);
+router.get("/:id", protect, getReportById);
+router.put("/:id", protect, checkPermission("reports:read"), reviewReport);
 router.delete("/:id", protect, checkPermission("reports:export"), deleteReport);
 
 export default router;

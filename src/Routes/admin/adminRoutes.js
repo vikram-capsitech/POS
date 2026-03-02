@@ -1,6 +1,6 @@
 import express from "express";
-import { uploadPhoto } from "../config/cloudinary.js";
-import { protect, checkPermission, authorize } from "../middleware/authMiddleware.js";
+import { upload } from "../../Middlewares/Multer.middleware.js";
+import { protect, authorize } from "../../Middlewares/Auth.middleware.js";
 import {
   addOrganization,
   getOrganizations,
@@ -15,54 +15,99 @@ import {
   updateRole,
   deleteRole,
   getAllRoles,
-} from "../controllers/adminController.js";
+} from "../../Controller/admin/adminController.js";
 import {
   userAssignRoleValidator,
   createRoleValidator,
   updateRoleValidator,
-} from "../validators/userValidators.js";
-import { validate } from "../middleware/validateMiddleware.js";
+} from "../../Validators/user.validator.js";
+import { validate } from "../../Middlewares/Validate.middleware.js";
 
 const router = express.Router();
 
 // ── Organization ──────────────────────────────────────────────────────────────
-router.post("/organizations",       protect, authorize("superadmin"), addOrganization);
-router.get( "/organizations",       protect, authorize("superadmin"), getOrganizations);
-router.put( "/organizations/:id/theme", protect,
+router.post(
+  "/organizations",
+  protect,
+  authorize("superadmin"),
+  upload.single("logo"),
+  addOrganization,
+);
+router.get(
+  "/organizations",
+  protect,
+  authorize("superadmin"),
+  getOrganizations,
+);
+router.put(
+  "/organizations/:id/theme",
+  protect,
   authorize("superadmin", "admin"),
-  updateOrganizationTheme
+  updateOrganizationTheme,
 );
 
 // ── Admin Management (superadmin only) ────────────────────────────────────────
-router.post("/admins", protect, authorize("superadmin"),
-  uploadPhoto.fields([
-    { name: "profilePhoto",      maxCount: 1 },
-    { name: "organizationLogo",  maxCount: 1 },
+router.post(
+  "/admins",
+  protect,
+  authorize("superadmin"),
+  upload.fields([
+    { name: "profilePhoto", maxCount: 1 },
+    { name: "organizationLogo", maxCount: 1 },
   ]),
-  addAdmin
+  addAdmin,
 );
 
 // ── User Management ───────────────────────────────────────────────────────────
-router.get(   "/users",     protect, authorize("superadmin", "admin"), getAllUsers);
-router.get(   "/users/:id", protect, authorize("superadmin", "admin"), getUserById);
-router.put(   "/users/:id", protect, authorize("superadmin", "admin"),
-  uploadPhoto.single("profilePhoto"),
-  updateUserById
+router.get("/users", protect, authorize("superadmin", "admin"), getAllUsers);
+router.get(
+  "/users/:id",
+  protect,
+  authorize("superadmin", "admin"),
+  getUserById,
+);
+router.put(
+  "/users/:id",
+  protect,
+  authorize("superadmin", "admin"),
+  upload.single("profilePhoto"),
+  updateUserById,
 );
 router.delete("/users/:id", protect, authorize("superadmin"), deleteUserById);
 
 // ── Role Management ───────────────────────────────────────────────────────────
-router.post("/roles",     protect, checkPermission("roles:manage"), createRoleValidator(), validate, createRole);
-router.get( "/roles",     protect, checkPermission("roles:read"),   getAllRoles);
-router.put( "/roles/:id", protect, checkPermission("roles:manage"), updateRoleValidator(), validate, updateRole);
-router.delete("/roles/:id",protect, checkPermission("roles:manage"), deleteRole);
+router.post(
+  "/roles",
+  protect,
+  authorize("superadmin", "admin"),
+  createRoleValidator(),
+  validate,
+  createRole,
+);
+router.get("/roles", protect, authorize("superadmin", "admin"), getAllRoles);
+router.put(
+  "/roles/:id",
+  protect,
+  authorize("superadmin", "admin"),
+  updateRoleValidator(),
+  validate,
+  updateRole,
+);
+router.delete(
+  "/roles/:id",
+  protect,
+  authorize("superadmin", "admin"),
+  deleteRole,
+);
 
 // ── Assign Role to User ───────────────────────────────────────────────────────
-router.put("/users/:id/role", protect,
-  checkPermission("roles:manage"),
+router.put(
+  "/users/:id/role",
+  protect,
+  authorize("superadmin", "admin"),
   userAssignRoleValidator(),
   validate,
-  assignRole
+  assignRole,
 );
 
 export default router;

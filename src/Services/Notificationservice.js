@@ -1,5 +1,5 @@
-import Notification from "../models/notifications/Notification.js";
-import EmployeeProfile from "../models/core/EmployeeProfile.js";
+import Notification from "../Models/notifications/Notification.js";
+import EmployeeProfile from "../Models/core/EmployeeProfile.js";
 
 // ─── Firebase Setup ───────────────────────────────────────────────────────────
 
@@ -9,25 +9,30 @@ try {
   const firebaseAdmin = await import("firebase-admin");
   admin = firebaseAdmin.default;
 
-  const { FIREBASE_PROJECT_ID, FIREBASE_PRIVATE_KEY, FIREBASE_CLIENT_EMAIL } = process.env;
+  const { FIREBASE_PROJECT_ID, FIREBASE_PRIVATE_KEY, FIREBASE_CLIENT_EMAIL } =
+    process.env;
 
   if (FIREBASE_PROJECT_ID && FIREBASE_PRIVATE_KEY && FIREBASE_CLIENT_EMAIL) {
     if (!admin.apps.length) {
       admin.initializeApp({
         credential: admin.credential.cert({
-          projectId:   FIREBASE_PROJECT_ID,
-          privateKey:  FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n"),
+          projectId: FIREBASE_PROJECT_ID,
+          privateKey: FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n"),
           clientEmail: FIREBASE_CLIENT_EMAIL,
         }),
       });
     }
     console.log("✅ Firebase Admin SDK initialized");
   } else {
-    console.log("⚠️  Firebase credentials missing — push notifications disabled");
+    console.log(
+      "⚠️  Firebase credentials missing — push notifications disabled",
+    );
     admin = null;
   }
 } catch {
-  console.log("⚠️  Firebase Admin SDK not available — push notifications disabled");
+  console.log(
+    "⚠️  Firebase Admin SDK not available — push notifications disabled",
+  );
   admin = null;
 }
 
@@ -57,7 +62,7 @@ const sendPushNotification = async (fcmToken, title, message, data = {}) => {
       data: {
         ...Object.fromEntries(
           // FCM requires all data values to be strings
-          Object.entries(data).map(([k, v]) => [k, String(v)])
+          Object.entries(data).map(([k, v]) => [k, String(v)]),
         ),
         click_action: "FLUTTER_NOTIFICATION_CLICK",
       },
@@ -112,7 +117,9 @@ const sendNotification = async ({
 
     // 2. Get FCM token from EmployeeProfile
     // FCM token lives on EmployeeProfile, not User, per our model design
-    const profile = await EmployeeProfile.findOne({ userID: recipientID }).select("fcmToken");
+    const profile = await EmployeeProfile.findOne({
+      userID: recipientID,
+    }).select("fcmToken");
 
     if (profile?.fcmToken) {
       await sendPushNotification(profile.fcmToken, title, message, {
@@ -167,12 +174,14 @@ const sendBulkNotification = async ({
         message,
         senderID,
         data,
-      })
-    )
+      }),
+    ),
   );
 
-  const successful = results.filter((r) => r.status === "fulfilled" && r.value.success).length;
-  const failed     = results.length - successful;
+  const successful = results.filter(
+    (r) => r.status === "fulfilled" && r.value.success,
+  ).length;
+  const failed = results.length - successful;
 
   return { total: recipientIDs.length, successful, failed, results };
 };
@@ -187,7 +196,7 @@ const markAsRead = async (notificationID) => {
   return Notification.findByIdAndUpdate(
     notificationID,
     { read: true },
-    { new: true }
+    { new: true },
   );
 };
 
@@ -198,7 +207,7 @@ const markAsRead = async (notificationID) => {
 const markAllAsRead = async (recipientID) => {
   return Notification.updateMany(
     { recipient: recipientID, read: false },
-    { read: true }
+    { read: true },
   );
 };
 
@@ -217,8 +226,6 @@ export {
   markAllAsRead,
   getUnreadCount,
 };
-
-
 
 // // single
 // await sendNotification({
