@@ -10,7 +10,6 @@ import {
   getOrganizations,
   createOrganization,
   updateOrganization,
-  updateOrganizationTheme,
 } from "../../Controller/admin/adminController.js";
 
 const router = express.Router();
@@ -36,12 +35,6 @@ router.put(
   authorize("superadmin", "admin"),
   upload.single("logo"),
   updateOrganization,
-);
-router.put(
-  "/:id/theme",
-  protect,
-  authorize("superadmin", "admin"),
-  updateOrganizationTheme,
 );
 
 export default router;

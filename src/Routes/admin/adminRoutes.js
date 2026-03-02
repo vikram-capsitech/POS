@@ -4,7 +4,7 @@ import { protect, authorize } from "../../Middlewares/Auth.middleware.js";
 import {
   addOrganization,
   getOrganizations,
-  updateOrganizationTheme,
+  updateOrganization,
   addAdmin,
   getAllUsers,
   getUserById,
@@ -15,7 +15,8 @@ import {
   updateRole,
   deleteRole,
   getAllRoles,
-  getOrganization
+  getOrganization,
+  getDashboardStats,
 } from "../../Controller/admin/adminController.js";
 import {
   userAssignRoleValidator,
@@ -27,10 +28,26 @@ import { validate } from "../../Middlewares/Validate.middleware.js";
 const router = express.Router();
 
 // ── Organization ──────────────────────────────────────────────────────────────
-router.get("/organizations", protect, authorize("superadmin", "admin"), getOrganizations);
+router.get(
+  "/organizations",
+  protect,
+  authorize("superadmin", "admin"),
+  getOrganizations,
+);
 
-router.get("/organization/:id", protect, authorize("superadmin", "admin"), getOrganization);
+router.get(
+  "/organization/:id",
+  protect,
+  authorize("superadmin", "admin"),
+  getOrganization,
+);
 
+router.get(
+  "/dashboard",
+  protect,
+  authorize("superadmin", "admin"),
+  getDashboardStats,
+);
 
 router.post(
   "/organizations",
@@ -46,10 +63,11 @@ router.get(
   getOrganizations,
 );
 router.put(
-  "/organizations/:id/theme",
+  "/organizations/:id",
   protect,
   authorize("superadmin", "admin"),
-  updateOrganizationTheme,
+  upload.single("logo"),
+  updateOrganization,
 );
 
 // ── Admin Management (superadmin only) ────────────────────────────────────────

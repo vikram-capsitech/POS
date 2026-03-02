@@ -31,6 +31,7 @@ import posTableRoutes from "./pos/tableRoutes.js";
 import posInventoryRoutes from "./pos/inventoryRoutes.js";
 import posReportRoutes from "./pos/reportRoutes.js";
 import posOrganizationRoutes from "./pos/organizationRoutes.js";
+import posExpenseRoutes from "./pos/expenseRoutes.js";
 
 const registerRoutes = (app) => {
   // ── Core ───────────────────────────────────────────────────────────────────
@@ -73,6 +74,7 @@ const registerRoutes = (app) => {
   app.use("/api/pos/inventory", posInventoryRoutes);
   app.use("/api/pos/reports", posReportRoutes);
   app.use("/api/pos/organization", posOrganizationRoutes);
+  app.use("/api/pos/expenses", posExpenseRoutes);
 };
 
 export default registerRoutes;

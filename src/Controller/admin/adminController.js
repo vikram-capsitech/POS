@@ -3,9 +3,15 @@ import Organization from "../../Models/core/Organization.js";
 import EmployeeProfile from "../../Models/core/EmployeeProfile.js";
 import Role from "../../Models/core/Role.js";
 import Permission from "../../Models/core/Permission.js";
+import Task from "../../Models/operations/Task.js";
+import Attendance from "../../Models/workforce/Attendance.js";
+import LeaveRequest from "../../Models/workforce/LeaveRequest.js";
+import Order from "../../Models/pos/Order.js";
+import UserLog from "../../Models/core/UserLog.js";
 import asyncHandler from "../../Utils/AsyncHandler.js";
 import ApiError from "../../Utils/ApiError.js";
 import ApiResponse from "../../Utils/ApiResponse.js";
+import mongoose from "mongoose";
 
 // ─────────────────────────────────────────────
 //  POST /api/admin/organizations
@@ -42,26 +48,50 @@ export const getOrganizations = asyncHandler(async (req, res) => {
 });
 
 // ─────────────────────────────────────────────
-//  PUT /api/admin/organizations/:id/theme
+//  PUT /api/admin/organizations/:id
 // ─────────────────────────────────────────────
-export const updateOrganizationTheme = asyncHandler(async (req, res) => {
-  const { theme, modules } = req.body;
+export const updateOrganization = asyncHandler(async (req, res) => {
+  const {
+    name,
+    type,
+    address,
+    contactEmail,
+    contactPhone,
+    slug,
+    theme,
+    modules,
+  } = req.body;
 
   // Admin can only update their own org; superadmin can update any org
   let orgId = req.params.id;
-  if (req.user.systemRole === "admin") {
-    orgId = req.user.organizationID;
+  if (
+    req.user.systemRole === "admin" &&
+    req.user.organizationID.toString() !== orgId
+  ) {
+    throw new ApiError(403, "Not authorized to update this organization");
   }
   if (!orgId) throw new ApiError(400, "Organization ID is required");
 
   const update = {};
-  if (theme) update.theme = theme;
-  if (modules) update.modules = modules;
+  if (name !== undefined) update.name = name;
+  if (type !== undefined) update.type = type;
+  if (address !== undefined) update.address = address;
+  if (contactEmail !== undefined) update.contactEmail = contactEmail;
+  if (contactPhone !== undefined) update.contactPhone = contactPhone;
+  if (slug !== undefined) update.slug = slug;
+  if (theme !== undefined) update["settings.theme"] = theme;
+  if (modules !== undefined) update.modules = modules;
 
-  const updated = await Organization.findByIdAndUpdate(orgId, update, {
-    new: true,
-    runValidators: true,
-  });
+  if (req.file?.path) update.logo = req.file.path;
+
+  const updated = await Organization.findByIdAndUpdate(
+    orgId,
+    { $set: update },
+    {
+      new: true,
+      runValidators: true,
+    },
+  );
   if (!updated) throw new ApiError(404, "Organization not found");
 
   return res.json(new ApiResponse(200, updated, "Organization updated"));
@@ -374,28 +404,194 @@ export const createOrganization = asyncHandler(async (req, res) => {
     .json(new ApiResponse(201, org, "Organization created"));
 });
 
-// ─────────────────────────────────────────────
-//  PUT /api/pos/organization/:id
-// ─────────────────────────────────────────────
-export const updateOrganization = asyncHandler(async (req, res) => {
-  const ALLOWED = [
-    "name",
-    "address",
-    "contactEmail",
-    "contactPhone",
-    "theme",
-    "modules",
-  ];
-  const updates = {};
-  ALLOWED.forEach((k) => {
-    if (req.body[k] !== undefined) updates[k] = req.body[k];
-  });
-  if (req.file?.path) updates.logo = req.file.path;
+// Removed duplicate updateOrganization function
 
-  const org = await Organization.findByIdAndUpdate(req.params.id, updates, {
-    new: true,
-    runValidators: true,
-  });
-  if (!org) throw new ApiError(404, "Organization not found");
-  return res.json(new ApiResponse(200, org, "Organization updated"));
+// ─────────────────────────────────────────────
+//  GET /api/admin/dashboard
+//  Returns per-org aggregated stats for the admin dashboard
+// ─────────────────────────────────────────────
+export const getDashboardStats = asyncHandler(async (req, res) => {
+  const isSuperadmin = req.user.systemRole === "superadmin";
+
+  // Determine which orgs to aggregate
+  let orgFilter = {};
+  if (!isSuperadmin) {
+    // Admin sees only their own org
+    if (!req.user.organizationID)
+      throw new ApiError(400, "No organization linked");
+    orgFilter = { _id: req.user.organizationID };
+  }
+  // Optional org filter from query
+  if (req.query.orgId) {
+    orgFilter._id = new mongoose.Types.ObjectId(req.query.orgId);
+  }
+
+  const orgs = await Organization.find(orgFilter)
+    .populate("ownedBy", "displayName email")
+    .sort({ createdAt: -1 });
+
+  if (!orgs.length) {
+    return res.json(
+      new ApiResponse(200, { orgs: [], totals: {} }, "No organizations found"),
+    );
+  }
+
+  const now = new Date();
+  const todayStart = new Date(now);
+  todayStart.setHours(0, 0, 0, 0);
+  const todayEnd = new Date(now);
+  todayEnd.setHours(23, 59, 59, 999);
+
+  const last30Start = new Date(now);
+  last30Start.setDate(last30Start.getDate() - 29);
+  last30Start.setHours(0, 0, 0, 0);
+
+  // ── Aggregate all orgs in parallel ──────────────────────────────────────
+  const orgStats = await Promise.all(
+    orgs.map(async (org) => {
+      const orgId = org._id;
+
+      const [
+        taskStatusAgg,
+        taskPriorityAgg,
+        employeeCount,
+        todayAttendance,
+        pendingLeaves,
+        posOrderAgg,
+        recentLogs,
+      ] = await Promise.all([
+        // Task by status
+        Task.aggregate([
+          { $match: { organizationID: orgId } },
+          { $group: { _id: "$status", count: { $sum: 1 } } },
+        ]),
+        // Task by priority
+        Task.aggregate([
+          { $match: { organizationID: orgId } },
+          { $group: { _id: "$priority", count: { $sum: 1 } } },
+        ]),
+        // Employee count
+        EmployeeProfile.countDocuments({ organizationID: orgId }),
+        // Today's check-ins
+        Attendance.countDocuments({
+          organizationID: orgId,
+          date: { $gte: todayStart, $lte: todayEnd },
+          checkIn: { $ne: null },
+        }),
+        // Pending leave requests
+        LeaveRequest.countDocuments({
+          organizationID: orgId,
+          status: "Pending",
+        }),
+        // POS orders — last 30 days
+        Order.aggregate([
+          {
+            $match: {
+              organizationID: orgId,
+              createdAt: { $gte: last30Start, $lte: todayEnd },
+            },
+          },
+          {
+            $group: {
+              _id: null,
+              totalOrders: { $sum: 1 },
+              totalRevenue: { $sum: { $ifNull: ["$finalAmount", "$total"] } },
+              completedOrders: {
+                $sum: {
+                  $cond: [{ $in: ["$status", ["paid", "served"]] }, 1, 0],
+                },
+              },
+            },
+          },
+        ]),
+        // Recent activity logs (last 5)
+        UserLog.find({ organizationID: orgId })
+          .populate("userID", "displayName userName")
+          .sort({ createdAt: -1 })
+          .limit(5)
+          .lean(),
+      ]);
+
+      // ── Shape task stats ─────────────────────────────────────────────────
+      const taskByStatus = {
+        Pending: 0,
+        "In Progress": 0,
+        Completed: 0,
+        Rejected: 0,
+      };
+      let totalTasks = 0;
+      taskStatusAgg.forEach((t) => {
+        taskByStatus[t._id] = t.count;
+        totalTasks += t.count;
+      });
+
+      const taskByPriority = { Low: 0, Medium: 0, High: 0, Critical: 0 };
+      taskPriorityAgg.forEach((t) => {
+        taskByPriority[t._id] = t.count;
+      });
+
+      const pos = posOrderAgg[0] ?? {
+        totalOrders: 0,
+        totalRevenue: 0,
+        completedOrders: 0,
+      };
+
+      return {
+        org: {
+          _id: org._id,
+          name: org.name,
+          type: org.type,
+          logo: org.logo,
+          slug: org.slug,
+          modules: org.modules ?? {},
+          isActive: org.isActive,
+          ownedBy: org.ownedBy,
+          contactEmail: org.contactEmail,
+          contactPhone: org.contactPhone,
+        },
+        tasks: {
+          total: totalTasks,
+          byStatus: taskByStatus,
+          byPriority: taskByPriority,
+        },
+        employees: employeeCount,
+        todayAttendance,
+        pendingLeaves,
+        pos: {
+          totalOrders: pos.totalOrders,
+          totalRevenue: Number((pos.totalRevenue ?? 0).toFixed(2)),
+          completedOrders: pos.completedOrders,
+        },
+        recentActivity: recentLogs,
+      };
+    }),
+  );
+
+  // ── Compute combined totals ──────────────────────────────────────────────
+  const totals = orgStats.reduce(
+    (acc, s) => ({
+      totalEmployees: acc.totalEmployees + s.employees,
+      totalTasks: acc.totalTasks + s.tasks.total,
+      totalPendingLeaves: acc.totalPendingLeaves + s.pendingLeaves,
+      totalTodayAttendance: acc.totalTodayAttendance + s.todayAttendance,
+      totalRevenue: acc.totalRevenue + s.pos.totalRevenue,
+      totalOrders: acc.totalOrders + s.pos.totalOrders,
+    }),
+    {
+      totalEmployees: 0,
+      totalTasks: 0,
+      totalPendingLeaves: 0,
+      totalTodayAttendance: 0,
+      totalRevenue: 0,
+      totalOrders: 0,
+    },
+  );
+
+  return res.json(
+    new ApiResponse(
+      200,
+      { orgs: orgStats, totals, orgCount: orgs.length },
+      "Dashboard stats fetched",
+    ),
+  );
 });

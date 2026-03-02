@@ -7,11 +7,11 @@ import { useAuthStore } from "../Store/store";
 const apiClient = axios.create({
   /**
    * BASE URL CONFIGURATION:
-   * 1. UNIFIED DEPLOYMENT: Leave VITE_SERVER_URI blank/undefined in production. 
+   * 1. UNIFIED DEPLOYMENT: Leave VITE_SERVER_URI blank/undefined in production.
    *    It will fallback to "" (same-origin), which is correct for unified hosting.
    * 2. SPLIT DEPLOYMENT: Set VITE_SERVER_URI to your backend URL (e.g., https://api.yourdomain.com).
    */
-  baseURL: import.meta.env.VITE_SERVER_URI || "", 
+  baseURL: import.meta.env.VITE_SERVER_URI || "",
   withCredentials: true,
   timeout: 120000,
 });
@@ -136,9 +136,10 @@ export const updateFcmToken = (fcmToken: string) =>
 
 export const getOrganizationById = (id: string) =>
   apiClient.get(`/api/admin/organization/${id}`);
-
-export const getOrganizations = () =>
-  apiClient.get(`/api/admin/organizations`);
+export const getOrganization = getOrganizationById; // alias
+export const getOrganizations = () => apiClient.get(`/api/admin/organizations`);
+export const updateOrganization = (id: string, data: any) =>
+  apiClient.put(`/api/admin/organizations/${id}`, data);
 // ── 🏢 ADMIN MODULE ──────────────────────────────────────────────────────────
 
 export const adminCreateOrg = (data: FormData) =>
@@ -166,6 +167,8 @@ export const adminUpdateRole = (id: string, data: any) =>
   apiClient.put(`/api/admin/roles/${id}`, data);
 export const adminDeleteRole = (id: string) =>
   apiClient.delete(`/api/admin/roles/${id}`);
+export const fetchAdminDashboard = (params?: { orgId?: string }) =>
+  apiClient.get("/api/admin/dashboard", { params });
 
 // ── 🏪 POS MODULE ────────────────────────────────────────────────────────────
 
@@ -201,6 +204,18 @@ export const updateOrder = (id: string, data: any) =>
   apiClient.put(`/api/pos/orders/${id}`, data);
 export const deleteOrder = (id: string) =>
   apiClient.delete(`/api/pos/orders/${id}`);
+export const addOrderItems = (id: string, data: any) =>
+  apiClient.post(`/api/pos/orders/${id}/items`, data);
+
+// Expenses
+export const getPosExpenses = (params?: any) =>
+  apiClient.get("/api/pos/expenses", { params });
+export const createPosExpense = (data: any) =>
+  apiClient.post("/api/pos/expenses", data);
+export const updatePosExpense = (id: string, data: any) =>
+  apiClient.put(`/api/pos/expenses/${id}`, data);
+export const deletePosExpense = (id: string) =>
+  apiClient.delete(`/api/pos/expenses/${id}`);
 
 // Inventory
 export const getInventoryRequests = (params?: any) =>
@@ -273,11 +288,10 @@ export const fetchTasks = (params?: any) =>
   apiClient.get("/api/tasks", { params });
 export const hrmCreateTask = (data: any) => apiClient.post("/api/tasks", data);
 export const hrmGetTaskById = (id: string) => apiClient.get(`/api/tasks/${id}`);
-export const hrmUpdateTask = (id: string, data: any) =>
-{
+export const hrmUpdateTask = (id: string, data: any) => {
   debugger;
-    return apiClient.put(`/api/tasks/${id}`, data);
-}
+  return apiClient.put(`/api/tasks/${id}`, data);
+};
 export const hrmDeleteTask = (id: string) =>
   apiClient.delete(`/api/tasks/${id}`);
 export const hrmListSops = () => apiClient.get("/api/sops");
@@ -305,12 +319,14 @@ export const getNotifications = (params?: any) =>
 export const markNotificationRead = (id: string) =>
   apiClient.put(`/api/notifications/${id}/read`);
 export const getDashboardHome = () => apiClient.get("/api/home");
-export const fetchUserLogs = (params: any) => apiClient.get("/api/logs", { params });
+export const fetchUserLogs = (params: any) =>
+  apiClient.get("/api/logs", { params });
+export const fetchUserLogsStats = () => apiClient.get("/api/logs/stats");
 
 // Legacy support placeholders (to prevent immediate build break if referenced)
 export const getAvailableUsers = () => Promise.resolve({ data: [] });
 export const getUserChats = () => Promise.resolve({ data: [] });
 export const getAppSetting = () => Promise.resolve({} as any);
-export const saveAppSetting = (data:any) => Promise.resolve({} as any);
+export const saveAppSetting = (data: any) => Promise.resolve({} as any);
 
 export default apiClient;
