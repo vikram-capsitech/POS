@@ -3,30 +3,22 @@ import React, { Suspense, lazy } from "react";
 import LoadingScreen from "../../Components/LoadingScreen";
 import RequireAuth from "../guards/RequireAuth";
 import RequirePermission from "../guards/RequirePermission";
-import SuperAdminLayout from "../../modules/superadmin/layout/SuperAdminLayout";
-
-const Loadable = (C: any) => (props: any) => (
-  <Suspense fallback={<LoadingScreen />}>
-    <C {...props} />
-  </Suspense>
-);
-
-const SuperDashboard = Loadable(lazy(() => import("../../modules/superadmin/pages/Dashboard")));
-const OrgsManage = Loadable(lazy(() => import("../../modules/superadmin/pages/Organizations")));
-const UsersManage = Loadable(lazy(() => import("../../modules/superadmin/pages/Users")));
+import InProgress from "../../pages/InProgress";
 
 export const superAdminRoutes = {
   path: "/superadmin",
   element: (
     <RequireAuth>
       <RequirePermission moduleKey="SUPERADMIN">
-        <SuperAdminLayout />
+        <div style={{ minHeight: "100vh", padding: 24 }}>
+          <InProgress name="Super Admin Layout" />
+        </div>
       </RequirePermission>
     </RequireAuth>
   ),
   children: [
-    { index: true, element: <SuperDashboard /> },
-    { path: "organizations", element: <OrgsManage /> },
-    { path: "users", element: <UsersManage /> },
+    { index: true, element: <InProgress name="SuperDashboard" /> },
+    { path: "organizations", element: <InProgress name="OrgsManage" /> },
+    { path: "users", element: <InProgress name="UsersManage" /> },
   ],
 };

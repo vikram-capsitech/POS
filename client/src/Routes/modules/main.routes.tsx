@@ -13,13 +13,22 @@ const Loadable = (C: any) => (props: any) => (
   </Suspense>
 );
 
-const MainOrgSelect = Loadable(lazy(() => import("../../pages/Admin/OrganizationList")));
-const MainDashboard = Loadable(lazy(() => import("../../pages/Admin/OrganizationDashboard")));
+const MainOrgSelect = Loadable(
+  lazy(() => import("../../pages/Admin/OrganizationList")),
+);
+const MainDashboard = Loadable(
+  lazy(() => import("../../pages/Admin/OrganizationDashboard")),
+);
 
 import { useAuthStore } from "../../Store/store";
 import Task from "../../pages/Admin/Task/Task";
-const CreateTask = Loadable(lazy(() => import("../../pages/Admin/Task/CreateTask")));
+const CreateTask = Loadable(
+  lazy(() => import("../../pages/Admin/Task/CreateTask")),
+);
 const Logs = Loadable(lazy(() => import("../../pages/Admin/Logs/Logs")));
+const OrgSettings = Loadable(
+  lazy(() => import("../../pages/Admin/Settings/OrgSettings")),
+);
 
 function ClientIndexRedirect() {
   const orgId = useAuthStore((s) => s.session?.restaurantId);
@@ -58,7 +67,10 @@ export const mainRoutes = {
         { path: "voucher", element: <InProgress name="Vouchers" /> },
         { path: "sop", element: <InProgress name="SOP" /> },
         { path: "ai-review", element: <InProgress name="AI Review" /> },
-        { path: "salary-management", element: <InProgress name="Salary Management" /> },
+        {
+          path: "salary-management",
+          element: <InProgress name="Salary Management" />,
+        },
         { path: "logs", element: <Logs /> },
 
         // Superadmin modules
@@ -67,7 +79,7 @@ export const mainRoutes = {
 
         // Profiles & Settings
         { path: "user-profile", element: <InProgress name="User Profile" /> },
-        { path: "settings", element: <InProgress name="Settings" /> },
+        { path: "settings", element: <OrgSettings /> },
       ],
     },
   ],

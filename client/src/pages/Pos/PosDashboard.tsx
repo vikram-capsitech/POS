@@ -1,73 +1,90 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Navigate, useParams } from "react-router-dom";
 import {
+  Badge,
+  Button,
   Card,
   Col,
   DatePicker,
-  Divider,
   Flex,
-  Input,
   Row,
   Segmented,
   Space,
   Statistic,
   Table,
   Tag,
-  Typography,
-  Button,
-  message,
   Tabs,
-  Badge,
-  List,
+  Typography,
+  message,
+  Divider,
   Avatar,
-  Select,
-  Modal,
-  Form,
-  InputNumber,
-  Switch,
 } from "antd";
-import type { ColumnsType } from "antd/es/table";
 import {
-  ReloadOutlined,
-  SearchOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
   DollarOutlined,
   ShoppingCartOutlined,
   TableOutlined,
   FireOutlined,
-  PlusOutlined,
+  ReloadOutlined,
+  RiseOutlined,
+  WalletOutlined,
+  LinkOutlined,
+  AppstoreOutlined,
+  TeamOutlined,
 } from "@ant-design/icons";
-import { useParams } from "react-router-dom";
-import dayjs, { Dayjs } from "dayjs";
-
-import { getOrders, getTables, getMenuItems /* createMenuItem, createTable */ } from "../../Api";
+import {
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from "recharts";
 import { useAuthStore } from "../../Store/store";
+import { getOrders, getTables, getMenuItems, getPosExpenses } from "../../Api";
+import dayjs, { Dayjs } from "dayjs";
+import type { ColumnsType } from "antd/es/table";
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
 
-type OrderStatus = "pending" | "preparing" | "ready" | "paid" | "cancelled" | string;
+// ── Role-Based Redirect ───────────────────────────────────────────────────────
+export default function PosDashboard() {
+  const role = useAuthStore((s) => s.session.role);
+  const { orgId } = useParams();
 
+  // Redirect waiter/employee/kitchen roles to their specific view
+  if (role === "waiter" || role === "employee")
+    return <Navigate to={`/pos/${orgId}/waiter`} replace />;
+  if (role === "kitchen")
+    return <Navigate to={`/pos/${orgId}/kitchen`} replace />;
+
+  // Admin/Manager → full dashboard
+  return <AdminPosDashboard />;
+}
+
+// ── Types ─────────────────────────────────────────────────────────────────────
 type Order = {
   _id: string;
   createdAt?: string;
-  tableId?: string;
-  tableNumber?: number | string;
-  waiterName?: string;
+  status?: string;
   total?: number;
-  status?: OrderStatus;
-  items?: Array<{ name?: string; qty?: number; price?: number }>;
+  finalAmount?: number;
+  orderSource?: string;
+  items?: any[];
+  tableID?: any;
 };
-
-type PosTableStatus = "available" | "occupied" | "reserved" | "blocked" | string;
 type PosTable = {
   _id: string;
-  number?: number | string;
+  number?: number;
   seats?: number;
-  status?: PosTableStatus;
-  currentOrderId?: string;
+  status?: string;
+  floor?: string;
 };
-
 type MenuItemT = {
   _id: string;
   name: string;
@@ -78,38 +95,39 @@ type MenuItemT = {
 };
 
 type PeriodKey = "today" | "week" | "month" | "custom";
-
-const statusTag = (status?: string) => {
-  const s = (status || "").toLowerCase();
-  if (s === "paid") return <Tag color="green">Paid</Tag>;
-  if (s === "ready") return <Tag color="blue">Ready</Tag>;
-  if (s === "preparing") return <Tag color="gold">Preparing</Tag>;
-  if (s === "pending") return <Tag>Pending</Tag>;
-  if (s === "cancelled") return <Tag color="red">Cancelled</Tag>;
-  return <Tag>{status || "-"}</Tag>;
-};
-
-const tableBadge = (status?: string) => {
-  const s = (status || "").toLowerCase();
-  if (s === "occupied") return <Badge status="error" text="Occupied" />;
-  if (s === "available") return <Badge status="success" text="Available" />;
-  if (s === "reserved") return <Badge status="warning" text="Reserved" />;
-  if (s === "blocked") return <Badge status="default" text="Blocked" />;
-  return <Badge status="processing" text={status || "Unknown"} />;
-};
-
 const money = (n?: number) => `₹${Number(n || 0).toLocaleString("en-IN")}`;
 
-export default function PosDashboard() {
-  const { orgId } = useParams();
+const STATUS_COLORS: Record<string, string> = {
+  pending: "#faad14",
+  approved: "#1677ff",
+  preparing: "#13c2c2",
+  ready: "#52c41a",
+  served: "#722ed1",
+  paid: "#52c41a",
+  cancelled: "#ff4d4f",
+};
+const TABLE_STATUS_COLORS: Record<string, string> = {
+  available: "#52c41a",
+  occupied: "#ff4d4f",
+  reserved: "#faad14",
+  billing: "#722ed1",
+};
+const SOURCE_LABELS: Record<string, string> = {
+  "dine-in": "🍽️ Dine-In",
+  takeaway: "🥡 Takeaway",
+  zomato: "🍕 Zomato",
+  swiggy: "🛵 Swiggy",
+  other: "📦 Other",
+};
 
+// ── Admin Dashboard ───────────────────────────────────────────────────────────
+function AdminPosDashboard() {
+  const { orgId } = useParams();
   const restaurantId = useAuthStore((s) => s.session.restaurantId);
-  const updateSession = useAuthStore((s) => s.updateSession);
 
   const [loading, setLoading] = useState(false);
-
   const [period, setPeriod] = useState<PeriodKey>("today");
-  const [range, setRange] = useState<[Dayjs, Dayjs]>(() => [
+  const [range, setRange] = useState<[Dayjs, Dayjs]>([
     dayjs().startOf("day"),
     dayjs().endOf("day"),
   ]);
@@ -117,581 +135,492 @@ export default function PosDashboard() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [tables, setTables] = useState<PosTable[]>([]);
   const [menu, setMenu] = useState<MenuItemT[]>([]);
+  const [expenses, setExpenses] = useState<any[]>([]);
 
-  const [orderSearch, setOrderSearch] = useState("");
-  const [menuSearch, setMenuSearch] = useState("");
-
-  // dialogs
-  const [openMenuModal, setOpenMenuModal] = useState(false);
-  const [openTableModal, setOpenTableModal] = useState(false);
-  const [menuForm] = Form.useForm();
-  const [tableForm] = Form.useForm();
-
-  // Period → range
   useEffect(() => {
-    if (period === "today") setRange([dayjs().startOf("day"), dayjs().endOf("day")]);
-    if (period === "week") setRange([dayjs().startOf("week"), dayjs().endOf("week")]);
-    if (period === "month") setRange([dayjs().startOf("month"), dayjs().endOf("month")]);
+    if (period === "today")
+      setRange([dayjs().startOf("day"), dayjs().endOf("day")]);
+    if (period === "week")
+      setRange([dayjs().startOf("week"), dayjs().endOf("week")]);
+    if (period === "month")
+      setRange([dayjs().startOf("month"), dayjs().endOf("month")]);
   }, [period]);
 
-  const fetchAll = async () => {
-    if (!orgId) return;
+  const fetchAll = useCallback(async () => {
+    const sid = restaurantId || orgId;
+    if (!sid) return;
     setLoading(true);
     try {
-      const from = range[0].toISOString();
-      const to = range[1].toISOString();
-
-      // If your backend expects restaurantID, pass it as well (org == restaurant)
-      const scopeId = restaurantId || orgId;
-
-      const [oRes, tRes, mRes] = await Promise.all([
-        getOrders({ orgId: scopeId, from, to }),
+      const [oRes, tRes, mRes, eRes] = await Promise.all([
+        getOrders({ restaurantId: sid }),
         getTables(),
-        getMenuItems({ orgId: scopeId }),
+        getMenuItems({ orgId: sid }),
+        getPosExpenses({
+          startDate: range[0].toISOString(),
+          endDate: range[1].toISOString(),
+        }),
       ]);
-
-      const o = (oRes as any)?.data?.data ?? (oRes as any)?.data ?? [];
-      const t = (tRes as any)?.data?.data ?? (tRes as any)?.data ?? [];
-      const m = (mRes as any)?.data?.data ?? (mRes as any)?.data ?? [];
-
-      setOrders(o);
-      setTables(t);
-      setMenu(m);
-
-      // keep selected scope in store (optional)
-      if (!restaurantId && scopeId) updateSession({ restaurantId: scopeId });
-    } catch (e: any) {
-      message.error(e?.message || "Failed to load POS dashboard");
+      setOrders((oRes as any)?.data?.data ?? (oRes as any)?.data ?? []);
+      setTables((tRes as any)?.data?.data ?? (tRes as any)?.data ?? []);
+      setMenu((mRes as any)?.data?.data ?? (mRes as any)?.data ?? []);
+      setExpenses(((eRes as any)?.data?.data?.expenses ?? []) as any[]);
+    } catch {
+      message.error("Failed to load dashboard");
     } finally {
       setLoading(false);
     }
-  };
+  }, [restaurantId, orgId, range[0].valueOf(), range[1].valueOf()]);
 
   useEffect(() => {
     fetchAll();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orgId, restaurantId, range[0].valueOf(), range[1].valueOf()]);
+  }, [fetchAll]);
 
+  // ── KPIs ──────────────────────────────────────────────────────────────────
   const kpis = useMemo(() => {
     const inRange = (d?: string) => {
       if (!d) return true;
       const ts = dayjs(d).valueOf();
       return ts >= range[0].valueOf() && ts <= range[1].valueOf();
     };
-
-    const filteredOrders = orders.filter((o) => inRange(o.createdAt));
-    const revenue = filteredOrders.reduce((acc, o) => acc + (Number(o.total) || 0), 0);
-    const count = filteredOrders.length;
+    const rangedOrders = orders.filter((o) => inRange(o.createdAt));
+    const revenue = rangedOrders.reduce(
+      (a, o) => a + (Number(o.finalAmount ?? o.total) || 0),
+      0,
+    );
+    const count = rangedOrders.length;
     const aov = count ? revenue / count : 0;
-
-    const occupied = tables.filter((t) => (t.status || "").toLowerCase() === "occupied").length;
-    const totalTables = tables.length || 1;
-    const occupancyPct = Math.round((occupied / totalTables) * 100);
-
-    const kitchenLoad = filteredOrders.filter((o) =>
-      ["pending", "preparing"].includes((o.status || "").toLowerCase())
+    const activeOrders = orders.filter((o) =>
+      ["pending", "approved", "preparing", "ready"].includes(o.status ?? ""),
     ).length;
+    const occupied = tables.filter((t) => t.status === "occupied").length;
+    const occupancyPct = tables.length
+      ? Math.round((occupied / tables.length) * 100)
+      : 0;
+    const totalExpenses = expenses.reduce((a, e) => a + e.amount, 0);
+    return {
+      revenue,
+      count,
+      aov,
+      activeOrders,
+      occupied,
+      totalTables: tables.length,
+      occupancyPct,
+      totalExpenses,
+    };
+  }, [orders, tables, expenses, range]);
 
-    return { revenue, count, aov, occupied, totalTables, occupancyPct, kitchenLoad };
-  }, [orders, tables, range]);
-
-  const recentOrders = useMemo(() => {
-    const q = orderSearch.trim().toLowerCase();
-    const list = [...orders].sort((a, b) => {
-      const ta = a.createdAt ? dayjs(a.createdAt).valueOf() : 0;
-      const tb = b.createdAt ? dayjs(b.createdAt).valueOf() : 0;
-      return tb - ta;
+  // ── Chart Data ────────────────────────────────────────────────────────────
+  const statusPieData = useMemo(() => {
+    const counts: Record<string, number> = {};
+    orders.forEach((o) => {
+      counts[o.status ?? "unknown"] = (counts[o.status ?? "unknown"] ?? 0) + 1;
     });
+    return Object.entries(counts).map(([k, v]) => ({ name: k, value: v }));
+  }, [orders]);
 
-    if (!q) return list.slice(0, 20);
+  const topItems = useMemo(() => {
+    const counts: Record<
+      string,
+      { name: string; qty: number; revenue: number }
+    > = {};
+    orders.forEach((o) => {
+      (o.items ?? []).forEach((i: any) => {
+        const name = i.menuItem?.name ?? i.name ?? "Item";
+        if (!counts[name]) counts[name] = { name, qty: 0, revenue: 0 };
+        counts[name].qty += i.quantity ?? 1;
+        counts[name].revenue += (i.price ?? 0) * (i.quantity ?? 1);
+      });
+    });
+    return Object.values(counts)
+      .sort((a, b) => b.qty - a.qty)
+      .slice(0, 6);
+  }, [orders]);
 
-    return list
-      .filter((o) => {
-        const id = (o._id || "").toLowerCase();
-        const status = (o.status || "").toLowerCase();
-        const waiter = (o.waiterName || "").toLowerCase();
-        const table = String(o.tableNumber ?? o.tableId ?? "").toLowerCase();
-        return id.includes(q) || status.includes(q) || waiter.includes(q) || table.includes(q);
-      })
-      .slice(0, 50);
-  }, [orders, orderSearch]);
+  const sourceData = useMemo(() => {
+    const d: Record<string, number> = {};
+    orders.forEach((o) => {
+      const s = o.orderSource ?? "dine-in";
+      d[s] = (d[s] ?? 0) + (o.finalAmount ?? o.total ?? 0);
+    });
+    return Object.entries(d).map(([k, v]) => ({
+      name: SOURCE_LABELS[k] ?? k,
+      value: Math.round(v),
+    }));
+  }, [orders]);
 
-  const filteredMenu = useMemo(() => {
-    const q = menuSearch.trim().toLowerCase();
-    if (!q) return menu;
-    return menu.filter((m) => (m.name || "").toLowerCase().includes(q) || (m.category || "").toLowerCase().includes(q));
-  }, [menu, menuSearch]);
+  const recentOrders = useMemo(
+    () =>
+      [...orders]
+        .sort(
+          (a, b) => dayjs(b.createdAt).valueOf() - dayjs(a.createdAt).valueOf(),
+        )
+        .slice(0, 8),
+    [orders],
+  );
 
   const orderColumns: ColumnsType<Order> = [
     {
       title: "Order",
-      key: "order",
-      width: 220,
+      key: "id",
+      width: 110,
       render: (_, r) => (
-        <Space direction="vertical" size={2}>
-          <Text strong>#{r._id?.slice(-6) || "-"}</Text>
-          <Text type="secondary" style={{ fontSize: 12 }}>
-            {r.createdAt ? dayjs(r.createdAt).format("DD MMM, HH:mm") : "-"}
+        <Space direction="vertical" size={0}>
+          <Text strong>#{r._id.slice(-6)}</Text>
+          <Text type="secondary" style={{ fontSize: 11 }}>
+            {dayjs(r.createdAt).format("HH:mm")}
           </Text>
         </Space>
+      ),
+    },
+    {
+      title: "Source",
+      key: "src",
+      width: 110,
+      render: (_, r) => (
+        <Text style={{ fontSize: 12 }}>
+          {SOURCE_LABELS[r.orderSource ?? ""] ?? r.orderSource ?? "—"}
+        </Text>
       ),
     },
     {
       title: "Table",
       key: "table",
-      width: 140,
-      render: (_, r) => <Tag icon={<TableOutlined />}>{r.tableNumber ?? r.tableId ?? "-"}</Tag>,
-    },
-    {
-      title: "Waiter",
-      dataIndex: "waiterName",
-      key: "waiterName",
-      width: 180,
-      render: (v) => v || "-",
+      width: 90,
+      render: (_, r) =>
+        r.tableID ? (
+          <Tag icon={<TableOutlined />}>
+            {typeof r.tableID === "object" ? r.tableID.number : "—"}
+          </Tag>
+        ) : (
+          <Tag>Takeaway</Tag>
+        ),
     },
     {
       title: "Items",
       key: "items",
-      width: 90,
-      render: (_, r) => <Text>{r.items?.length ?? 0}</Text>,
+      width: 70,
+      render: (_, r) => r.items?.length ?? 0,
     },
     {
       title: "Total",
-      dataIndex: "total",
       key: "total",
-      width: 140,
-      render: (v) => <Text strong>{money(v)}</Text>,
+      width: 110,
+      render: (_, r) => <Text strong>{money(r.finalAmount ?? r.total)}</Text>,
     },
     {
       title: "Status",
-      dataIndex: "status",
       key: "status",
-      width: 140,
-      render: (v) => statusTag(v),
-    },
-  ];
-
-  const menuColumns: ColumnsType<MenuItemT> = [
-    {
-      title: "Item",
-      key: "name",
+      width: 110,
       render: (_, r) => (
-        <Space direction="vertical" size={2}>
-          <Text strong>{r.name}</Text>
-          <Text type="secondary" style={{ fontSize: 12 }}>
-            {r.category || "Uncategorized"} • {r.isVeg ? "Veg" : "Non-Veg"}
-          </Text>
-        </Space>
+        <Tag color={STATUS_COLORS[r.status ?? ""] ?? "default"}>
+          {(r.status ?? "—").toUpperCase()}
+        </Tag>
       ),
     },
+  ];
+
+  const GRADIENT_CARDS = [
     {
-      title: "Price",
-      dataIndex: "price",
-      key: "price",
-      width: 130,
-      render: (v) => <Text>{money(v)}</Text>,
+      title: "Revenue",
+      value: money(kpis.revenue),
+      icon: <DollarOutlined />,
+      bg: "linear-gradient(135deg,#667eea,#764ba2)",
     },
     {
-      title: "Availability",
-      key: "available",
-      width: 160,
-      render: (_, r) =>
-        r.available ? (
-          <Tag color="green" icon={<CheckCircleOutlined />}>Available</Tag>
-        ) : (
-          <Tag color="red" icon={<CloseCircleOutlined />}>Hidden</Tag>
-        ),
+      title: "Orders",
+      value: kpis.count,
+      icon: <ShoppingCartOutlined />,
+      bg: "linear-gradient(135deg,#11998e,#38ef7d)",
+    },
+    {
+      title: "Avg Order",
+      value: money(kpis.aov),
+      icon: <RiseOutlined />,
+      bg: "linear-gradient(135deg,#4facfe,#00f2fe)",
+    },
+    {
+      title: "Active Orders",
+      value: kpis.activeOrders,
+      icon: <FireOutlined />,
+      bg: "linear-gradient(135deg,#f093fb,#f5576c)",
+    },
+    {
+      title: "Occupancy",
+      value: `${kpis.occupancyPct}%`,
+      icon: <TableOutlined />,
+      bg: "linear-gradient(135deg,#fa709a,#fee140)",
+    },
+    {
+      title: "Expenses",
+      value: money(kpis.totalExpenses),
+      icon: <WalletOutlined />,
+      bg: "linear-gradient(135deg,#30cfd0,#330867)",
     },
   ];
 
-  // --- Actions (wiring left as stub where API not shown) ---
-  const handleCreateMenuItem = async () => {
-    const values = await menuForm.validateFields();
-    message.info("Wire createMenuItem(values) here");
-    setOpenMenuModal(false);
-    menuForm.resetFields();
-    // await fetchAll();
-  };
-
-  const handleCreateTable = async () => {
-    const values = await tableForm.validateFields();
-    message.info("Wire createTable(values) here");
-    setOpenTableModal(false);
-    tableForm.resetFields();
-    // await fetchAll();
-  };
-
   return (
-    <Space direction="vertical" size={16} style={{ width: "100%" }}>
+    <div
+      style={{
+        padding: "16px 20px",
+        background: "#f5f7fa",
+        minHeight: "100vh",
+      }}
+    >
       {/* Header */}
-      <Card style={{ borderRadius: 16 }}>
-        <Flex justify="space-between" align="center" wrap="wrap" gap={12}>
-          <Space direction="vertical" size={2}>
-            <Title level={4} style={{ margin: 0 }}>POS Dashboard</Title>
-            <Text type="secondary">
-              Org: <Text code>{orgId}</Text>
-            </Text>
-          </Space>
+      <Flex
+        justify="space-between"
+        align="center"
+        wrap="wrap"
+        gap={12}
+        style={{ marginBottom: 20 }}
+      >
+        <Space direction="vertical" size={2}>
+          <Title level={4} style={{ margin: 0 }}>
+            POS Dashboard
+          </Title>
+          <Text type="secondary">Point of Sale — Admin View</Text>
+        </Space>
+        <Space wrap>
+          <Segmented
+            value={period}
+            onChange={(v) => setPeriod(v as PeriodKey)}
+            options={[
+              { label: "Today", value: "today" },
+              { label: "Week", value: "week" },
+              { label: "Month", value: "month" },
+              { label: "Custom", value: "custom" },
+            ]}
+          />
+          <RangePicker
+            value={range}
+            onChange={(v) => {
+              if (!v) return;
+              setPeriod("custom");
+              setRange([v[0]!, v[1]!]);
+            }}
+            allowClear={false}
+          />
+          <Button
+            icon={<ReloadOutlined />}
+            onClick={fetchAll}
+            loading={loading}
+          >
+            Refresh
+          </Button>
+        </Space>
+      </Flex>
 
-          <Space wrap>
-            <Segmented
-              value={period}
-              onChange={(v) => setPeriod(v as PeriodKey)}
-              options={[
-                { label: "Today", value: "today" },
-                { label: "This week", value: "week" },
-                { label: "This month", value: "month" },
-                { label: "Custom", value: "custom" },
-              ]}
-            />
-            <RangePicker
-              value={range}
-              onChange={(v) => {
-                if (!v) return;
-                setPeriod("custom");
-                setRange([v[0]!, v[1]!]);
-              }}
-              allowClear={false}
-            />
-            <Button icon={<ReloadOutlined />} onClick={fetchAll} loading={loading}>
-              Refresh
-            </Button>
-          </Space>
-        </Flex>
+      {/* KPI Row */}
+      <Row gutter={[14, 14]} style={{ marginBottom: 20 }}>
+        {GRADIENT_CARDS.map((c, i) => (
+          <Col xs={24} sm={12} lg={4} key={i}>
+            <Card
+              style={{ borderRadius: 14, background: c.bg, border: "none" }}
+              styles={{ body: { padding: "16px 18px" } }}
+            >
+              <Statistic
+                title={
+                  <Text
+                    style={{ color: "rgba(255,255,255,0.85)", fontSize: 12 }}
+                  >
+                    {c.title}
+                  </Text>
+                }
+                value={c.value}
+                prefix={React.cloneElement(c.icon, {
+                  style: { color: "rgba(255,255,255,0.8)" },
+                })}
+                valueStyle={{ color: "#fff", fontSize: 22, fontWeight: 700 }}
+              />
+            </Card>
+          </Col>
+        ))}
+      </Row>
 
-        <Divider style={{ margin: "12px 0" }} />
-
-        {/* Optional scope selector (if you later support multi-org in POS) */}
-        <Flex justify="space-between" align="center" wrap="wrap" gap={12}>
-          <Text type="secondary">
-            Scope: <Text code>{restaurantId || orgId}</Text>
-          </Text>
-          <Space>
-            <Button icon={<PlusOutlined />} onClick={() => setOpenTableModal(true)}>
-              Add Table
+      {/* Quick Navigation */}
+      <Card style={{ borderRadius: 14, marginBottom: 20 }}>
+        <Text strong style={{ display: "block", marginBottom: 12 }}>
+          Quick Navigation
+        </Text>
+        <Flex gap={10} wrap="wrap">
+          {[
+            { label: "🛎️ Waiter View", path: `/pos/${orgId}/waiter` },
+            { label: "🔥 Kitchen Display", path: `/pos/${orgId}/kitchen` },
+            { label: "📋 Menu Manager", path: `/pos/${orgId}/menu` },
+            { label: "🛵 Delivery Hub", path: `/pos/${orgId}/delivery` },
+            { label: "💸 Expenses", path: `/pos/${orgId}/expenses` },
+          ].map((a) => (
+            <Button
+              key={a.path}
+              href={a.path}
+              style={{ borderRadius: 10, fontWeight: 600 }}
+            >
+              {a.label}
             </Button>
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => setOpenMenuModal(true)}>
-              Add Menu Item
-            </Button>
-          </Space>
+          ))}
         </Flex>
       </Card>
 
-      {/* KPIs */}
-      <Row gutter={[16, 16]}>
-        <Col xs={24} sm={12} lg={6}>
-          <Card style={{ borderRadius: 16 }}>
-            <Statistic
-              title="Revenue"
-              value={kpis.revenue}
-              prefix={<DollarOutlined />}
-              formatter={(v) => money(Number(v))}
-            />
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              Range: {range[0].format("DD MMM")} → {range[1].format("DD MMM")}
-            </Text>
+      {/* Charts Row */}
+      <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
+        {/* Top Items */}
+        <Col xs={24} lg={12}>
+          <Card title="Top Selling Items" style={{ borderRadius: 14 }}>
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={topItems} margin={{ left: -20 }}>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="rgba(0,0,0,0.05)"
+                />
+                <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                <YAxis tick={{ fontSize: 11 }} />
+                <Tooltip />
+                <Bar
+                  dataKey="qty"
+                  name="Qty Sold"
+                  fill="#667eea"
+                  radius={[4, 4, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
           </Card>
         </Col>
-
+        {/* Order Status Pie */}
         <Col xs={24} sm={12} lg={6}>
-          <Card style={{ borderRadius: 16 }}>
-            <Statistic title="Orders" value={kpis.count} prefix={<ShoppingCartOutlined />} />
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              Avg order value: {money(kpis.aov)}
-            </Text>
+          <Card title="Order Status" style={{ borderRadius: 14 }}>
+            <ResponsiveContainer width="100%" height={220}>
+              <PieChart>
+                <Pie
+                  data={statusPieData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={55}
+                  outerRadius={85}
+                  paddingAngle={3}
+                  dataKey="value"
+                >
+                  {statusPieData.map((e) => (
+                    <Cell key={e.name} fill={STATUS_COLORS[e.name] ?? "#ccc"} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend
+                  iconType="circle"
+                  iconSize={8}
+                  wrapperStyle={{ fontSize: 11 }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
           </Card>
         </Col>
-
+        {/* Revenue by Source */}
         <Col xs={24} sm={12} lg={6}>
-          <Card style={{ borderRadius: 16 }}>
-            <Statistic title="Occupancy" value={kpis.occupancyPct} suffix="%" prefix={<TableOutlined />} />
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              {kpis.occupied} / {kpis.totalTables} tables occupied
-            </Text>
-          </Card>
-        </Col>
-
-        <Col xs={24} sm={12} lg={6}>
-          <Card style={{ borderRadius: 16 }}>
-            <Statistic title="Kitchen Load" value={kpis.kitchenLoad} prefix={<FireOutlined />} />
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              Pending + Preparing orders
-            </Text>
+          <Card title="Revenue by Source" style={{ borderRadius: 14 }}>
+            <ResponsiveContainer width="100%" height={220}>
+              <PieChart>
+                <Pie
+                  data={sourceData}
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={80}
+                  dataKey="value"
+                >
+                  {sourceData.map((_, i) => (
+                    <Cell
+                      key={i}
+                      fill={
+                        ["#667eea", "#f5576c", "#fc8019", "#e23744", "#52c41a"][
+                          i % 5
+                        ]
+                      }
+                    />
+                  ))}
+                </Pie>
+                <Tooltip formatter={((v: number) => money(v)) as any} />
+                <Legend
+                  iconType="circle"
+                  iconSize={8}
+                  wrapperStyle={{ fontSize: 11 }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
           </Card>
         </Col>
       </Row>
 
-      {/* Tabs */}
-      <Card style={{ borderRadius: 16 }}>
-        <Tabs
-          defaultActiveKey="overview"
-          items={[
-            {
-              key: "overview",
-              label: "Overview",
-              children: (
-                <Row gutter={[16, 16]}>
-                  <Col xs={24} lg={10}>
-                    <Card title="Live Tables" extra={<Text type="secondary">{tables.length} total</Text>} style={{ borderRadius: 16 }}>
-                      <Row gutter={[12, 12]}>
-                        {tables.slice(0, 12).map((t) => (
-                          <Col xs={12} sm={8} key={t._id}>
-                            <Card size="small" style={{ borderRadius: 12 }}>
-                              <Space direction="vertical" size={2}>
-                                <Text strong>Table {t.number ?? "-"}</Text>
-                                <Text type="secondary" style={{ fontSize: 12 }}>
-                                  Seats: {t.seats ?? "-"}
-                                </Text>
-                                {tableBadge(t.status)}
-                              </Space>
-                            </Card>
-                          </Col>
-                        ))}
-                      </Row>
-                      {tables.length > 12 ? (
-                        <>
-                          <Divider />
-                          <Text type="secondary">Showing first 12 tables</Text>
-                        </>
-                      ) : null}
-                    </Card>
-                  </Col>
-
-                  <Col xs={24} lg={14}>
-                    <Card
-                      title="Menu Quick View"
-                      style={{ borderRadius: 16 }}
-                      extra={
-                        <Input
-                          allowClear
-                          prefix={<SearchOutlined />}
-                          placeholder="Search menu..."
-                          value={menuSearch}
-                          onChange={(e) => setMenuSearch(e.target.value)}
-                          style={{ width: 280 }}
-                        />
-                      }
+      <Row gutter={[16, 16]}>
+        {/* Live Tables */}
+        <Col xs={24} lg={10}>
+          <Card
+            title={
+              <Flex gap={8} align="center">
+                <TableOutlined />
+                <span>Live Tables</span>
+                <Badge
+                  count={`${kpis.occupied}/${kpis.totalTables}`}
+                  style={{ backgroundColor: "#ff4d4f" }}
+                />
+              </Flex>
+            }
+            style={{ borderRadius: 14 }}
+          >
+            <Row gutter={[10, 10]}>
+              {tables.slice(0, 12).map((t) => (
+                <Col xs={8} sm={6} key={t._id}>
+                  <div
+                    style={{
+                      padding: "10px 8px",
+                      borderRadius: 10,
+                      background: `${TABLE_STATUS_COLORS[t.status ?? "available"]}18`,
+                      border: `1.5px solid ${TABLE_STATUS_COLORS[t.status ?? "available"]}`,
+                      textAlign: "center",
+                    }}
+                  >
+                    <Text
+                      strong
+                      style={{
+                        fontSize: 15,
+                        color: TABLE_STATUS_COLORS[t.status ?? "available"],
+                      }}
                     >
-                      <List
-                        dataSource={filteredMenu.slice(0, 8)}
-                        renderItem={(m) => (
-                          <List.Item
-                            actions={[
-                              m.available ? <Tag color="green">Available</Tag> : <Tag color="red">Hidden</Tag>,
-                            ]}
-                          >
-                            <List.Item.Meta
-                              avatar={<Avatar>{m.name?.[0]?.toUpperCase()}</Avatar>}
-                              title={
-                                <Space>
-                                  <Text strong>{m.name}</Text>
-                                  {m.isVeg ? <Tag color="green">Veg</Tag> : <Tag color="red">Non-Veg</Tag>}
-                                </Space>
-                              }
-                              description={`${m.category || "Uncategorized"} • ${money(m.price)}`}
-                            />
-                          </List.Item>
-                        )}
-                      />
-                      {filteredMenu.length > 8 ? (
-                        <>
-                          <Divider />
-                          <Text type="secondary">Showing first 8 items</Text>
-                        </>
-                      ) : null}
-                    </Card>
-                  </Col>
-
-                  <Col xs={24}>
-                    <Card
-                      title="Recent Orders"
-                      style={{ borderRadius: 16 }}
-                      extra={
-                        <Input
-                          allowClear
-                          prefix={<SearchOutlined />}
-                          placeholder="Search order id / status / waiter / table..."
-                          value={orderSearch}
-                          onChange={(e) => setOrderSearch(e.target.value)}
-                          style={{ width: 360 }}
-                        />
-                      }
+                      T{t.number}
+                    </Text>
+                    <Text
+                      type="secondary"
+                      style={{ fontSize: 11, display: "block" }}
                     >
-                      <Table<Order>
-                        rowKey="_id"
-                        size="middle"
-                        loading={loading}
-                        columns={orderColumns}
-                        dataSource={recentOrders}
-                        pagination={{ pageSize: 10, showSizeChanger: true }}
-                        scroll={{ x: 900 }}
-                      />
-                    </Card>
-                  </Col>
-                </Row>
-              ),
-            },
-            {
-              key: "orders",
-              label: "Orders",
-              children: (
-                <Card style={{ borderRadius: 16 }} bodyStyle={{ padding: 0 }}>
-                  <Flex justify="space-between" align="center" style={{ padding: 16 }} wrap="wrap" gap={12}>
-                    <Title level={5} style={{ margin: 0 }}>Orders</Title>
-                    <Input
-                      allowClear
-                      prefix={<SearchOutlined />}
-                      placeholder="Search..."
-                      value={orderSearch}
-                      onChange={(e) => setOrderSearch(e.target.value)}
-                      style={{ width: 320 }}
-                    />
-                  </Flex>
-                  <Table<Order>
-                    rowKey="_id"
-                    loading={loading}
-                    columns={orderColumns}
-                    dataSource={recentOrders}
-                    pagination={{ pageSize: 12, showSizeChanger: true }}
-                    scroll={{ x: 900 }}
-                  />
-                </Card>
-              ),
-            },
-            {
-              key: "tables",
-              label: "Tables",
-              children: (
-                <Row gutter={[16, 16]}>
-                  {tables.map((t) => (
-                    <Col xs={12} sm={8} md={6} lg={4} key={t._id}>
-                      <Card style={{ borderRadius: 16 }} hoverable>
-                        <Space direction="vertical" size={2}>
-                          <Text strong>Table {t.number ?? "-"}</Text>
-                          <Text type="secondary" style={{ fontSize: 12 }}>
-                            Seats: {t.seats ?? "-"}
-                          </Text>
-                          {tableBadge(t.status)}
-                        </Space>
-                      </Card>
-                    </Col>
-                  ))}
-                </Row>
-              ),
-            },
-            {
-              key: "menu",
-              label: "Menu",
-              children: (
-                <Space direction="vertical" size={12} style={{ width: "100%" }}>
-                  <Flex justify="space-between" align="center" wrap="wrap" gap={12}>
-                    <Input
-                      allowClear
-                      prefix={<SearchOutlined />}
-                      placeholder="Search menu by name/category..."
-                      value={menuSearch}
-                      onChange={(e) => setMenuSearch(e.target.value)}
-                      style={{ width: 360 }}
-                    />
-                    <Button type="primary" icon={<PlusOutlined />} onClick={() => setOpenMenuModal(true)}>
-                      Add Item
-                    </Button>
-                  </Flex>
+                      {t.status}
+                    </Text>
+                  </div>
+                </Col>
+              ))}
+            </Row>
+            {tables.length > 12 && (
+              <Text
+                type="secondary"
+                style={{ fontSize: 12, display: "block", marginTop: 8 }}
+              >
+                +{tables.length - 12} more
+              </Text>
+            )}
+          </Card>
+        </Col>
 
-                  <Table<MenuItemT>
-                    rowKey="_id"
-                    loading={loading}
-                    columns={menuColumns}
-                    dataSource={filteredMenu}
-                    pagination={{ pageSize: 10, showSizeChanger: true }}
-                    scroll={{ x: 700 }}
-                  />
-                </Space>
-              ),
-            },
-            {
-              key: "inventory",
-              label: "Inventory",
-              children: (
-                <Card style={{ borderRadius: 16 }}>
-                  <Text type="secondary">
-                    Inventory tab is ready. Wire your endpoints:
-                    list requests, approve/reject, low-stock summary.
-                  </Text>
-                </Card>
-              ),
-            },
-          ]}
-        />
-      </Card>
-
-      {/* Add Menu Item Modal */}
-      <Modal
-        open={openMenuModal}
-        onCancel={() => setOpenMenuModal(false)}
-        onOk={handleCreateMenuItem}
-        okText="Create"
-        title="Add Menu Item"
-      >
-        <Form form={menuForm} layout="vertical">
-          <Form.Item name="name" label="Item name" rules={[{ required: true }]}>
-            <Input placeholder="Paneer Tikka" />
-          </Form.Item>
-
-          <Row gutter={12}>
-            <Col span={12}>
-              <Form.Item name="price" label="Price" rules={[{ required: true }]}>
-                <InputNumber min={0} style={{ width: "100%" }} />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="category" label="Category">
-                <Input placeholder="Starters" />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Row gutter={12}>
-            <Col span={12}>
-              <Form.Item name="isVeg" label="Veg" valuePropName="checked" initialValue={true}>
-                <Switch />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="available" label="Available" valuePropName="checked" initialValue={true}>
-                <Switch />
-              </Form.Item>
-            </Col>
-          </Row>
-        </Form>
-      </Modal>
-
-      {/* Add Table Modal */}
-      <Modal
-        open={openTableModal}
-        onCancel={() => setOpenTableModal(false)}
-        onOk={handleCreateTable}
-        okText="Create"
-        title="Add Table"
-      >
-        <Form form={tableForm} layout="vertical">
-          <Row gutter={12}>
-            <Col span={12}>
-              <Form.Item name="number" label="Table number" rules={[{ required: true }]}>
-                <InputNumber min={1} style={{ width: "100%" }} />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="seats" label="Seats" rules={[{ required: true }]}>
-                <InputNumber min={1} style={{ width: "100%" }} />
-              </Form.Item>
-            </Col>
-          </Row>
-          <Text type="secondary" style={{ fontSize: 12 }}>
-            {"Wire createTable({ number, seats, orgId }) in handleCreateTable()"}
-          </Text>
-        </Form>
-      </Modal>
-    </Space>
+        {/* Recent Orders */}
+        <Col xs={24} lg={14}>
+          <Card title="Recent Orders" style={{ borderRadius: 14 }}>
+            <Table<Order>
+              rowKey="_id"
+              size="small"
+              loading={loading}
+              columns={orderColumns}
+              dataSource={recentOrders}
+              pagination={false}
+              scroll={{ x: 650 }}
+            />
+          </Card>
+        </Col>
+      </Row>
+    </div>
   );
 }

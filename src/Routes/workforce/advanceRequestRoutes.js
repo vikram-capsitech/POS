@@ -1,5 +1,5 @@
 import express from "express";
-import { upload } from "../../Utils/cloudinary.js";
+import { upload } from "../../Utils/Cloudinary.js";
 import { protect, checkPermission } from "../../Middlewares/Auth.middleware.js";
 import {
   createAdvanceRequest,

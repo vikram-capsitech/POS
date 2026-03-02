@@ -5,7 +5,6 @@ import LoadingScreen from "../../Components/LoadingScreen";
 import RequireAuth from "../guards/RequireAuth";
 import RequirePermission from "../guards/RequirePermission";
 import PosLayout from "../../layouts/Pos/Index";
-import InProgress from "../../pages/InProgress";
 
 const Loadable = (C: any) => (props: any) => (
   <Suspense fallback={<LoadingScreen />}>
@@ -13,7 +12,18 @@ const Loadable = (C: any) => (props: any) => (
   </Suspense>
 );
 
-const PosDashboard = Loadable(lazy(() => import("../../pages/Pos/PosDashboard")));
+const PosDashboard = Loadable(
+  lazy(() => import("../../pages/Pos/PosDashboard")),
+);
+const WaiterView = Loadable(lazy(() => import("../../pages/Pos/WaiterView")));
+const KitchenDisplay = Loadable(
+  lazy(() => import("../../pages/Pos/KitchenDisplay")),
+);
+const MenuManager = Loadable(lazy(() => import("../../pages/Pos/MenuManager")));
+const ExpenseTracker = Loadable(
+  lazy(() => import("../../pages/Pos/ExpenseTracker")),
+);
+const DeliveryHub = Loadable(lazy(() => import("../../pages/Pos/DeliveryHub")));
 
 export const posRoutes = {
   path: "/pos",
@@ -29,14 +39,18 @@ export const posRoutes = {
       path: ":orgId",
       children: [
         { index: true, element: <Navigate to="dashboard" replace /> },
+
+        // ── Core ──────────────────────────────────────────────
         { path: "dashboard", element: <PosDashboard /> },
 
-        // POS Module Sub-routes (showing InProgress for now)
-        { path: "new-order", element: <InProgress name="New sale terminal" /> },
-        { path: "history", element: <InProgress name="Order history" /> },
-        { path: "customers", element: <InProgress name="Customer management" /> },
-        { path: "reports", element: <InProgress name="POS Analytics" /> },
-        { path: "settings", element: <InProgress name="POS Settings" /> },
+        // ── Role-specific views ───────────────────────────────
+        { path: "waiter", element: <WaiterView /> },
+        { path: "kitchen", element: <KitchenDisplay /> },
+
+        // ── Admin management ──────────────────────────────────
+        { path: "menu", element: <MenuManager /> },
+        { path: "delivery", element: <DeliveryHub /> },
+        { path: "expenses", element: <ExpenseTracker /> },
       ],
     },
     { path: "", element: <Navigate to="/client" replace /> },
