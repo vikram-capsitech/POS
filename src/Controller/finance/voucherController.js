@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import Coins from "../../Models/finance/Coins.js";
-import CoinsTransaction from "../../Models/finance/CoinsTransaction.js";
+import CoinsTransaction from "../../Models/finance/Coinstransaction.js";
 import Employee from "../../Models/core/EmployeeProfile.js";
 import Voucher from "../../Models/resources/Voucher.js";
 import asyncHandler from "../../Utils/AsyncHandler.js";

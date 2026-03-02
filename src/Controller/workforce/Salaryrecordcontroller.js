@@ -2,7 +2,7 @@ import SalaryRecord from "../../Models/workforce/SalaryRecord.js";
 import Employee from "../../Models/core/EmployeeProfile.js";
 import SalaryTransaction from "../../Models/workforce/SalaryTransaction.js";
 import Coins from "../../Models/finance/Coins.js";
-import CoinsTransaction from "../../Models/finance/CoinsTransaction.js";
+import CoinsTransaction from "../../Models/finance/Coinstransaction.js";
 import asyncHandler from "../../Utils/AsyncHandler.js";
 import ApiError from "../../Utils/ApiError.js";
 
