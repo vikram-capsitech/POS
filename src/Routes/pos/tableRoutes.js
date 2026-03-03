@@ -6,6 +6,7 @@ import {
   createTable,
   updateTable,
   deleteTable,
+  cleanTable,
 } from "../../Controller/operations/tableController.js";
 
 const router = express.Router();
@@ -15,6 +16,7 @@ router.post("/", protect, checkPermission("staff:write"), createTable);
 
 router.get("/:id", protect, getTableById);
 router.put("/:id", protect, updateTable); // any staff can update table status
+router.post("/:id/clean", protect, cleanTable); // waiter marks table clean
 router.delete("/:id", protect, checkPermission("staff:write"), deleteTable);
 
 export default router;

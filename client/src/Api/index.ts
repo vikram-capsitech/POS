@@ -229,12 +229,15 @@ export const deleteMenuItem = (id: string) =>
 
 // Tables
 export const getTables = () => apiClient.get("/api/pos/tables");
+export const getTableById = (id: string) => apiClient.get(`/api/pos/tables/${id}`);
 export const createTable = (data: any) =>
   apiClient.post("/api/pos/tables", data);
 export const updateTable = (id: string, data: any) =>
   apiClient.put(`/api/pos/tables/${id}`, data);
 export const deleteTable = (id: string) =>
   apiClient.delete(`/api/pos/tables/${id}`);
+export const cleanTable = (id: string, data: { cleaningPhoto?: string }) =>
+  apiClient.post(`/api/pos/tables/${id}/clean`, data);
 
 // Orders
 export const getOrders = (params?: any) =>

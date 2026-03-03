@@ -1,7 +1,8 @@
 // src/Store/store.ts
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { hrmListEmployees, getOrganizationById } from "../Api/index";
+import { hrmListEmployees, getOrganizationById, logoutUser, attendanceCheckOut } from "../Api/index";
+import { requestHandler } from "../Utils";
 
 type Role = "superadmin" | "admin" | "employee" | string;
 
@@ -210,8 +211,8 @@ export const useAuthStore = create<AuthStore>()(
         const modulesObj = typeof org === "object" ? org?.modules : null;
         let modules: string[] = modulesObj
           ? Object.entries(modulesObj)
-              .filter(([, v]) => Boolean(v))
-              .map(([k]) => k.toUpperCase())
+            .filter(([, v]) => Boolean(v))
+            .map(([k]) => k.toUpperCase())
           : normalizeModules(payload?.modules);
 
         // Always include MAIN if there is an orgId
@@ -219,14 +220,14 @@ export const useAuthStore = create<AuthStore>()(
 
         const orgAccess: Record<string, OrgAccess> = orgId
           ? {
-              [String(orgId)]: {
-                orgId: String(orgId),
-                modules,
-                permissions: normalizeModules(payload?.permissions),
-                roleId: typeof user?.roleID === "object" ? String(user.roleID._id) : user?.roleID ? String(user.roleID) : undefined,
-                roleName: typeof user?.roleID === "object" && user.roleID.name ? String(user.roleID.name) : undefined,
-              },
-            }
+            [String(orgId)]: {
+              orgId: String(orgId),
+              modules,
+              permissions: normalizeModules(payload?.permissions),
+              roleId: typeof user?.roleID === "object" ? String(user.roleID._id) : user?.roleID ? String(user.roleID) : undefined,
+              roleName: typeof user?.roleID === "object" && user.roleID.name ? String(user.roleID.name) : undefined,
+            },
+          }
           : normalizeOrgAccess(payload);
 
         const accessRaw = Array.isArray(payload?.access) ? payload.access : [];
@@ -286,7 +287,14 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       clearSession: () => {
-        set({ session: emptySession, isLoggedIn: false });
+        requestHandler(
+          () => attendanceCheckOut(),
+          null,
+          () => {
+            set({ session: emptySession, isLoggedIn: false });
+          },
+          () => { }
+        );
       },
 
       hasModuleForOrg: (moduleKey, orgId) => {

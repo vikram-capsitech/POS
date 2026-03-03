@@ -26,6 +26,7 @@ const ExpenseTracker = Loadable(
   lazy(() => import("../../pages/Pos/ExpenseTracker")),
 );
 const DeliveryHub = Loadable(lazy(() => import("../../pages/Pos/DeliveryHub")));
+const OrderTerminal = Loadable(lazy(() => import("../../pages/Pos/OrderTerminal")));
 
 function PosIndexRedirect() {
   const { orgId } = useParams();
@@ -62,6 +63,8 @@ export const posRoutes = {
         // ── Role-specific views ───────────────────────────────
         { path: "waiter", element: <WaiterView /> },
         { path: "kitchen", element: <KitchenDisplay /> },
+        // Full-page order terminal (full-screen, no sidebar)
+        { path: "order/:tableId", element: <OrderTerminal /> },
 
         // ── Admin management ──────────────────────────────────
         { path: "menu", element: <MenuManager /> },
