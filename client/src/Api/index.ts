@@ -186,6 +186,33 @@ export const deleteGlobalRole = (id: string) =>
 export const fetchAdminDashboard = (params?: { orgId?: string }) =>
   apiClient.get("/api/admin/dashboard", { params });
 
+// ── 📅 ATTENDANCE MODULE ──────────────────────────────────────────────────────
+export const attendanceCheckIn = (data?: { lat?: number; lng?: number; dressCheck?: boolean; dressReason?: string }) =>
+  apiClient.post("/api/attendance/check-in", data);
+export const attendanceCheckOut = () =>
+  apiClient.post("/api/attendance/check-out");
+export const attendanceBreakStart = () =>
+  apiClient.post("/api/attendance/break/start");
+export const attendanceBreakEnd = () =>
+  apiClient.post("/api/attendance/break/end");
+
+// Manager actions (admin can mark attendance for any employee)
+export const attendanceManagerCheckIn = (data: { employeeId: string; date?: string; status?: string }) =>
+  apiClient.post("/api/attendance/check-in/manager", data);
+export const attendanceManagerCheckOut = (data: { employeeId: string; date?: string }) =>
+  apiClient.post("/api/attendance/check-out/manager", data);
+
+// Fetch
+export const getAttendanceDaily = (params?: { date?: string; page?: number; limit?: number }) =>
+  apiClient.get("/api/attendance/daily", { params });
+export const getAttendanceMonthly = (params?: { month?: number; year?: number; employeeId?: string }) =>
+  apiClient.get("/api/attendance/monthly", { params });
+export const getAttendanceById = (id: string) =>
+  apiClient.get(`/api/attendance/${id}`);
+export const deleteAttendanceRecord = (id: string) =>
+  apiClient.delete(`/api/attendance/${id}`);
+
+
 // ── 🏪 POS MODULE ────────────────────────────────────────────────────────────
 
 // Menu

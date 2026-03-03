@@ -22,6 +22,7 @@ const CreateTask = Loadable(lazy(() => import("../../pages/Admin/Task/CreateTask
 const Logs = Loadable(lazy(() => import("../../pages/Admin/Logs/Logs")));
 const OrgSettings = Loadable(lazy(() => import("../../pages/Admin/Settings/OrgSettings")));
 const AdminRolesPage = Loadable(lazy(() => import("../../pages/Admin/Roles/AdminRolesPage")));
+const AttendancePage = Loadable(lazy(() => import("../../pages/Admin/Attendance/AttendancePage")));
 
 function ClientIndexRedirect() {
   const orgId = useAuthStore((s) => s.session?.restaurantId);
@@ -57,7 +58,7 @@ export const mainRoutes = {
         // Other modules
         { path: "issue", element: <InProgress name="Issue raised" /> },
         { path: "request", element: <InProgress name="Request" /> },
-        { path: "attendance", element: <InProgress name="Attendance" /> },
+        { path: "attendance", element: <AttendancePage /> },
         { path: "voucher", element: <InProgress name="Vouchers" /> },
         { path: "sop", element: <InProgress name="SOP" /> },
         { path: "ai-review", element: <InProgress name="AI Review" /> },
