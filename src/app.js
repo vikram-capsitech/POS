@@ -40,7 +40,7 @@ const httpServer = createServer(app);
 const io = new Server(httpServer, {
   pingTimeout: 60000,
   cors: {
-    origin: ALLOWED_ORIGIN,
+    origin: [ALLOWED_ORIGIN, "https://pos-rrmh.vercel.app"],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     credentials: true,
   },
