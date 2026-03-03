@@ -364,7 +364,7 @@ const WelcomePage = () => {
               fontWeight: 700,
               padding: isMobile ? "0 14px" : "0 24px",
             }}
-            onClick={() => navigate("/login")}
+            onClick={() => navigate("/auth/login")}
           >
             Sign In
           </Button>
@@ -484,7 +484,7 @@ const WelcomePage = () => {
                   border: "none",
                   boxShadow: "0 14px 28px -10px rgba(22, 119, 255, 0.55)",
                 }}
-                onClick={() => navigate("/login")}
+                onClick={() => navigate("/auth/login")}
               >
                 Sign In to Dashboard
               </Button>
@@ -771,7 +771,7 @@ const WelcomePage = () => {
                           background: isPopular ? "linear-gradient(135deg, #722ed1, #1677ff)" : undefined,
                           border: isPopular ? "none" : "1px solid #e2e8f0",
                         }}
-                        onClick={() => navigate("/login")}
+                        onClick={() => navigate("/auth/login")}
                       >
                         {p.cta}
                       </Button>
@@ -818,7 +818,7 @@ const WelcomePage = () => {
                 type="primary"
                 size="large"
                 icon={<LoginOutlined />}
-                onClick={() => navigate("/login")}
+                onClick={() => navigate("/auth/login")}
                 style={{
                   height: 54,
                   padding: "0 44px",
@@ -864,7 +864,7 @@ const WelcomePage = () => {
           <span style={{ cursor: "pointer" }} onClick={() => goToSection("faq")}>
             FAQ
           </span>
-          <span style={{ cursor: "pointer" }} onClick={() => navigate("/login")}>
+          <span style={{ cursor: "pointer" }} onClick={() => navigate("/auth/login")}>
             Sign In
           </span>
         </div>

@@ -216,8 +216,15 @@ export default function LoginAntd({ onLogin }: Props) {
           rolePages.every((p: string) => p === "pos");
 
         if (isPosOnly) {
-          // Send waiter directly to POS without the dashboard sidebar
-          navigate(`/pos/${orgId}/dashboard`);
+          // Send pos-only directly to their specific views
+          const roleName = (roleData?.name || "").toLowerCase();
+          if (roleName === "waiter") {
+            navigate(`/pos/${orgId}/waiter`);
+          } else if (roleName === "kitchen") {
+            navigate(`/pos/${orgId}/kitchen`);
+          } else {
+            navigate(`/pos/${orgId}/dashboard`);
+          }
         } else {
           navigate(`/client/${orgId}`);
         }

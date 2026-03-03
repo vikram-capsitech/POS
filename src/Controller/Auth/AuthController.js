@@ -163,7 +163,16 @@ export const refreshAccessToken = asyncHandler(async (req, res) => {
   }
 
   const user = await User.findById(decoded._id);
-  if (!user || user.refreshToken !== incomingToken) {
+  if (!user) {
+    throw new ApiError(401, "User not found");
+  }
+
+  // For shared accounts (like waiters/kitchen), multiple devices might be logged in, 
+  // which overwrites the single refreshToken string. We bypass the strict match 
+  // for non-admin employees to prevent "Refresh token mismatch".
+  const isEmployee = user.systemRole !== "superadmin" && user.systemRole !== "admin";
+  
+  if (!isEmployee && user.refreshToken !== incomingToken) {
     throw new ApiError(401, "Refresh token mismatch — please login again");
   }
 

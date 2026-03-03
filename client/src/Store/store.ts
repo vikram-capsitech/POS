@@ -223,8 +223,8 @@ export const useAuthStore = create<AuthStore>()(
                 orgId: String(orgId),
                 modules,
                 permissions: normalizeModules(payload?.permissions),
-                roleId: user?.roleID ? String(user.roleID) : undefined,
-                roleName: undefined,
+                roleId: typeof user?.roleID === "object" ? String(user.roleID._id) : user?.roleID ? String(user.roleID) : undefined,
+                roleName: typeof user?.roleID === "object" && user.roleID.name ? String(user.roleID.name) : undefined,
               },
             }
           : normalizeOrgAccess(payload);

@@ -339,6 +339,7 @@ export const hrmDeleteTask = (id: string) =>
   apiClient.delete(`/api/tasks/${id}`);
 export const hrmListSops = () => apiClient.get("/api/sops");
 export const hrmCreateSop = (data: any) => apiClient.post("/api/sops", data);
+export const hrmCreateRequest = (data: any) => apiClient.post("/api/requests", data);
 
 // Financials (HRM)
 export const hrmCreateSalaryRecord = (data: any) =>

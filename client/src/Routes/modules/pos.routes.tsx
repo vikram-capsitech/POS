@@ -5,6 +5,8 @@ import LoadingScreen from "../../Components/LoadingScreen";
 import RequireAuth from "../guards/RequireAuth";
 import RequirePermission from "../guards/RequirePermission";
 import PosLayout from "../../layouts/Pos/Index";
+import { useParams } from "react-router-dom";
+import { useAuthStore } from "../../Store/store";
 
 const Loadable = (C: any) => (props: any) => (
   <Suspense fallback={<LoadingScreen />}>
@@ -25,6 +27,20 @@ const ExpenseTracker = Loadable(
 );
 const DeliveryHub = Loadable(lazy(() => import("../../pages/Pos/DeliveryHub")));
 
+function PosIndexRedirect() {
+  const { orgId } = useParams();
+  const session = useAuthStore((s) => s.session);
+  const roleName = session.orgAccess?.[orgId || ""]?.roleName?.toLowerCase() || "";
+
+  if (roleName === "waiter") {
+    return <Navigate to="waiter" replace />;
+  }
+  if (roleName === "kitchen") {
+    return <Navigate to="kitchen" replace />;
+  }
+  return <Navigate to="dashboard" replace />;
+}
+
 export const posRoutes = {
   path: "/pos",
   element: (
@@ -38,7 +54,7 @@ export const posRoutes = {
     {
       path: ":orgId",
       children: [
-        { index: true, element: <Navigate to="dashboard" replace /> },
+        { index: true, element: <PosIndexRedirect /> },
 
         // ── Core ──────────────────────────────────────────────
         { path: "dashboard", element: <PosDashboard /> },
