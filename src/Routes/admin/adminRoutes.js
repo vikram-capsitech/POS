@@ -17,6 +17,13 @@ import {
   getAllRoles,
   getOrganization,
   getDashboardStats,
+  updateOrgModules,
+  sendInvoiceEmail,
+  getOrgDetail,
+  createGlobalRole,
+  getGlobalRoles,
+  updateGlobalRole,
+  deleteGlobalRole,
 } from "../../Controller/admin/adminController.js";
 import {
   userAssignRoleValidator,
@@ -43,6 +50,13 @@ router.get(
 );
 
 router.get(
+  "/organizations/:id/detail",
+  protect,
+  authorize("superadmin"),
+  getOrgDetail,
+);
+
+router.get(
   "/dashboard",
   protect,
   authorize("superadmin", "admin"),
@@ -56,18 +70,27 @@ router.post(
   upload.single("logo"),
   addOrganization,
 );
-router.get(
-  "/organizations",
-  protect,
-  authorize("superadmin", "admin"),
-  getOrganizations,
-);
+
 router.put(
   "/organizations/:id",
   protect,
   authorize("superadmin", "admin"),
   upload.single("logo"),
   updateOrganization,
+);
+
+router.patch(
+  "/organizations/:id/modules",
+  protect,
+  authorize("superadmin"),
+  updateOrgModules,
+);
+
+router.post(
+  "/organizations/:id/send-invoice",
+  protect,
+  authorize("superadmin"),
+  sendInvoiceEmail,
 );
 
 // ── Admin Management (superadmin only) ────────────────────────────────────────
@@ -133,5 +156,11 @@ router.put(
   validate,
   assignRole,
 );
+
+// ── Global Roles (superadmin only) ────────────────────────────────────────────
+router.get("/global-roles", protect, authorize("superadmin"), getGlobalRoles);
+router.post("/global-roles", protect, authorize("superadmin"), createGlobalRole);
+router.put("/global-roles/:id", protect, authorize("superadmin"), updateGlobalRole);
+router.delete("/global-roles/:id", protect, authorize("superadmin"), deleteGlobalRole);
 
 export default router;

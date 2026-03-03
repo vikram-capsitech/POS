@@ -94,7 +94,8 @@ export const loginUser = asyncHandler(async (req, res) => {
     ],
   })
     .select("+password")
-    .populate("organizationID", "name type modules theme slug logo");
+    .populate("organizationID", "name type modules theme slug logo")
+    .populate("roleID", "name displayName pages permissions");  // ← include pages
 
   if (!user) throw new ApiError(401, "Invalid credentials");
 
@@ -181,7 +182,7 @@ export const refreshAccessToken = asyncHandler(async (req, res) => {
 export const getUserProfile = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id)
     .populate("organizationID", "name type modules theme slug logo")
-    .populate("roleID", "name displayName permissions");
+    .populate("roleID", "name displayName pages permissions");
 
   if (!user) throw new ApiError(404, "User not found");
 

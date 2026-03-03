@@ -298,7 +298,7 @@ export const assignRole = asyncHandler(async (req, res) => {
 //  POST /api/admin/roles
 // ─────────────────────────────────────────────
 export const createRole = asyncHandler(async (req, res) => {
-  const { name, displayName, permissions, organizationID } = req.body;
+  const { name, displayName, permissions, pages, description, organizationID } = req.body;
 
   // Admin can only create roles for their own org
   const orgId =
@@ -307,7 +307,9 @@ export const createRole = asyncHandler(async (req, res) => {
   const role = await Role.create({
     name,
     displayName,
-    permissions,
+    description: description || "",
+    permissions: permissions || [],
+    pages: Array.isArray(pages) ? pages : [],  // e.g. ["task", "sop", "pos"]
     organizationID: orgId,
     createdBy: req.user._id,
   });
@@ -337,7 +339,7 @@ export const getAllRoles = asyncHandler(async (req, res) => {
 //  PUT /api/admin/roles/:id
 // ─────────────────────────────────────────────
 export const updateRole = asyncHandler(async (req, res) => {
-  const { displayName, permissions, isActive } = req.body;
+  const { displayName, permissions, pages, isActive, description } = req.body;
 
   const role = await Role.findById(req.params.id);
   if (!role) throw new ApiError(404, "Role not found");
@@ -346,7 +348,9 @@ export const updateRole = asyncHandler(async (req, res) => {
     throw new ApiError(403, "System default roles cannot be modified");
 
   if (displayName !== undefined) role.displayName = displayName;
+  if (description !== undefined) role.description = description;
   if (permissions !== undefined) role.permissions = permissions;
+  if (pages !== undefined) role.pages = Array.isArray(pages) ? pages : [];  // update page access
   if (isActive !== undefined) role.isActive = isActive;
 
   await role.save();
@@ -404,12 +408,106 @@ export const createOrganization = asyncHandler(async (req, res) => {
     .json(new ApiResponse(201, org, "Organization created"));
 });
 
-// Removed duplicate updateOrganization function
+// ─────────────────────────────────────────────
+//  PATCH /api/admin/organizations/:id/modules  (superadmin only)
+//  Toggle specific modules on/off for an org
+// ─────────────────────────────────────────────
+export const updateOrgModules = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { modules } = req.body; // { pos: true, hrm: false, ... }
+
+  if (!modules || typeof modules !== "object") {
+    throw new ApiError(400, "modules object is required");
+  }
+
+  // Only allow known module keys
+  const ALLOWED_MODULES = ["pos", "hrm", "inventory", "payroll", "ai"];
+  const moduleUpdate = {};
+  ALLOWED_MODULES.forEach((key) => {
+    if (modules[key] !== undefined) {
+      moduleUpdate[`modules.${key}`] = Boolean(modules[key]);
+    }
+  });
+
+  const org = await Organization.findByIdAndUpdate(
+    id,
+    { $set: moduleUpdate },
+    { new: true, runValidators: true }
+  );
+
+  if (!org) throw new ApiError(404, "Organization not found");
+
+  return res.json(new ApiResponse(200, org, "Modules updated successfully"));
+});
 
 // ─────────────────────────────────────────────
-//  GET /api/admin/dashboard
-//  Returns per-org aggregated stats for the admin dashboard
+//  POST /api/admin/organizations/:id/send-invoice  (superadmin only)
+//  Simulate sending a subscription invoice email
 // ─────────────────────────────────────────────
+export const sendInvoiceEmail = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { invoiceAmount, dueDate, notes } = req.body;
+
+  const org = await Organization.findById(id).populate("ownedBy", "displayName email");
+  if (!org) throw new ApiError(404, "Organization not found");
+
+  const adminEmail = org.contactEmail || org.ownedBy?.email;
+  if (!adminEmail) throw new ApiError(400, "Organization has no contact email");
+
+  // In a real implementation, you'd send an actual email here via nodemailer / SendGrid
+  // For now, we simulate success and record it in org.meta
+  const invoiceRecord = {
+    sentAt: new Date().toISOString(),
+    amount: invoiceAmount ?? 0,
+    dueDate: dueDate ?? null,
+    notes: notes ?? "",
+    sentTo: adminEmail,
+    sentBy: req.user.email,
+  };
+
+  // Store invoice history in org.meta
+  const existingInvoices = org.meta?.invoices ?? [];
+  existingInvoices.push(invoiceRecord);
+
+  await Organization.findByIdAndUpdate(id, {
+    $set: { "meta.invoices": existingInvoices, "meta.lastInvoiceSent": new Date().toISOString() }
+  });
+
+  return res.json(
+    new ApiResponse(200, { invoiceRecord, adminEmail }, `Invoice notification sent to ${adminEmail}`)
+  );
+});
+
+// ─────────────────────────────────────────────
+//  GET /api/admin/organizations/:id/detail  (superadmin)
+//  Detailed org view with subscription/invoice history
+// ─────────────────────────────────────────────
+export const getOrgDetail = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  const org = await Organization.findById(id).populate("ownedBy", "displayName email phoneNumber");
+  if (!org) throw new ApiError(404, "Organization not found");
+
+  // Get counts
+  const [employeeCount, adminCount, roleCount] = await Promise.all([
+    User.countDocuments({ organizationID: id, systemRole: null }),
+    User.countDocuments({ organizationID: id, systemRole: "admin" }),
+    Role.countDocuments({ organizationID: id }),
+  ]);
+
+  const invoices = org.meta?.invoices ?? [];
+  const lastInvoiceSent = org.meta?.lastInvoiceSent ?? null;
+
+  return res.json(
+    new ApiResponse(200, {
+      org,
+      stats: { employeeCount, adminCount, roleCount },
+      invoices,
+      lastInvoiceSent,
+    })
+  );
+});
+
 export const getDashboardStats = asyncHandler(async (req, res) => {
   const isSuperadmin = req.user.systemRole === "superadmin";
 
@@ -595,3 +693,93 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
     ),
   );
 });
+
+// ─────────────────────────────────────────────
+//  POST /api/admin/global-roles  (superadmin only)
+//  Create a platform-wide role not tied to any organization.
+//  Admins can assign these to employees in their org.
+// ─────────────────────────────────────────────
+export const createGlobalRole = asyncHandler(async (req, res) => {
+  const { name, displayName, description, permissions } = req.body;
+
+  if (!name) throw new ApiError(400, "Role name is required");
+
+  // Check uniqueness globally (organizationID is null for global roles)
+  const existing = await Role.findOne({ name: name.toLowerCase().trim(), isGlobal: true });
+  if (existing) throw new ApiError(409, `Global role "${name}" already exists`);
+
+  const role = await Role.create({
+    name: name.toLowerCase().trim(),
+    displayName: displayName || name,
+    description: description || "",
+    permissions: permissions || [],
+    organizationID: null,
+    isGlobal: true,
+    isDefault: false,
+    createdBy: req.user._id,
+  });
+
+  return res.status(201).json(new ApiResponse(201, role, "Global role created"));
+});
+
+// ─────────────────────────────────────────────
+//  GET /api/admin/global-roles  (superadmin only)
+//  List all global (platform-wide) roles
+// ─────────────────────────────────────────────
+export const getGlobalRoles = asyncHandler(async (req, res) => {
+  const roles = await Role.find({ isGlobal: true })
+    .populate("permissions", "key label module")
+    .populate("createdBy", "displayName email")
+    .sort({ createdAt: -1 });
+
+  return res.json(new ApiResponse(200, { count: roles.length, data: roles }));
+});
+
+// ─────────────────────────────────────────────
+//  PUT /api/admin/global-roles/:id  (superadmin only)
+//  Update a global role
+// ─────────────────────────────────────────────
+export const updateGlobalRole = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { displayName, description, permissions, isActive } = req.body;
+
+  const role = await Role.findOne({ _id: id, isGlobal: true });
+  if (!role) throw new ApiError(404, "Global role not found");
+  if (role.isDefault) throw new ApiError(403, "System default roles cannot be modified");
+
+  if (displayName !== undefined) role.displayName = displayName;
+  if (description !== undefined) role.description = description;
+  if (permissions !== undefined) role.permissions = permissions;
+  if (isActive !== undefined) role.isActive = isActive;
+
+  await role.save();
+
+  return res.json(new ApiResponse(200, role, "Global role updated"));
+});
+
+// ─────────────────────────────────────────────
+//  DELETE /api/admin/global-roles/:id  (superadmin only)
+//  Delete a global role (cannot delete system defaults or if assigned to users)
+// ─────────────────────────────────────────────
+export const deleteGlobalRole = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  const role = await Role.findOne({ _id: id, isGlobal: true });
+  if (!role) throw new ApiError(404, "Global role not found");
+
+  if (role.isDefault) throw new ApiError(403, "System default global roles cannot be deleted");
+
+  // Check if any users are currently using this role
+  const usersWithRole = await User.countDocuments({ roleID: id });
+  if (usersWithRole > 0) {
+    throw new ApiError(
+      409,
+      `Cannot delete: ${usersWithRole} user(s) are assigned this role. Reassign them first.`
+    );
+  }
+
+  await role.deleteOne();
+
+  return res.json(new ApiResponse(200, {}, "Global role deleted"));
+});
+

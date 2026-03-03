@@ -7,6 +7,7 @@ import AnonymousLayout from "../layouts/Anonymous/index";
 
 import { mainRoutes } from "./modules/main.routes";
 import { posRoutes } from "./modules/pos.routes";
+import { superAdminRoutes } from "./modules/superadmin.routes";
 
 const Loadable = (C: any) => (props: any) => (
   <Suspense fallback={<LoadingScreen />}>
@@ -35,7 +36,7 @@ export default function Router() {
     // MODULES
     mainRoutes,
     posRoutes,
-    // hrmRoutes,
+    superAdminRoutes,
     // crmRoutes,
     // inventoryRoutes,
     // financeRoutes,

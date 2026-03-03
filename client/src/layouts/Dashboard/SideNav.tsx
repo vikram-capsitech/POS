@@ -22,6 +22,7 @@ import {
   Settings,
   ShieldCheck,
   History,
+  KeyRound,
 } from "lucide-react";
 
 const { Sider } = Layout;
@@ -33,15 +34,22 @@ const SideNav: React.FC = () => {
   const { orgId } = useParams();
 
   const session = useAuthStore((s) => s.session);
-  const { role, modules } = session;
+  const { role, modules, pages } = session;
   const organization = useAuthStore((s) => s.session.organization);
 
   // ✅ Update selected tab in your app store
   const updateTab = useAppStore((s) => s.updateTab);
 
-  // Helper to check access
+  // hasPage: true if this page slug is in the role's allowed pages
+  // null pages = admin/superadmin = full access
+  const hasPage = (pageSlug: string) => {
+    if (pages === null) return true; // no restriction
+    return pages.includes(pageSlug);
+  };
+
+  // hasAccess: checks both module-level AND page-level access
   const hasAccess = (moduleKey: string) => {
-    const MAP: Record<string, string> = {
+    const MODULE_MAP: Record<string, string> = {
       pos: "POS",
       task: "MAIN",
       issueRaised: "MAIN",
@@ -53,11 +61,32 @@ const SideNav: React.FC = () => {
       salaryManagement: "PAYROLL",
       userProfile: "MAIN",
     };
-    const key = MAP[moduleKey] || moduleKey.toUpperCase();
-    return modules?.includes(key);
+    // Page slug map (moduleKey → page slug used by the role)
+    const PAGE_MAP: Record<string, string> = {
+      task: "task",
+      issueRaised: "issue",
+      request: "request",
+      attendance: "attendance",
+      voucher: "voucher",
+      sop: "sop",
+      "ai-Review": "ai-review",
+      salaryManagement: "salary-management",
+      userProfile: "user-profile",
+    };
+
+    const moduleNeeded = MODULE_MAP[moduleKey] || moduleKey.toUpperCase();
+    const pageSlug = PAGE_MAP[moduleKey];
+
+    // Must have the org module enabled
+    if (!modules?.includes(moduleNeeded)) return false;
+
+    // If there's a page restriction, check it
+    if (pageSlug) return hasPage(pageSlug);
+
+    return true;
   };
 
-  const isPosVisible = modules?.includes("POS");
+  const isPosVisible = modules?.includes("POS") && hasPage("pos");
   const userRole = role;
 
   const notifications = {
@@ -75,6 +104,12 @@ const SideNav: React.FC = () => {
     // POS module route lives outside /client
     if (p.includes("/pos/")) return TabType.POS;
 
+    // Superadmin routes
+    if (p.startsWith("/superadmin/organizations")) return "sa-organizations";
+    if (p.includes("/superadmin/checkin")) return "sa-checkin";
+    if (p.includes("/superadmin/payments")) return "sa-payments";
+    if (p.includes("/superadmin/settings")) return "sa-settings";
+
     if (p.includes("/dashboard")) return TabType.DEFAULT;
     if (p.includes("/task")) return TabType.TASK;
     if (p.includes("/issue")) return TabType.ISSUE;
@@ -85,17 +120,18 @@ const SideNav: React.FC = () => {
     if (p.includes("/ai-review")) return TabType.AI_REVIEW;
     if (p.includes("/salary-management")) return TabType.SALARY_MANAGEMENT;
     if (p.includes("/logs")) return TabType.ACTIVITY_LOGS;
+    if (p.includes("/roles")) return "admin-roles";
     if (p.includes("/settings")) return TabType.SETTINGS;
     if (p.includes("/user-profile")) return TabType.USER_PROFILE;
-    if (p.includes("/checkin")) return TabType.CHECKIN;
-    if (p.includes("/payments")) return TabType.PAYMENTS;
 
     return TabType.DEFAULT;
   }, [location.pathname]);
 
-  // ✅ Sync to app store
+  // ✅ Sync to app store (only for regular tab types, not superadmin keys)
   useEffect(() => {
-    updateTab?.(activeKey);
+    if (!activeKey.startsWith("sa-")) {
+      updateTab?.(activeKey as any);
+    }
   }, [activeKey, updateTab]);
 
   const items: MenuProps["items"] = [];
@@ -201,35 +237,47 @@ const SideNav: React.FC = () => {
       });
     }
 
-    if (userRole === "admin" || userRole === "superadmin") {
+    if (userRole === "admin") {
       items.push({
         key: TabType.ACTIVITY_LOGS,
         icon: <History size={18} />,
         label: <NavLink to={`${base}/logs`}>Activity Logs</NavLink>,
       });
     }
-  }
+  } // end if (userRole !== "superadmin")
 
+  // Superadmin specific menu
   if (userRole === "superadmin") {
     items.push({
-      key: TabType.CHECKIN,
-      icon: <Hand size={18} />,
-      label: <NavLink to={`${base}/checkin`}>Check-ins</NavLink>,
+      key: "sa-organizations",
+      icon: <ShieldCheck size={18} />,
+      label: <NavLink to="/superadmin/organizations">Organizations</NavLink>,
     });
     items.push({
-      key: TabType.PAYMENTS,
+      key: "sa-checkin",
+      icon: <Hand size={18} />,
+      label: <NavLink to="/superadmin/checkin">Check-ins</NavLink>,
+    });
+    items.push({
+      key: "sa-payments",
       icon: <CreditCard size={18} />,
-      label: <NavLink to={`${base}/payments`}>Payments</NavLink>,
+      label: <NavLink to="/superadmin/payments">Payments</NavLink>,
+    });
+    items.push({ type: "divider" });
+    items.push({
+      key: "sa-settings",
+      icon: <Settings size={18} />,
+      label: <NavLink to="/superadmin/settings">Settings & Roles</NavLink>,
     });
   }
 
-  if (hasAccess("userProfile")) {
+  if (userRole !== "superadmin" && hasAccess("userProfile")) {
     items.push({
       key: TabType.USER_PROFILE,
       icon: <User size={18} />,
       label: (
         <NavLink to={`${base}/user-profile`}>
-          {userRole === "superadmin" ? "Admin" : "User"} profile
+          User Profile
         </NavLink>
       ),
     });
@@ -237,6 +285,12 @@ const SideNav: React.FC = () => {
   }
 
   if (userRole === "admin") {
+    items.push({ type: "divider" });
+    items.push({
+      key: "admin-roles",
+      icon: <KeyRound size={18} />,
+      label: <NavLink to={`${base}/roles`}>Role Management</NavLink>,
+    });
     items.push({
       key: TabType.SETTINGS,
       icon: <Settings size={18} />,
@@ -320,12 +374,12 @@ const SideNav: React.FC = () => {
                 display: "block",
               }}
             >
-              {organization?.name || "Welcome"}
+              {userRole === "superadmin" ? "Super Admin" : organization?.name || "Welcome"}
             </Text>
           )}
         </div>
 
-        {/* Menu (✅ remove wrapper side padding) */}
+        {/* Menu */}
         <div style={{ flex: 1, overflowY: "auto" }}>
           <Menu
             mode="inline"
