@@ -8,7 +8,14 @@ import { Navigate, useParams } from "react-router-dom";
  * Replace `useAccess()` with your real implementation.
  */
 
-type ModuleKey = "POS" | "HRM" | "CRM" | "INVENTORY" | "FINANCE" | "MAIN" | "SUPERADMIN";
+type ModuleKey =
+  | "POS"
+  | "HRM"
+  | "CRM"
+  | "INVENTORY"
+  | "FINANCE"
+  | "MAIN"
+  | "SUPERADMIN";
 
 type Props = {
   moduleKey: ModuleKey;
@@ -35,8 +42,12 @@ export default function RequirePermission({
 }: Props) {
   const { orgId } = useParams();
   const access = useAccess();
-  // Superadmin bypass (global)
-  if (access.globalRole === "superadmin") return <>{children}</>;
+  // Superadmin: only allow access to SUPERADMIN-keyed routes.
+  // Redirect away from any client/admin/POS routes.
+  if (access.globalRole === "superadmin") {
+    if (moduleKey === "SUPERADMIN") return <>{children}</>;
+    return <Navigate to="/superadmin/organizations" replace />;
+  }
 
   // If route requires orgId but missing
   if (requireOrgId && !orgId) {

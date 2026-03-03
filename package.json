@@ -23,7 +23,6 @@
     "@types/react-router-dom": "^5.3.3",
     "@types/swagger-ui-express": "^4.1.6",
     "axios": "^1.10.0",
-    "azure-storage": "^2.10.7",
     "bcrypt": "5.1.1",
     "brace-expansion": "^4.0.1",
     "cloudinary": "^1.41.3",
@@ -48,7 +47,6 @@
     "swagger-ui-express": "^5.0.0",
     "tough-cookie": "^5.1.2",
     "xml2js": "^0.6.2",
-    "yaml": "^2.4.2",
-    "yarn": "^1.22.22"
+    "yaml": "^2.4.2"
   }
 }

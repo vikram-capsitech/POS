@@ -13,7 +13,6 @@ import {
   Space,
   Grid,
   theme,
-  App,
   Flex,
 } from "antd";
 import {
@@ -203,7 +202,7 @@ export default function LoginAntd({ onLogin }: Props) {
 
       // Determine redirect destination based on role
       if (systemRole === "superadmin") {
-        navigate("/superadmin/dashboard");
+        navigate("/superadmin/organizations");
       } else if (hasOrg) {
         // Check if this employee is a POS-only waiter (pages only contains "pos")
         const roleData = typeof user?.roleID === "object" ? user.roleID : null;
@@ -254,9 +253,6 @@ export default function LoginAntd({ onLogin }: Props) {
   const onFinish = async (values: { email: string; password: string }) => {
     await performLogin(values.email, values.password);
   };
-
-  // ✅ Dev buttons should NOT show in production
-  const showQuickLogin = import.meta.env.DEV === true;
 
   return (
     <div style={pageStyle}>
@@ -542,19 +538,64 @@ export default function LoginAntd({ onLogin }: Props) {
                       </>
                     ) : null} */}
                     <Divider style={{ margin: "14px 0" }}>
-                      <Text type="secondary" style={{ fontSize: 11, fontWeight: 700 }}>DEMO CREDENTIALS</Text>
+                      <Text
+                        type="secondary"
+                        style={{ fontSize: 11, fontWeight: 700 }}
+                      >
+                        DEMO CREDENTIALS
+                      </Text>
                     </Divider>
 
                     <Row gutter={[8, 8]}>
                       {[
-                        ["Superadmin", "superadmin@example.com", "SuperAdmin@1234", <SafetyCertificateOutlined key="sa" />],
-                        ["Admin", "admin@example.com", "Admin@1234", <IdcardOutlined key="ad" />],
-                        ["Manager", "manager@example.com", "Manager@1234", <PartitionOutlined key="mg" />],
-                        ["Staff", "staff@example.com", "Staff@1234", <CarryOutOutlined key="sf" />],
-                        ["Kitchen", "kitchen@example.com", "Kitchen@1234", <FireOutlined key="kt" />],
-                        ["Waiter", "waiter@example.com", "Waiter@1234", <UsergroupAddOutlined key="wt" />],
-                        ["Cleaner", "cleaner@example.com", "Cleaner@1234", <RocketOutlined key="cl" />],
-                        ["Employee", "employee@example.com", "Employee@1234", <TeamOutlined key="em" />],
+                        [
+                          "Superadmin",
+                          "superadmin@example.com",
+                          "SuperAdmin@1234",
+                          <SafetyCertificateOutlined key="sa" />,
+                        ],
+                        [
+                          "Admin",
+                          "admin@example.com",
+                          "Admin@1234",
+                          <IdcardOutlined key="ad" />,
+                        ],
+                        [
+                          "Manager",
+                          "manager@example.com",
+                          "Manager@1234",
+                          <PartitionOutlined key="mg" />,
+                        ],
+                        [
+                          "Staff",
+                          "staff@example.com",
+                          "Staff@1234",
+                          <CarryOutOutlined key="sf" />,
+                        ],
+                        [
+                          "Kitchen",
+                          "kitchen@example.com",
+                          "Kitchen@1234",
+                          <FireOutlined key="kt" />,
+                        ],
+                        [
+                          "Waiter",
+                          "waiter@example.com",
+                          "Waiter@1234",
+                          <UsergroupAddOutlined key="wt" />,
+                        ],
+                        [
+                          "Cleaner",
+                          "cleaner@example.com",
+                          "Cleaner@1234",
+                          <RocketOutlined key="cl" />,
+                        ],
+                        [
+                          "Employee",
+                          "employee@example.com",
+                          "Employee@1234",
+                          <TeamOutlined key="em" />,
+                        ],
                       ].map(([label, email, pass, icon]) => (
                         <Col xs={24} sm={12} key={label as string}>
                           <Button
@@ -574,19 +615,31 @@ export default function LoginAntd({ onLogin }: Props) {
                             className="dev-auth-btn"
                           >
                             <Flex align="start" gap={10}>
-                              <div style={{
-                                fontSize: 18,
-                                padding: 6,
-                                borderRadius: 8,
-                                background: "#fff",
-                                color: "#5240d6",
-                                boxShadow: "0 2px 6px rgba(0,0,0,0.05)"
-                              }}>
+                              <div
+                                style={{
+                                  fontSize: 18,
+                                  padding: 6,
+                                  borderRadius: 8,
+                                  background: "#fff",
+                                  color: "#5240d6",
+                                  boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
+                                }}
+                              >
                                 {icon}
                               </div>
                               <div style={{ flex: 1 }}>
-                                <Text strong style={{ fontSize: 13, display: "block" }}>{label}</Text>
-                                <Text type="secondary" style={{ fontSize: 11, display: "block" }}>{email}</Text>
+                                <Text
+                                  strong
+                                  style={{ fontSize: 13, display: "block" }}
+                                >
+                                  {label}
+                                </Text>
+                                <Text
+                                  type="secondary"
+                                  style={{ fontSize: 11, display: "block" }}
+                                >
+                                  {email}
+                                </Text>
                               </div>
                             </Flex>
                           </Button>

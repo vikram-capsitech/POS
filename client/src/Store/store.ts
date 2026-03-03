@@ -1,7 +1,11 @@
 // src/Store/store.ts
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { hrmListEmployees, getOrganizationById, logoutUser, attendanceCheckOut } from "../Api/index";
+import {
+  hrmListEmployees,
+  getOrganizationById,
+  attendanceCheckOut,
+} from "../Api/index";
 import { requestHandler } from "../Utils";
 
 type Role = "superadmin" | "admin" | "employee" | string;
@@ -162,7 +166,6 @@ export const useAuthStore = create<AuthStore>()(
 
       fetchOrganization: async (orgId?: string) => {
         const id = orgId || get().session.restaurantId;
-        debugger;
         if (!id) return;
 
         try {
@@ -172,10 +175,7 @@ export const useAuthStore = create<AuthStore>()(
           // 1) axios: res.data.data (or res.data.data.data)
           // 2) direct: res.data
           const org =
-            res?.data?.data?.data ??
-            res?.data?.data ??
-            res?.data ??
-            null;
+            res?.data?.data?.data ?? res?.data?.data ?? res?.data ?? null;
 
           const summary = orgObjToSummary(org);
           if (summary) {
@@ -193,11 +193,13 @@ export const useAuthStore = create<AuthStore>()(
         // backend: payload = { user, accessToken, refreshToken? }
         const user = payload?.user ?? null;
 
-        const token: string | null = payload?.accessToken ?? payload?.token ?? null;
+        const token: string | null =
+          payload?.accessToken ?? payload?.token ?? null;
         const refreshToken: string | null = payload?.refreshToken ?? null;
 
         const role: Role | null = user?.systemRole ?? payload?.role ?? null;
-        const userId: string | null = user?._id ?? payload?._id ?? payload?.userId ?? null;
+        const userId: string | null =
+          user?._id ?? payload?._id ?? payload?.userId ?? null;
 
         // organizationID can be object OR string
         const org = user?.organizationID ?? null;
@@ -209,10 +211,10 @@ export const useAuthStore = create<AuthStore>()(
 
         // modules from org.modules object
         const modulesObj = typeof org === "object" ? org?.modules : null;
-        let modules: string[] = modulesObj
+        const modules: string[] = modulesObj
           ? Object.entries(modulesObj)
-            .filter(([, v]) => Boolean(v))
-            .map(([k]) => k.toUpperCase())
+              .filter(([, v]) => Boolean(v))
+              .map(([k]) => k.toUpperCase())
           : normalizeModules(payload?.modules);
 
         // Always include MAIN if there is an orgId
@@ -220,30 +222,42 @@ export const useAuthStore = create<AuthStore>()(
 
         const orgAccess: Record<string, OrgAccess> = orgId
           ? {
-            [String(orgId)]: {
-              orgId: String(orgId),
-              modules,
-              permissions: normalizeModules(payload?.permissions),
-              roleId: typeof user?.roleID === "object" ? String(user.roleID._id) : user?.roleID ? String(user.roleID) : undefined,
-              roleName: typeof user?.roleID === "object" && user.roleID.name ? String(user.roleID.name) : undefined,
-            },
-          }
+              [String(orgId)]: {
+                orgId: String(orgId),
+                modules,
+                permissions: normalizeModules(payload?.permissions),
+                roleId:
+                  user?.roleID && typeof user.roleID === "object" // ✅ null check first
+                    ? String(user.roleID._id)
+                    : user?.roleID
+                      ? String(user.roleID)
+                      : undefined,
+                roleName:
+                  user?.roleID &&
+                  typeof user.roleID === "object" &&
+                  user.roleID.name // ✅ null check first
+                    ? String(user.roleID.name)
+                    : undefined,
+              },
+            }
           : normalizeOrgAccess(payload);
 
         const accessRaw = Array.isArray(payload?.access) ? payload.access : [];
 
         const email: string | null = user?.email ?? payload?.email ?? null;
-        const name: string | null = user?.displayName ?? user?.userName ?? payload?.name ?? null;
+        const name: string | null =
+          user?.displayName ?? user?.userName ?? payload?.name ?? null;
 
         // If org is already populated object (admin), store summary immediately.
-        const organization = typeof org === "object" ? orgObjToSummary(org) : null;
+        const organization =
+          typeof org === "object" ? orgObjToSummary(org) : null;
 
         // pages from user.roleID (populated on login)
         // null = no restriction (admin / superadmin), [] or array = restricted
         const roleData = typeof user?.roleID === "object" ? user.roleID : null;
         const pages: string[] | null =
           role === "admin" || role === "superadmin"
-            ? null  // admins see everything
+            ? null // admins see everything
             : Array.isArray(roleData?.pages)
               ? roleData.pages
               : null;
@@ -266,7 +280,6 @@ export const useAuthStore = create<AuthStore>()(
           },
           isLoggedIn: Boolean(token),
         });
-        debugger;
         // If org is only ID string (employee), fetch details in background
         if (!organization && orgId) {
           // fire-and-forget (no await)
@@ -287,13 +300,27 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       clearSession: () => {
+        const { session } = get();
+        const isAdminOrSuper =
+          session.role === "superadmin" || session.role === "admin";
+
+        if (isAdminOrSuper) {
+          // ── Admins/Superadmins have no attendance to check out ──
+          set({ session: emptySession, isLoggedIn: false });
+          return;
+        }
+
+        // ── Employees only — check out attendance before clearing ──
         requestHandler(
           () => attendanceCheckOut(),
           null,
           () => {
             set({ session: emptySession, isLoggedIn: false });
           },
-          () => { }
+          () => {
+            // Even if checkout fails, still clear the session
+            set({ session: emptySession, isLoggedIn: false });
+          },
         );
       },
 
@@ -327,8 +354,8 @@ export const useAuthStore = create<AuthStore>()(
         session: s.session,
         isLoggedIn: s.isLoggedIn,
       }),
-    }
-  )
+    },
+  ),
 );
 
 // ---------------- Employee Store ----------------

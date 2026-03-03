@@ -8,6 +8,7 @@ import AnonymousLayout from "../layouts/Anonymous/index";
 import { mainRoutes } from "./modules/main.routes";
 import { posRoutes } from "./modules/pos.routes";
 import { superAdminRoutes } from "./modules/superadmin.routes";
+import { useAuthStore } from "../Store/store";
 
 const Loadable = (C: any) => (props: any) => (
   <Suspense fallback={<LoadingScreen />}>
@@ -17,6 +18,14 @@ const Loadable = (C: any) => (props: any) => (
 
 const NewLoginPage = Loadable(lazy(() => import("../pages/Auth/Login")));
 const WelcomePage = Loadable(lazy(() => import("../pages/WelcomePage")));
+
+/** Redirects to the correct home based on the logged-in role */
+function RootRedirect() {
+  const role = useAuthStore((s) => s.session.role);
+  if (role === "superadmin")
+    return <Navigate to="/superadmin/organizations" replace />;
+  return <Navigate to="/client" replace />;
+}
 
 export default function Router() {
   return useRoutes([
@@ -50,7 +59,7 @@ export default function Router() {
     },
 
     // ROOT REDIRECT
-    { path: "/", element: <Navigate to="/client" replace /> },
+    { path: "/", element: <RootRedirect /> },
 
     // ERRORS
     { path: "/403", element: <div>403 Forbidden</div> },
