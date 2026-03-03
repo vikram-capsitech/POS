@@ -5,6 +5,8 @@ import LoadingScreen from "../../Components/LoadingScreen";
 import RequireAuth from "../guards/RequireAuth";
 import RequirePermission from "../guards/RequirePermission";
 import PosLayout from "../../layouts/Pos/Index";
+import { useParams } from "react-router-dom";
+import { useAuthStore } from "../../Store/store";
 
 const Loadable = (C: any) => (props: any) => (
   <Suspense fallback={<LoadingScreen />}>
@@ -24,6 +26,21 @@ const ExpenseTracker = Loadable(
   lazy(() => import("../../pages/Pos/ExpenseTracker")),
 );
 const DeliveryHub = Loadable(lazy(() => import("../../pages/Pos/DeliveryHub")));
+const OrderTerminal = Loadable(lazy(() => import("../../pages/Pos/OrderTerminal")));
+
+function PosIndexRedirect() {
+  const { orgId } = useParams();
+  const session = useAuthStore((s) => s.session);
+  const roleName = session.orgAccess?.[orgId || ""]?.roleName?.toLowerCase() || "";
+
+  if (roleName === "waiter") {
+    return <Navigate to="waiter" replace />;
+  }
+  if (roleName === "kitchen") {
+    return <Navigate to="kitchen" replace />;
+  }
+  return <Navigate to="dashboard" replace />;
+}
 
 export const posRoutes = {
   path: "/pos",
@@ -38,7 +55,7 @@ export const posRoutes = {
     {
       path: ":orgId",
       children: [
-        { index: true, element: <Navigate to="dashboard" replace /> },
+        { index: true, element: <PosIndexRedirect /> },
 
         // ── Core ──────────────────────────────────────────────
         { path: "dashboard", element: <PosDashboard /> },
@@ -46,6 +63,8 @@ export const posRoutes = {
         // ── Role-specific views ───────────────────────────────
         { path: "waiter", element: <WaiterView /> },
         { path: "kitchen", element: <KitchenDisplay /> },
+        // Full-page order terminal (full-screen, no sidebar)
+        { path: "order/:tableId", element: <OrderTerminal /> },
 
         // ── Admin management ──────────────────────────────────
         { path: "menu", element: <MenuManager /> },

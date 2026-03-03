@@ -216,8 +216,15 @@ export default function LoginAntd({ onLogin }: Props) {
           rolePages.every((p: string) => p === "pos");
 
         if (isPosOnly) {
-          // Send waiter directly to POS without the dashboard sidebar
-          navigate(`/pos/${orgId}/dashboard`);
+          // Send pos-only directly to their specific views
+          const roleName = (roleData?.name || "").toLowerCase();
+          if (roleName === "waiter") {
+            navigate(`/pos/${orgId}/waiter`);
+          } else if (roleName === "kitchen") {
+            navigate(`/pos/${orgId}/kitchen`);
+          } else {
+            navigate(`/pos/${orgId}/dashboard`);
+          }
         } else {
           navigate(`/client/${orgId}`);
         }
@@ -478,7 +485,7 @@ export default function LoginAntd({ onLogin }: Props) {
                       Sign in
                     </Button>
 
-                    {showQuickLogin ? (
+                    {/* {showQuickLogin ? (
                       <>
                         <Divider style={{ margin: "14px 0" }}>
                           <Text type="secondary" style={{ fontSize: 11, fontWeight: 700 }}>DEMO CREDENTIALS</Text>
@@ -533,7 +540,59 @@ export default function LoginAntd({ onLogin }: Props) {
                           ))}
                         </Row>
                       </>
-                    ) : null}
+                    ) : null} */}
+                    <Divider style={{ margin: "14px 0" }}>
+                      <Text type="secondary" style={{ fontSize: 11, fontWeight: 700 }}>DEMO CREDENTIALS</Text>
+                    </Divider>
+
+                    <Row gutter={[8, 8]}>
+                      {[
+                        ["Superadmin", "superadmin@example.com", "SuperAdmin@1234", <SafetyCertificateOutlined key="sa" />],
+                        ["Admin", "admin@example.com", "Admin@1234", <IdcardOutlined key="ad" />],
+                        ["Manager", "manager@example.com", "Manager@1234", <PartitionOutlined key="mg" />],
+                        ["Staff", "staff@example.com", "Staff@1234", <CarryOutOutlined key="sf" />],
+                        ["Kitchen", "kitchen@example.com", "Kitchen@1234", <FireOutlined key="kt" />],
+                        ["Waiter", "waiter@example.com", "Waiter@1234", <UsergroupAddOutlined key="wt" />],
+                        ["Cleaner", "cleaner@example.com", "Cleaner@1234", <RocketOutlined key="cl" />],
+                        ["Employee", "employee@example.com", "Employee@1234", <TeamOutlined key="em" />],
+                      ].map(([label, email, pass, icon]) => (
+                        <Col xs={24} sm={12} key={label as string}>
+                          <Button
+                            block
+                            onClick={() => {
+                              form.setFieldsValue({ email, password: pass });
+                              performLogin(email as string, pass as string);
+                            }}
+                            style={{
+                              borderRadius: 10,
+                              height: "auto",
+                              padding: "10px 12px",
+                              textAlign: "left",
+                              background: "rgba(2,6,23,.02)",
+                              border: "1px solid rgba(2,6,23,.05)",
+                            }}
+                            className="dev-auth-btn"
+                          >
+                            <Flex align="start" gap={10}>
+                              <div style={{
+                                fontSize: 18,
+                                padding: 6,
+                                borderRadius: 8,
+                                background: "#fff",
+                                color: "#5240d6",
+                                boxShadow: "0 2px 6px rgba(0,0,0,0.05)"
+                              }}>
+                                {icon}
+                              </div>
+                              <div style={{ flex: 1 }}>
+                                <Text strong style={{ fontSize: 13, display: "block" }}>{label}</Text>
+                                <Text type="secondary" style={{ fontSize: 11, display: "block" }}>{email}</Text>
+                              </div>
+                            </Flex>
+                          </Button>
+                        </Col>
+                      ))}
+                    </Row>
                   </Form>
 
                   <Text

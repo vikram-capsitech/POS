@@ -44,9 +44,9 @@ export default function Router() {
 
     // ANONYMOUS
     {
-      path: "/anonymous",
+      path: "/welcome",
       element: <AnonymousLayout />,
-      children: [{ path: "welcome", element: <WelcomePage /> }],
+      children: [{ path: "", element: <WelcomePage /> }],
     },
 
     // ROOT REDIRECT

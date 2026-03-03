@@ -186,6 +186,33 @@ export const deleteGlobalRole = (id: string) =>
 export const fetchAdminDashboard = (params?: { orgId?: string }) =>
   apiClient.get("/api/admin/dashboard", { params });
 
+// ── 📅 ATTENDANCE MODULE ──────────────────────────────────────────────────────
+export const attendanceCheckIn = (data?: { lat?: number; lng?: number; dressCheck?: boolean; dressReason?: string }) =>
+  apiClient.post("/api/attendance/check-in", data);
+export const attendanceCheckOut = () =>
+  apiClient.post("/api/attendance/check-out");
+export const attendanceBreakStart = () =>
+  apiClient.post("/api/attendance/break/start");
+export const attendanceBreakEnd = () =>
+  apiClient.post("/api/attendance/break/end");
+
+// Manager actions (admin can mark attendance for any employee)
+export const attendanceManagerCheckIn = (data: { employeeId: string; date?: string; status?: string }) =>
+  apiClient.post("/api/attendance/check-in/manager", data);
+export const attendanceManagerCheckOut = (data: { employeeId: string; date?: string }) =>
+  apiClient.post("/api/attendance/check-out/manager", data);
+
+// Fetch
+export const getAttendanceDaily = (params?: { date?: string; page?: number; limit?: number }) =>
+  apiClient.get("/api/attendance/daily", { params });
+export const getAttendanceMonthly = (params?: { month?: number; year?: number; employeeId?: string }) =>
+  apiClient.get("/api/attendance/monthly", { params });
+export const getAttendanceById = (id: string) =>
+  apiClient.get(`/api/attendance/${id}`);
+export const deleteAttendanceRecord = (id: string) =>
+  apiClient.delete(`/api/attendance/${id}`);
+
+
 // ── 🏪 POS MODULE ────────────────────────────────────────────────────────────
 
 // Menu
@@ -202,12 +229,15 @@ export const deleteMenuItem = (id: string) =>
 
 // Tables
 export const getTables = () => apiClient.get("/api/pos/tables");
+export const getTableById = (id: string) => apiClient.get(`/api/pos/tables/${id}`);
 export const createTable = (data: any) =>
   apiClient.post("/api/pos/tables", data);
 export const updateTable = (id: string, data: any) =>
   apiClient.put(`/api/pos/tables/${id}`, data);
 export const deleteTable = (id: string) =>
   apiClient.delete(`/api/pos/tables/${id}`);
+export const cleanTable = (id: string, data: { cleaningPhoto?: string }) =>
+  apiClient.post(`/api/pos/tables/${id}/clean`, data);
 
 // Orders
 export const getOrders = (params?: any) =>
@@ -312,6 +342,7 @@ export const hrmDeleteTask = (id: string) =>
   apiClient.delete(`/api/tasks/${id}`);
 export const hrmListSops = () => apiClient.get("/api/sops");
 export const hrmCreateSop = (data: any) => apiClient.post("/api/sops", data);
+export const hrmCreateRequest = (data: any) => apiClient.post("/api/requests", data);
 
 // Financials (HRM)
 export const hrmCreateSalaryRecord = (data: any) =>

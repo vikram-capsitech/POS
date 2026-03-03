@@ -22,6 +22,10 @@ const DashboardLayout = () => {
     return <Navigate to={"/auth/login"} />;
   }
 
+  const orgId = session?.restaurantId;
+  const roleName = session?.orgAccess?.[orgId || ""]?.roleName?.toLowerCase() || "";
+  const isWaitOrKitchen = roleName === "waiter" || roleName === "kitchen";
+
   const handleLogout = () => {
     clearSession();
     navigate("/auth/login");
@@ -54,7 +58,7 @@ const DashboardLayout = () => {
   return (
     <Layout style={{ minHeight: "100vh" }}>
       {/* Sidebar Navigation */}
-      <SideNav />
+      {!isWaitOrKitchen && <SideNav />}
 
       <Layout style={{ background: themeType === "light" ? "#f5f7fa" : "#141414" }}>
         {/* Header Section */}

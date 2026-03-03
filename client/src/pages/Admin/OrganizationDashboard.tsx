@@ -44,11 +44,12 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
-import { fetchAdminDashboard } from "../../Api/index";
+import { fetchAdminDashboard, hrmCreateRequest } from "../../Api/index";
 import { requestHandler } from "../../Utils/index";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
+import { useAuthStore } from "../../Store/store";
 
 dayjs.extend(relativeTime);
 
@@ -663,25 +664,120 @@ const OrgCard: React.FC<{ data: OrgStat; idx: number }> = ({ data, idx }) => {
 export default function OrganizationDashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [requestLoading, setRequestLoading] = useState(false);
   const [selectedOrgId, setSelectedOrgId] = useState<string | undefined>();
 
+  const navigate = useNavigate();
+  const session = useAuthStore((s) => s.session);
+  const isEmployee = session.role !== "superadmin" && session.role !== "admin";
+  const hasPos = session.modules?.includes("POS") || session.modules?.includes("pos");
+  const orgId = session.restaurantId;
+
+  // If employee HAS POS access, they shouldn't be here - bounce to POS dashboard
+  useEffect(() => {
+    if (isEmployee && hasPos && orgId) {
+      const roleName = session.orgAccess?.[orgId]?.roleName?.toLowerCase() || "";
+      if (roleName === "waiter") {
+        navigate(`/pos/${orgId}/waiter`, { replace: true });
+      } else if (roleName === "kitchen") {
+        navigate(`/pos/${orgId}/kitchen`, { replace: true });
+      } else {
+        navigate(`/pos/${orgId}/dashboard`, { replace: true });
+      }
+    }
+  }, [isEmployee, hasPos, orgId, navigate, session.orgAccess]);
+
   const loadDashboard = useCallback((orgId?: string) => {
+    if (isEmployee) return; // Employees do not fetch admin dashboard
     requestHandler(
       () => fetchAdminDashboard(orgId ? { orgId } : undefined) as any,
       setLoading,
       (res: any) => setData(res?.data ?? res),
       (err: any) => message.error(err || "Failed to load dashboard"),
     );
-  }, []);
+  }, [isEmployee]);
 
   useEffect(() => {
-    loadDashboard();
-  }, [loadDashboard]);
+    if (!isEmployee) {
+      loadDashboard();
+    }
+  }, [loadDashboard, isEmployee]);
 
   const handleOrgFilter = (val: string | undefined) => {
     setSelectedOrgId(val);
     loadDashboard(val);
   };
+
+  const handleRequestAccess = async (moduleName: string) => {
+    try {
+      setRequestLoading(true);
+      await hrmCreateRequest({
+        title: `Access Request: ${moduleName}`,
+        description: `User requested access to the ${moduleName} module.`,
+        requestType: "Support",
+        raisedBy: "user",
+        priority: "Low"
+      });
+      message.success(`Request for ${moduleName} access sent to admins!`);
+    } catch (err: any) {
+      message.error(err?.response?.data?.message || "Failed to send request");
+    } finally {
+      setRequestLoading(false);
+    }
+  };
+
+  // ── Employee Fallback View ────────────────────────────────────────────────
+  if (isEmployee && !hasPos) {
+    // Show a card system to request access for available modules
+    const modules = session.organization?.modules || {};
+    const availableModules = Object.entries(modules).filter(([, enabled]) => enabled).map(([key]) => key);
+
+    return (
+      <div style={{ padding: "20px 24px", minHeight: "100vh", backgroundColor: "#f5f7fa" }}>
+        <Flex justify="space-between" align="center" wrap="wrap" gap={12} style={{ marginBottom: 20 }}>
+          <Space direction="vertical" size={2}>
+            <Title level={4} style={{ margin: 0 }}>Good to see you 👋</Title>
+            <Text type="secondary">Your account has limited access. Request access to modules below.</Text>
+          </Space>
+        </Flex>
+
+        <Row gutter={[16, 16]}>
+          {availableModules.length === 0 ? (
+            <Col xs={24}>
+              <Empty description="No modules enabled for this organization" />
+            </Col>
+          ) : (
+            availableModules.map((mod) => (
+              <Col xs={24} sm={12} md={8} lg={6} key={mod}>
+                <Card
+                  hoverable
+                  style={{ borderRadius: 12, border: "1px solid #e2e8f0" }}
+                  actions={[
+                    <Button
+                      type="primary"
+                      loading={requestLoading}
+                      onClick={() => handleRequestAccess(mod)}
+                      style={{ borderRadius: 6, fontWeight: 600 }}
+                    >
+                      Request Access
+                    </Button>
+                  ]}
+                >
+                  <Card.Meta
+                    avatar={<Avatar style={{ background: MODULE_COLORS[mod] || "#1677ff" }}>{mod.substring(0, 2).toUpperCase()}</Avatar>}
+                    title={<span style={{ textTransform: "capitalize" }}>{mod} Module</span>}
+                    description={`Click below to request access to ${mod}.`}
+                  />
+                </Card>
+              </Col>
+            ))
+          )}
+        </Row>
+      </div>
+    );
+  }
+
+
 
   const displayedOrgs = useMemo(() => data?.orgs ?? [], [data]);
 
@@ -710,7 +806,7 @@ export default function OrganizationDashboard() {
       >
         <Space direction="vertical" size={2}>
           <Title level={4} style={{ margin: 0 }}>
-            {greeting} 👋
+            {greeting}👋
           </Title>
           <Text type="secondary">
             Organization Dashboard · {data?.orgCount ?? 0} organization

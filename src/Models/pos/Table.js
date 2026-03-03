@@ -22,7 +22,7 @@ const tableSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["available", "occupied", "reserved", "billing"],
+      enum: ["available", "occupied", "reserved", "billing", "cleaning"],
       default: "available",
     },
 
@@ -47,6 +47,9 @@ const tableSchema = new mongoose.Schema(
     // position on floor map (for visual layout)
     x: { type: Number, default: 0 },
     y: { type: Number, default: 0 },
+
+    cleaningPhoto: { type: String, default: null },
+    lastCleanedAt: { type: Date, default: null },
   },
   { timestamps: true }
 );

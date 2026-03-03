@@ -33,6 +33,9 @@ import posReportRoutes from "./pos/reportRoutes.js";
 import posOrganizationRoutes from "./pos/organizationRoutes.js";
 import posExpenseRoutes from "./pos/expenseRoutes.js";
 
+// Public 
+import chatRoutes from "./public/chatRoutes.js";
+
 const registerRoutes = (app) => {
   // ── Core ───────────────────────────────────────────────────────────────────
   app.use("/api/auth", authRoutes);
@@ -75,6 +78,9 @@ const registerRoutes = (app) => {
   app.use("/api/pos/reports", posReportRoutes);
   app.use("/api/pos/organization", posOrganizationRoutes);
   app.use("/api/pos/expenses", posExpenseRoutes);
+
+  // ── Public ───────────────────────────────────────────────────────────────────
+  app.use("/api/chat", chatRoutes);
 };
 
 export default registerRoutes;
