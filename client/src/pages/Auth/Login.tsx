@@ -201,11 +201,29 @@ export default function LoginAntd({ onLogin }: Props) {
       const orgId = typeof org === "string" ? org : org?._id;
       const hasOrg = Boolean(orgId);
 
-      navigate(
-        hasOrg
-          ? `/client/${orgId}`
-          : "/client/organization",
-      );
+      // Determine redirect destination based on role
+      if (systemRole === "superadmin") {
+        navigate("/superadmin/dashboard");
+      } else if (hasOrg) {
+        // Check if this employee is a POS-only waiter (pages only contains "pos")
+        const roleData = typeof user?.roleID === "object" ? user.roleID : null;
+        const rolePages: string[] | null = Array.isArray(roleData?.pages)
+          ? roleData.pages
+          : null;
+        const isPosOnly =
+          rolePages !== null &&
+          rolePages.length > 0 &&
+          rolePages.every((p: string) => p === "pos");
+
+        if (isPosOnly) {
+          // Send waiter directly to POS without the dashboard sidebar
+          navigate(`/pos/${orgId}/dashboard`);
+        } else {
+          navigate(`/client/${orgId}`);
+        }
+      } else {
+        navigate("/client/organization");
+      }
     } catch (err: any) {
       console.error("Login error:", err);
       const status = err?.response?.status;

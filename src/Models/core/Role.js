@@ -19,16 +19,33 @@ const roleSchema = new mongoose.Schema(
     organizationID: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Organization",
-      required: true,
-      // roles are always scoped to an org — one org's roles
-      // don't leak into another org
+      default: null,
+      // null = global role (created by superadmin, available to all orgs)
+      // ObjectId = org-scoped role (created by admin, only for their org)
+    },
+
+    isGlobal: {
+      type: Boolean,
+      default: false,
+      // true = superadmin-created platform-wide role
+      // false = org-scoped role created by admin
     },
 
     permissions: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Permission",
-        // array of permission refs, e.g. [staff:read, task:write]
+      },
+    ],
+
+    // Page-level access: which sections of the dashboard this role can see.
+    // e.g. ["task", "sop", "pos", "attendance", "voucher", "request", "issue", "ai-review", "salary-management"]
+    // Empty array or undefined = no page restrictions (full access for admin roles)
+    pages: [
+      {
+        type: String,
+        trim: true,
+        lowercase: true,
       },
     ],
 
@@ -44,6 +61,11 @@ const roleSchema = new mongoose.Schema(
       default: true,
     },
 
+    description: {
+      type: String,
+      trim: true,
+    },
+
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -52,8 +74,9 @@ const roleSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Same role name can't exist twice in the same org
-roleSchema.index({ name: 1, organizationID: 1 }, { unique: true });
+// For global roles (isGlobal=true), name must be unique globally (organizationID is null)
+// For org roles, name must be unique within the org
+roleSchema.index({ name: 1, organizationID: 1 }, { unique: true, sparse: true });
 
 const Role = mongoose.model("Role", roleSchema);
 export default Role;

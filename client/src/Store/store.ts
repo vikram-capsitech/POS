@@ -11,6 +11,7 @@ export type OrgAccess = {
   permissions?: string[]; // ["pos:access","pos:orders:read"]
   roleId?: string;
   roleName?: string;
+  pages?: string[]; // ["task","sop","pos"] — page-level access from role
 };
 
 export type OrganizationSummary = {
@@ -34,6 +35,10 @@ export type UserSession = {
 
   // module list (restaurantModules)
   modules: string[];
+
+  // page-level access from the user's role (e.g. ["task","sop","pos"])
+  // empty/null = admin/full access, no restriction
+  pages: string[] | null;
 
   // org scoped access (recommended for guards)
   orgAccess: Record<string, OrgAccess>;
@@ -76,6 +81,7 @@ const emptySession: UserSession = {
   userId: null,
   restaurantId: null,
   modules: [],
+  pages: null,
   orgAccess: {},
   accessRaw: [],
   email: null,
@@ -231,6 +237,16 @@ export const useAuthStore = create<AuthStore>()(
         // If org is already populated object (admin), store summary immediately.
         const organization = typeof org === "object" ? orgObjToSummary(org) : null;
 
+        // pages from user.roleID (populated on login)
+        // null = no restriction (admin / superadmin), [] or array = restricted
+        const roleData = typeof user?.roleID === "object" ? user.roleID : null;
+        const pages: string[] | null =
+          role === "admin" || role === "superadmin"
+            ? null  // admins see everything
+            : Array.isArray(roleData?.pages)
+              ? roleData.pages
+              : null;
+
         set({
           session: {
             ...get().session,
@@ -240,6 +256,7 @@ export const useAuthStore = create<AuthStore>()(
             userId,
             restaurantId,
             modules,
+            pages,
             orgAccess,
             accessRaw,
             email,

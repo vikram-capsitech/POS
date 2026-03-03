@@ -140,6 +140,12 @@ export const getOrganization = getOrganizationById; // alias
 export const getOrganizations = () => apiClient.get(`/api/admin/organizations`);
 export const updateOrganization = (id: string, data: any) =>
   apiClient.put(`/api/admin/organizations/${id}`, data);
+export const getOrgDetail = (id: string) =>
+  apiClient.get(`/api/admin/organizations/${id}/detail`);
+export const updateOrgModules = (id: string, modules: Record<string, boolean>) =>
+  apiClient.patch(`/api/admin/organizations/${id}/modules`, { modules });
+export const sendInvoiceEmail = (id: string, data: { invoiceAmount?: number; dueDate?: string; notes?: string }) =>
+  apiClient.post(`/api/admin/organizations/${id}/send-invoice`, data);
 // ── 🏢 ADMIN MODULE ──────────────────────────────────────────────────────────
 
 export const adminCreateOrg = (data: FormData) =>
@@ -167,6 +173,16 @@ export const adminUpdateRole = (id: string, data: any) =>
   apiClient.put(`/api/admin/roles/${id}`, data);
 export const adminDeleteRole = (id: string) =>
   apiClient.delete(`/api/admin/roles/${id}`);
+
+// ── 🌐 GLOBAL ROLES (superadmin only) ────────────────────────────────────────
+export const getGlobalRoles = () =>
+  apiClient.get("/api/admin/global-roles");
+export const createGlobalRole = (data: { name: string; displayName?: string; description?: string; permissions?: string[] }) =>
+  apiClient.post("/api/admin/global-roles", data);
+export const updateGlobalRole = (id: string, data: { displayName?: string; description?: string; isActive?: boolean; permissions?: string[] }) =>
+  apiClient.put(`/api/admin/global-roles/${id}`, data);
+export const deleteGlobalRole = (id: string) =>
+  apiClient.delete(`/api/admin/global-roles/${id}`);
 export const fetchAdminDashboard = (params?: { orgId?: string }) =>
   apiClient.get("/api/admin/dashboard", { params });
 
