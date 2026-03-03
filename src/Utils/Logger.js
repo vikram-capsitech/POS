@@ -10,7 +10,14 @@ import { UserLog } from "../Models/index.js";
  */
 export const logUserAction = async (req, action, module, resourceID = null, details = {}) => {
   try {
-    if (!req.user || !req.organizationID) return;
+    // Guard: bail out if req or required fields are missing
+    if (!req || !req.user || !req.organizationID || !req.headers) return;
+
+    const ip =
+      (req.headers["x-forwarded-for"]?.split(",")[0]?.trim()) ||
+      req.ip ||
+      req.socket?.remoteAddress ||
+      null;
 
     await UserLog.create({
       organizationID: req.organizationID,
@@ -19,11 +26,10 @@ export const logUserAction = async (req, action, module, resourceID = null, deta
       module,
       resourceID,
       details,
-      ipAddress: req.ip || req.headers["x-forwarded-for"] || req.connection.remoteAddress,
-      userAgent: req.headers["user-agent"],
+      ipAddress: ip,
+      userAgent: req.headers["user-agent"] || null,
     });
   } catch (error) {
     console.error("Failed to log user action:", error);
-    // We don't throw here to avoid breaking the main request flow
   }
 };
