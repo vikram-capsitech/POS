@@ -13,11 +13,24 @@ const Loadable = (C: any) => (props: any) => (
   </Suspense>
 );
 
-const SuperAdminHome = Loadable(lazy(() => import("../../pages/SuperAdmin/SuperAdminHome")));
-const OrganizationsTable = Loadable(lazy(() => import("../../pages/SuperAdmin/OrganizationsTable")));
-const OrgDetailPage = Loadable(lazy(() => import("../../pages/SuperAdmin/OrgDetailPage")));
-const SuperAdminSettings = Loadable(lazy(() => import("../../pages/SuperAdmin/SuperAdminSettings")));
-const GlobalRolesPage = Loadable(lazy(() => import("../../pages/SuperAdmin/GlobalRolesPage")));
+const SuperAdminHome = Loadable(
+  lazy(() => import("../../pages/SuperAdmin/SuperAdminHome")),
+);
+const OrganizationsTable = Loadable(
+  lazy(() => import("../../pages/SuperAdmin/OrganizationsTable")),
+);
+const OrgDetailPage = Loadable(
+  lazy(() => import("../../pages/SuperAdmin/OrgDetailPage")),
+);
+const SuperAdminSettings = Loadable(
+  lazy(() => import("../../pages/SuperAdmin/SuperAdminSettings")),
+);
+const GlobalRolesPage = Loadable(
+  lazy(() => import("../../pages/SuperAdmin/GlobalRolesPage")),
+);
+const SuperadminInvoices = Loadable(
+  lazy(() => import("../../pages/SuperAdmin/SuperadminInvoices")),
+);
 
 const PlaceholderPage = ({ name }: { name: string }) => (
   <div style={{ padding: 48, textAlign: "center" }}>
@@ -50,8 +63,11 @@ export const superAdminRoutes = {
     // Settings (Profile + Org Roles)
     { path: "settings", element: <SuperAdminSettings /> },
 
-    // Placeholder pages (to be built)
-    { path: "checkin", element: <PlaceholderPage name="Check-ins (Coming Soon)" /> },
-    { path: "payments", element: <PlaceholderPage name="Payments (Coming Soon)" /> },
+    // App pages
+    {
+      path: "checkin",
+      element: <PlaceholderPage name="Check-ins (Coming Soon)" />,
+    },
+    { path: "payments", element: <SuperadminInvoices /> },
   ],
 };

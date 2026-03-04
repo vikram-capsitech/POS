@@ -24,6 +24,7 @@ import {
   History,
   KeyRound,
 } from "lucide-react";
+import { TeamOutlined } from "@ant-design/icons";
 
 const { Sider } = Layout;
 const { Text } = Typography;
@@ -120,6 +121,7 @@ const SideNav: React.FC = () => {
     if (p.includes("/ai-review")) return TabType.AI_REVIEW;
     if (p.includes("/salary-management")) return TabType.SALARY_MANAGEMENT;
     if (p.includes("/logs")) return TabType.ACTIVITY_LOGS;
+    if (p.includes("/employees")) return "admin-employees";
     if (p.includes("/roles")) return "admin-roles";
     if (p.includes("/settings")) return TabType.SETTINGS;
     if (p.includes("/user-profile")) return TabType.USER_PROFILE;
@@ -233,7 +235,9 @@ const SideNav: React.FC = () => {
       items.push({
         key: TabType.SALARY_MANAGEMENT,
         icon: <DollarSign size={18} />,
-        label: <NavLink to={`${base}/salary-management`}>Salary Management</NavLink>,
+        label: (
+          <NavLink to={`${base}/salary-management`}>Salary Management</NavLink>
+        ),
       });
     }
 
@@ -275,17 +279,18 @@ const SideNav: React.FC = () => {
     items.push({
       key: TabType.USER_PROFILE,
       icon: <User size={18} />,
-      label: (
-        <NavLink to={`${base}/user-profile`}>
-          User Profile
-        </NavLink>
-      ),
+      label: <NavLink to={`${base}/user-profile`}>User Profile</NavLink>,
     });
     items.push({ type: "divider" });
   }
 
   if (userRole === "admin") {
     items.push({ type: "divider" });
+    items.push({
+      key: "admin-employees",
+      icon: <TeamOutlined style={{ fontSize: 18 }} />,
+      label: <NavLink to={`${base}/employees`}>Employees</NavLink>,
+    });
     items.push({
       key: "admin-roles",
       icon: <KeyRound size={18} />,
@@ -374,7 +379,9 @@ const SideNav: React.FC = () => {
                 display: "block",
               }}
             >
-              {userRole === "superadmin" ? "Super Admin" : organization?.name || "Welcome"}
+              {userRole === "superadmin"
+                ? "Super Admin"
+                : organization?.name || "Welcome"}
             </Text>
           )}
         </div>
