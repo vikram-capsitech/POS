@@ -340,8 +340,11 @@ export const hrmUpdateTask = (id: string, data: any) => {
 };
 export const hrmDeleteTask = (id: string) =>
   apiClient.delete(`/api/tasks/${id}`);
-export const hrmListSops = () => apiClient.get("/api/sops");
-export const hrmCreateSop = (data: any) => apiClient.post("/api/sops", data);
+export const hrmListSops = (params?: any) => apiClient.get("/api/sops", { params });
+export const hrmCreateSop = (data: FormData) => apiClient.post("/api/sops", data);
+export const hrmGetSopById = (id: string) => apiClient.get(`/api/sops/${id}`);
+export const hrmUpdateSop = (id: string, data: FormData) => apiClient.put(`/api/sops/${id}`, data);
+export const hrmDeleteSop = (id: string) => apiClient.delete(`/api/sops/${id}`);
 export const hrmCreateRequest = (data: any) => apiClient.post("/api/requests", data);
 
 // Financials (HRM)
@@ -349,6 +352,10 @@ export const hrmCreateSalaryRecord = (data: any) =>
   apiClient.post("/api/salary-records", data);
 export const hrmListSalaryRecords = (params?: any) =>
   apiClient.get("/api/salary-records", { params });
+export const hrmDeleteSalaryRecord = (id: string) =>
+  apiClient.delete(`/api/salary-records/${id}`);
+export const hrmGetSalaryRecord = (id: string) =>
+  apiClient.get(`/api/salary-records/${id}`);
 export const hrmRecordPayment = (data: any) =>
   apiClient.post("/api/payments", data);
 export const hrmListPayments = (params?: any) =>
