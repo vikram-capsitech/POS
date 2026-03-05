@@ -2,7 +2,6 @@ import express from "express";
 import { upload } from "../../Middlewares/Multer.middleware.js";
 import { protect, authorize } from "../../Middlewares/Auth.middleware.js";
 import {
-  addOrganization,
   getOrganizations,
   updateOrganization,
   addAdmin,
@@ -63,13 +62,13 @@ router.get(
   getDashboardStats,
 );
 
-router.post(
-  "/organizations",
-  protect,
-  authorize("superadmin"),
-  upload.single("logo"),
-  addOrganization,
-);
+// router.post(
+//   "/organizations",
+//   protect,
+//   authorize("superadmin"),
+//   upload.single("logo"),
+//   addOrganization,
+// );
 
 router.put(
   "/organizations/:id",

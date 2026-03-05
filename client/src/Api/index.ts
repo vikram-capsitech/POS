@@ -5,12 +5,6 @@ import { useAuthStore } from "../Store/store";
 
 // Create an Axios instance for API requests
 const apiClient = axios.create({
-  /**
-   * BASE URL CONFIGURATION:
-   * 1. UNIFIED DEPLOYMENT: Leave VITE_SERVER_URI blank/undefined in production.
-   *    It will fallback to "" (same-origin), which is correct for unified hosting.
-   * 2. SPLIT DEPLOYMENT: Set VITE_SERVER_URI to your backend URL (e.g., https://api.yourdomain.com).
-   */
   baseURL: import.meta.env.VITE_SERVER_URI || "",
   withCredentials: true,
   timeout: 120000,
@@ -140,6 +134,8 @@ export const getOrganization = getOrganizationById; // alias
 export const getOrganizations = () => apiClient.get(`/api/admin/organizations`);
 export const updateOrganization = (id: string, data: any) =>
   apiClient.put(`/api/admin/organizations/${id}`, data);
+export const createOrganization = (data: any) =>
+  apiClient.post(`/api/admin/admins`, data);
 export const getOrgDetail = (id: string) =>
   apiClient.get(`/api/admin/organizations/${id}/detail`);
 export const updateOrgModules = (id: string, modules: Record<string, boolean>) =>

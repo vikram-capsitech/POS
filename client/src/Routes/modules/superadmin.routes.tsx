@@ -6,6 +6,7 @@ import RequireAuth from "../guards/RequireAuth";
 import RequirePermission from "../guards/RequirePermission";
 // ✅ Use the dedicated SuperAdmin layout — no shared code with main dashboard
 import SuperAdminLayout from "../../layouts/SuperAdmin/Index";
+import OrgOnboarding from "../../pages/SuperAdmin/CreateOrganization";
 
 const Loadable = (C: any) => (props: any) => (
   <Suspense fallback={<LoadingScreen />}>
@@ -56,6 +57,7 @@ export const superAdminRoutes = {
     { path: "dashboard", element: <SuperAdminHome /> },
     { path: "organizations", element: <OrganizationsTable /> },
     { path: "organizations/:id", element: <OrgDetailPage /> },
+    { path: "organizations/create", element: <OrgOnboarding /> },
 
     // Global Roles management
     { path: "global-roles", element: <GlobalRolesPage /> },
