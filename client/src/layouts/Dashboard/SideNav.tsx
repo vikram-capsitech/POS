@@ -124,7 +124,6 @@ const SideNav: React.FC = () => {
     if (p.includes("/employees")) return "admin-employees";
     if (p.includes("/roles")) return "admin-roles";
     if (p.includes("/settings")) return TabType.SETTINGS;
-    if (p.includes("/user-profile")) return TabType.USER_PROFILE;
 
     return TabType.DEFAULT;
   }, [location.pathname]);
@@ -273,15 +272,6 @@ const SideNav: React.FC = () => {
       icon: <Settings size={18} />,
       label: <NavLink to="/superadmin/settings">Settings & Roles</NavLink>,
     });
-  }
-
-  if (userRole !== "superadmin" && hasAccess("userProfile")) {
-    items.push({
-      key: TabType.USER_PROFILE,
-      icon: <User size={18} />,
-      label: <NavLink to={`${base}/user-profile`}>User Profile</NavLink>,
-    });
-    items.push({ type: "divider" });
   }
 
   if (userRole === "admin") {

@@ -44,6 +44,7 @@ import { requestHandler } from "../../../Utils/index";
 
 const { Title, Text } = Typography;
 
+// FIX: Removed "Processing" — DB model enum only allows "Paid" | "Pending"
 type SalaryRow = {
     employeeId: string;
     name: string;
@@ -51,7 +52,7 @@ type SalaryRow = {
     salary: number;
     advanceTaken: number;
     remainingSalary: number;
-    salaryStatus: "Pending" | "Paid" | "Processing" | string;
+    salaryStatus: "Pending" | "Paid" | string;
     lastSalaryPaidDate?: string | null;
 };
 
@@ -67,10 +68,10 @@ const MONTHS = [
     "July", "August", "September", "October", "November", "December",
 ];
 
+// FIX: Removed "Processing" tag — not a valid DB status
 const statusTag = (s?: string) => {
     if (s === "Paid") return <Tag color="green" icon={<CheckCircleOutlined />}>Paid</Tag>;
-    if (s === "Processing") return <Tag color="blue" icon={<ClockCircleOutlined />}>Processing</Tag>;
-    if (s === "Pending") return <Tag color="default">Pending</Tag>;
+    if (s === "Pending") return <Tag color="orange" icon={<ClockCircleOutlined />}>Pending</Tag>;
     return <Tag>{s || "-"}</Tag>;
 };
 
@@ -92,7 +93,8 @@ export default function SalaryManagement() {
     const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
     const [payModalOpen, setPayModalOpen] = useState(false);
     const [selectedEmpIds, setSelectedEmpIds] = useState<string[]>([]);
-    const [payStatus, setPayStatus] = useState<"Paid" | "Processing">("Paid");
+    // FIX: Removed "Processing" option — DB model status enum is only "Paid" | "Pending"
+    const [payStatus, setPayStatus] = useState<"Paid" | "Pending">("Paid");
     const [payLoading, setPayLoading] = useState(false);
 
     // View drawer
@@ -116,7 +118,8 @@ export default function SalaryManagement() {
                 }) as any,
             setLoading,
             (data: any) => {
-                const list = data?.data ?? data?.data?.data ?? [];
+                // FIX: corrected response parsing — getSalarySummary returns { success, data: [...] }
+                const list = data?.data ?? [];
                 setSalaryData(Array.isArray(list) ? list : []);
             },
             (err) => message.error(err)
@@ -281,12 +284,14 @@ export default function SalaryManagement() {
         return years;
     }, []);
 
-    // Employees unpaid this month
+    // FIX: unpaidEmployees now correctly filters employees whose salary record does NOT exist at all,
+    // or exists but is still "Pending" — previously only excluded "Paid" which could show already-recorded
+    // Pending employees as selectable again leading to duplicates
     const unpaidEmployees = useMemo(() => {
-        const paidIds = new Set(
-            salaryData.filter((r) => r.salaryStatus === "Paid").map((r) => r.employeeId)
+        const paidOrPendingIds = new Set(
+            salaryData.map((r) => r.employeeId)
         );
-        return allEmployees.filter((e) => !paidIds.has(e._id));
+        return allEmployees.filter((e) => !paidOrPendingIds.has(e._id));
     }, [salaryData, allEmployees]);
 
     return (
@@ -476,13 +481,14 @@ export default function SalaryManagement() {
                         <Flex justify="space-between" align="center" style={{ marginBottom: 8 }}>
                             <Text strong>Payment Status</Text>
                         </Flex>
+                        {/* FIX: Removed "Processing" option — not a valid DB model enum value */}
                         <Select
                             value={payStatus}
-                            onChange={(v) => setPayStatus(v as any)}
+                            onChange={(v) => setPayStatus(v as "Paid" | "Pending")}
                             style={{ width: "100%" }}
                             options={[
                                 { value: "Paid", label: "Mark as Paid" },
-                                { value: "Processing", label: "Mark as Processing" },
+                                { value: "Pending", label: "Mark as Pending" },
                             ]}
                         />
                     </div>
@@ -492,7 +498,7 @@ export default function SalaryManagement() {
                             <Text strong>
                                 Select Employees{" "}
                                 <Text type="secondary" style={{ fontWeight: 400 }}>
-                                    ({unpaidEmployees.length} unpaid this month)
+                                    ({unpaidEmployees.length} not yet recorded this month)
                                 </Text>
                             </Text>
                             <Button
@@ -514,7 +520,7 @@ export default function SalaryManagement() {
 
                         {unpaidEmployees.length === 0 ? (
                             <Text type="secondary" style={{ fontStyle: "italic" }}>
-                                All employees have been paid this month. 🎉
+                                All employees already have a salary record this month. 🎉
                             </Text>
                         ) : (
                             <div

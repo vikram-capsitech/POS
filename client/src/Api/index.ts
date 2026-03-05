@@ -377,6 +377,13 @@ export const fetchUserLogs = (params: any) =>
   apiClient.get("/api/logs", { params });
 export const fetchUserLogsStats = () => apiClient.get("/api/logs/stats");
 
+// Voucher APis
+export const voucherList = (params?: any) => apiClient.get("/api/vouchers", { params });
+export const voucherCreate = (data: FormData) => apiClient.post("/api/vouchers", data);
+export const voucherGetById = (id: string) => apiClient.get(`/api/vouchers/${id}`);
+export const voucherUpdate = (id: string, data: FormData) => apiClient.put(`/api/vouchers/${id}`, data);
+export const voucherDelete = (id: string) => apiClient.delete(`/api/vouchers/${id}`);
+
 // Legacy support placeholders (to prevent immediate build break if referenced)
 export const getAvailableUsers = () => Promise.resolve({ data: [] });
 export const getUserChats = () => Promise.resolve({ data: [] });

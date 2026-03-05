@@ -17,7 +17,6 @@ import documentRoutes from "./resources/documentRoutes.js";
 import allotedItemsRoutes from "./resources/allotedItemsRoutes.js";
 import voucherRoutes from "./resources/voucherRoutes.js";
 
-import paymentsRoutes from "./finance/paymentsRoutes.js";
 import coinsRoutes from "./finance/coinsRoutes.js";
 
 import notificationRoutes from "./notifications/notificationRoutes.js";
@@ -61,7 +60,6 @@ const registerRoutes = (app) => {
   app.use("/api/vouchers", voucherRoutes);
 
   // ── Finance ─────────────────────────────────────────────────────────────────
-  app.use("/api/payments", paymentsRoutes);
   app.use("/api/coins", coinsRoutes);
 
   // ── Notifications ────────────────────────────────────────────────────────────

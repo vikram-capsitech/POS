@@ -33,7 +33,7 @@ export const createSOP = asyncHandler(async (req, res) => {
     category,
     difficultyLevel,
     estimatedTime,
-    owner,
+    owner: owner || req.user._id,
     status,
     steps,
     voiceNote: req.file?.path ?? null,

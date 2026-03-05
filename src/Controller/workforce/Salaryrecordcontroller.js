@@ -10,11 +10,17 @@ import ApiError from "../../Utils/ApiError.js";
 //  POST /api/salary-records  (bulk credit salary)
 // ─────────────────────────────────────────────
 const createRecord = asyncHandler(async (req, res) => {
-  const restaurantID = req.organizationID;
+  // FIX: was using req.restaurantID — must use req.organizationID to match DB model field
+  const organizationID = req.organizationID;
   const { employee: empIds, status } = req.body;
 
   if (!empIds?.length)
     throw new ApiError(400, "At least one employee ID is required");
+
+  // FIX: status must be "Paid" or "Pending" only — DB model enum does not include "Processing"
+  if (status && !["Paid", "Pending"].includes(status)) {
+    throw new ApiError(400, "Invalid status. Must be 'Paid' or 'Pending'");
+  }
 
   const now = new Date();
   const currentMonth = now.getMonth();
@@ -41,9 +47,10 @@ const createRecord = asyncHandler(async (req, res) => {
   const skippedEmployees = [];
 
   for (const id of empIds) {
+    // FIX: was using restaurantID in query — must match DB model field organizationID
     const alreadyPaid = await SalaryRecord.findOne({
       employee: id,
-      restaurantID,
+      organizationID,
       currentMonth,
       currentYear,
     });
@@ -52,19 +59,24 @@ const createRecord = asyncHandler(async (req, res) => {
       continue;
     }
 
+    const empData = empMap[id];
+
+    // FIX: added amount field to SalaryRecord.create — DB model has amount field (default 0, min 0)
+    // FIX: was using restaurantID — must use organizationID to match DB model
     const [salaryRecord, salaryTxn] = await Promise.all([
       SalaryRecord.create({
         employee: id,
         status,
-        restaurantID,
+        organizationID,
+        amount: empData?.salary ?? 0,
         currentMonth,
         currentYear,
       }),
       SalaryTransaction.create({
         employee: id,
         type: "salary",
-        amount: empMap[id]?.salary ?? 0,
-        restaurantID,
+        amount: empData?.salary ?? 0,
+        organizationID,
         currentMonth,
         currentYear,
       }),
@@ -73,13 +85,12 @@ const createRecord = asyncHandler(async (req, res) => {
     salaryTransactions.push(salaryTxn);
 
     // Credit coins for regular employees
-    const empData = empMap[id];
     if (empData?.position === "employee" && empData.coins > 0) {
-      let coinsDoc = await Coins.findOne({ employeeId: id, restaurantID });
+      let coinsDoc = await Coins.findOne({ employeeId: id, organizationID });
       if (!coinsDoc) {
         coinsDoc = await Coins.create({
           employeeId: id,
-          restaurantID,
+          organizationID,
           totalEarned: 0,
           totalSpent: 0,
           coinsTransactions: [],
@@ -88,7 +99,7 @@ const createRecord = asyncHandler(async (req, res) => {
 
       const coinsTxn = await CoinsTransaction.create({
         employeeId: id,
-        restaurantID,
+        organizationID,
         amount: empData.coins,
         type: "credit",
         description: "Monthly coins credited with salary",
@@ -113,7 +124,8 @@ const createRecord = asyncHandler(async (req, res) => {
 //  GET /api/salary-records/summary
 // ─────────────────────────────────────────────
 const getSalarySummary = asyncHandler(async (req, res) => {
-  const restaurantID = req.organizationID;
+  // FIX: was using restaurantID — must use organizationID to match DB model
+  const organizationID = req.organizationID;
   const { month, year } = req.query;
 
   if (month === undefined || year === undefined) {
@@ -123,17 +135,18 @@ const getSalarySummary = asyncHandler(async (req, res) => {
   const m = Number(month),
     y = Number(year);
 
+  // FIX: all occurrences of restaurantID replaced with organizationID
   const [employees, salaryRecords, advances, prevPaid] = await Promise.all([
-    Employee.find({ restaurantID }).lean(),
-    SalaryRecord.find({ restaurantID, currentMonth: m, currentYear: y }).lean(),
+    Employee.find({ organizationID }).lean(),
+    SalaryRecord.find({ organizationID, currentMonth: m, currentYear: y }).lean(),
     SalaryTransaction.find({
-      restaurantID,
+      organizationID,
       currentMonth: m,
       currentYear: y,
       type: "advance",
     }).lean(),
     SalaryRecord.find({
-      restaurantID,
+      organizationID,
       status: "Paid",
       $or: [
         { currentYear: { $lt: y } },

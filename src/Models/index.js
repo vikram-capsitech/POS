@@ -26,7 +26,6 @@ export { default as AllocatedItems } from "./resources/AllocatedItems.js";
 export { default as Voucher } from "./resources/Voucher.js";
 
 // ─── Finance ──────────────────────────────────────────────────────────────────
-export { default as Payments } from "./finance/Payments.js";
 export { default as Coins } from "./finance/Coins.js";
 export { default as CoinsTransaction } from "./finance/Coinstransaction.js";
 

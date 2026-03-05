@@ -4,12 +4,12 @@ import Attendance from "../../Models/workforce/Attendance.js";
 import User from "../../Models/core/User.js";
 import Employee from "../../Models/core/EmployeeProfile.js";
 import Task from "../../Models/operations/Task.js";
-import Payments from "../../Models/finance/Payments.js";
 // import AdminAttendance from "../../Models/operations/AdminAttendance.js";
 import SalaryRecord from "../../Models/workforce/SalaryRecord.js";
 import Request from "../../Models/operations/Request.js";
 import asyncHandler from "../../Utils/AsyncHandler.js";
 import ApiError from "../../Utils/ApiError.js";
+import { SalaryTransaction } from "../../Models/index.js";
 
 // ─────────────────────────────────────────────
 //  GET /api/home
@@ -50,7 +50,7 @@ const getHomeDetails = asyncHandler(async (req, res) => {
 
     const [userCount, paymentAgg, todayCheckins] = await Promise.all([
       User.countDocuments({ role: "admin" }),
-      Payments.aggregate([
+      SalaryTransaction.aggregate([
         { $match: { status: "Paid", currentMonth, currentYear } },
         { $group: { _id: "$admin" } },
         {

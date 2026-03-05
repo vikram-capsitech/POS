@@ -22,6 +22,7 @@ const MainDashboard = Loadable(
 
 import { useAuthStore } from "../../Store/store";
 import Task from "../../pages/Admin/Task/Task";
+import Voucher from "../../pages/Admin/Voucher/Voucher";
 const CreateTask = Loadable(
   lazy(() => import("../../pages/Admin/Task/CreateTask")),
 );
@@ -83,7 +84,7 @@ export const mainRoutes = {
         { path: "issue", element: <InProgress name="Issue raised" /> },
         { path: "request", element: <InProgress name="Request" /> },
         { path: "attendance", element: <AttendancePage /> },
-        { path: "voucher", element: <InProgress name="Vouchers" /> },
+        { path: "voucher", element: <Voucher /> },
 
         // SOP routes
         { path: "sop", element: <SopList /> },

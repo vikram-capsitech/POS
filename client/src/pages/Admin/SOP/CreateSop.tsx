@@ -262,9 +262,17 @@ export default function CreateSop() {
     };
 
     return (
-        <div style={{ padding: 16 }}>
-            <div style={{ maxWidth: 1000, margin: "0 auto" }}>
-                <Card style={{ borderRadius: 16 }} bodyStyle={{ padding: 20 }}>
+        <div style={{
+            padding: 16, width: "100%",
+        }} >
+            <div style={{
+                width: "100%",
+                maxWidth: 1400,
+                margin: "0 auto",
+            }}>
+                <Card style={{
+                    borderRadius: 16, width: "100%",
+                }} bodyStyle={{ padding: 20 }}>
                     {/* Breadcrumb + Header */}
                     <Space direction="vertical" size={2} style={{ width: "100%" }}>
                         <Space size={8}>

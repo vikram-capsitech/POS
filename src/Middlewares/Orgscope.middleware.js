@@ -12,6 +12,7 @@ import asyncHandler from "../Utils/AsyncHandler.js";
 //   const tasks = await Task.find(req.orgFilter)
 
 export const orgScope = asyncHandler(async (req, res, next) => {
+  console.log(req.user);
   if (!req.user) {
     throw new ApiError(401, "Unauthorized");
   }
@@ -29,7 +30,7 @@ export const orgScope = asyncHandler(async (req, res, next) => {
   if (!req.user.organizationID) {
     throw new ApiError(403, "User is not associated with any organization");
   }
-
+ console.log("OrgScope middleware");
   req.orgFilter       = { organizationID: req.user.organizationID };
   req.organizationID  = req.user.organizationID;
 
