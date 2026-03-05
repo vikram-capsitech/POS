@@ -23,6 +23,7 @@ const MainDashboard = Loadable(
 import { useAuthStore } from "../../Store/store";
 import Task from "../../pages/Admin/Task/Task";
 import Voucher from "../../pages/Admin/Voucher/Voucher";
+import NotificationsPage from "../../pages/Admin/notifications/Notificationspage";
 const CreateTask = Loadable(
   lazy(() => import("../../pages/Admin/Task/CreateTask")),
 );
@@ -99,7 +100,7 @@ export const mainRoutes = {
         { path: "logs", element: <Logs /> },
 
         // Profile & Settings
-        { path: "user-profile", element: <InProgress name="User Profile" /> },
+        { path: "notifications", element: <NotificationsPage /> },
         { path: "settings", element: <OrgSettings /> },
 
         // ✅ Role management for admin

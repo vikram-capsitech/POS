@@ -25,6 +25,7 @@ import {
   KeyRound,
 } from "lucide-react";
 import { TeamOutlined } from "@ant-design/icons";
+import { NotificationIcon } from "../../Assets/CustomAntIcons";
 
 const { Sider } = Layout;
 const { Text } = Typography;
@@ -285,6 +286,11 @@ const SideNav: React.FC = () => {
       key: "admin-roles",
       icon: <KeyRound size={18} />,
       label: <NavLink to={`${base}/roles`}>Role Management</NavLink>,
+    });
+    items.push({
+      key: TabType.NOTIFICATIONS,
+      icon: <NotificationIcon size={18} />,
+      label: <NavLink to={`${base}/notifications`}>Notifications</NavLink>,
     });
     items.push({
       key: TabType.SETTINGS,
