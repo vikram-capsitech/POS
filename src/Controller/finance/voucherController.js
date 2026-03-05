@@ -21,21 +21,19 @@ const createVoucher = asyncHandler(async (req, res) => {
 
   if (!title || !coins) throw new ApiError(400, "title and coins are required");
   if (!timeline?.startDate || !timeline?.endDate) {
-    throw new ApiError(
-      400,
-      "timeline.startDate and timeline.endDate are required",
-    );
+    throw new ApiError(400, "timeline.startDate and timeline.endDate are required");
   }
   if (assignType === "SPECIFIC" && !assignTo?.length) {
     throw new ApiError(400, "assignTo is required when assignType is SPECIFIC");
   }
 
+  // REMOVED the broken console.log lines
   const voucher = await Voucher.create({
-    restaurantID: req.organizationID,
+    organizationID: req.organizationID,  // req.organizationID set by orgScope middleware
     title,
     description,
     coins,
-    createdBy: req.user.id,
+    createdBy: req.user._id,
     assignType,
     assignTo: assignType === "SPECIFIC" ? assignTo : [],
     timeline: {
@@ -148,7 +146,7 @@ const getEmployeeVouchers = asyncHandler(async (req, res) => {
 
   const now = new Date();
   const vouchers = await Voucher.find({
-    restaurantID: employee.restaurantID,
+    organizationID: employee.organizationID,
     status: "Active",
     "timeline.startDate": { $lte: now },
     "timeline.endDate": { $gte: now },
@@ -238,7 +236,7 @@ const redeemVoucher = asyncHandler(async (req, res) => {
     const [transaction] = await CoinsTransaction.create(
       [
         {
-          restaurantID: employee.restaurantID,
+          organizationID: employee.organizationID,
           employeeId: employee._id,
           voucherId: voucher._id,
           amount: voucher.coins,
@@ -272,15 +270,9 @@ const redeemVoucher = asyncHandler(async (req, res) => {
   }
 });
 
-const getAllVouchers = asyncHandler(async (req, res) => {
-  const vouchers = await Voucher.find(req.orgFilter);
-  res.json({ success: true, data: vouchers });
-});
-
 export {
   createVoucher,
   getVouchers,
-  getAllVouchers,
   getVoucherById,
   updateVoucher,
   deleteVoucher,

@@ -316,7 +316,7 @@ export default function OrganizationsTable() {
                     <Button
                         type="primary"
                         icon={<PlusOutlined />}
-                        onClick={() => navigate("/superadmin/organizations/new")}
+                        onClick={() => navigate("/superadmin/organizations/create")}
                         style={{ background: "#5240d6", borderColor: "#5240d6", borderRadius: 8 }}
                     >
                         Add Organization

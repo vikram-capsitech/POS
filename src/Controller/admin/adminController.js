@@ -12,31 +12,8 @@ import asyncHandler from "../../Utils/AsyncHandler.js";
 import ApiError from "../../Utils/ApiError.js";
 import ApiResponse from "../../Utils/ApiResponse.js";
 import mongoose from "mongoose";
-import { sendEmail } from "../../Utils/Mail.js";
+import { organizationOnboardingEmail, sendEmail } from "../../Utils/Mail.js";
 import { invoiceDueEmailTemplate } from "../../Utils/Mail.js";
-// ─────────────────────────────────────────────
-//  POST /api/admin/organizations
-// ─────────────────────────────────────────────
-export const addOrganization = asyncHandler(async (req, res) => {
-  const { name, type, address, contactEmail, contactPhone, slug } = req.body;
-
-  const logo = req.file?.path ?? null;
-
-  const org = await Organization.create({
-    name,
-    type,
-    address,
-    contactEmail,
-    contactPhone,
-    slug,
-    logo,
-    ownedBy: req.user._id,
-  });
-
-  return res
-    .status(201)
-    .json(new ApiResponse(201, org, "Organization created successfully"));
-});
 
 // ─────────────────────────────────────────────
 //  GET /api/admin/organizations
@@ -102,24 +79,28 @@ export const updateOrganization = asyncHandler(async (req, res) => {
 //  POST /api/admin/admins   (superadmin creates an org + admin user)
 // ─────────────────────────────────────────────
 export const addAdmin = asyncHandler(async (req, res) => {
-  const {
-    email,
-    userName,
-    phoneNumber,
-    displayName,
-    password,
-    gender,
-    address,
-    dob,
-    organizationName,
-    organizationAddress,
-    contactPhone,
-    orgType,
+   const {
+    email, userName, phoneNumber, displayName,
+    password, gender, address, dob,
+    organizationName, organizationAddress,
+    contactPhone, orgType, slug,
   } = req.body;
 
   if (!email || !userName || !phoneNumber) {
     throw new ApiError(400, "email, userName, and phoneNumber are required");
   }
+
+  // multer puts text fields in req.body as strings
+  // objects sent via FormData must be JSON.parsed
+  const meta = (() => {
+    try { return JSON.parse(req.body.meta ?? "{}"); }
+    catch { return {}; }
+  })();
+
+  const modules = (() => {
+    try { return JSON.parse(req.body.modules ?? "{}"); }
+    catch { return {}; }
+  })();
 
   const exists = await User.findOne({ $or: [{ email }, { userName }] });
   if (exists)
@@ -128,7 +109,6 @@ export const addAdmin = asyncHandler(async (req, res) => {
   const profilePhoto = req.files?.profilePhoto?.[0]?.path ?? null;
   const orgLogo = req.files?.organizationLogo?.[0]?.path ?? null;
 
-  // Create the Organization first
   const org = await Organization.create({
     name: organizationName ?? displayName ?? email,
     type: orgType ?? "other",
@@ -139,7 +119,6 @@ export const addAdmin = asyncHandler(async (req, res) => {
     ownedBy: req.user._id,
   });
 
-  // Create the admin User — explicit field pick (never spread req.body)
   const admin = await User.create({
     email,
     userName,
@@ -157,6 +136,43 @@ export const addAdmin = asyncHandler(async (req, res) => {
 
   const safe = admin.toObject();
   delete safe.password;
+
+  // Convert org.modules { pos: true, hrm: true, payroll: false }
+  // into the string[] the email template expects: ["POS", "HRM"]
+  const MODULE_LABELS = {
+    pos:       "POS",
+    hrm:       "HRM",
+    inventory: "Inventory",
+    payroll:   "Payroll",
+    ai:        "AI Assistant",
+  };
+
+  const enabledModules = Object.entries(org.modules ?? {})
+    .filter(([, enabled]) => Boolean(enabled))
+    .map(([key]) => MODULE_LABELS[key] ?? key.toUpperCase());
+
+  // Fire-and-forget — email failure must never block or crash the response
+  sendEmail({
+    email: admin.email,
+    subject: `Welcome to OutletOps — ${org.name} is ready 🎉`,
+    customHtml: organizationOnboardingEmail({
+      adminName:        admin.displayName,
+      orgName:          org.name,
+      planName:         "Trial", // swap with real plan once billing is live
+      modules:          enabledModules.length ? enabledModules : ["HRM"],
+      createdAt:        org.createdAt,
+      orgId:            org._id.toString(),
+      adminEmail:       admin.email,
+      loginUrl:         process.env.FRONTEND_URL ?? "https://outletops.com",
+      setupChecklistUrl: process.env.FRONTEND_URL
+        ? `${process.env.FRONTEND_URL}/setup`
+        : "https://outletops.com/setup",
+      supportEmail:     "support@outletops.com",
+      year:             new Date().getFullYear(),
+    }),
+  }).catch((err) => {
+    console.error("[addAdmin] Welcome email failed:", err?.message ?? err);
+  });
 
   return res
     .status(201)

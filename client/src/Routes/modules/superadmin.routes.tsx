@@ -6,6 +6,7 @@ import RequireAuth from "../guards/RequireAuth";
 import RequirePermission from "../guards/RequirePermission";
 // ✅ Use the dedicated SuperAdmin layout — no shared code with main dashboard
 import SuperAdminLayout from "../../layouts/SuperAdmin/Index";
+import OrgOnboarding from "../../pages/SuperAdmin/CreateOrganization";
 
 const Loadable = (C: any) => (props: any) => (
   <Suspense fallback={<LoadingScreen />}>
@@ -13,11 +14,24 @@ const Loadable = (C: any) => (props: any) => (
   </Suspense>
 );
 
-const SuperAdminHome = Loadable(lazy(() => import("../../pages/SuperAdmin/SuperAdminHome")));
-const OrganizationsTable = Loadable(lazy(() => import("../../pages/SuperAdmin/OrganizationsTable")));
-const OrgDetailPage = Loadable(lazy(() => import("../../pages/SuperAdmin/OrgDetailPage")));
-const SuperAdminSettings = Loadable(lazy(() => import("../../pages/SuperAdmin/SuperAdminSettings")));
-const GlobalRolesPage = Loadable(lazy(() => import("../../pages/SuperAdmin/GlobalRolesPage")));
+const SuperAdminHome = Loadable(
+  lazy(() => import("../../pages/SuperAdmin/SuperAdminHome")),
+);
+const OrganizationsTable = Loadable(
+  lazy(() => import("../../pages/SuperAdmin/OrganizationsTable")),
+);
+const OrgDetailPage = Loadable(
+  lazy(() => import("../../pages/SuperAdmin/OrgDetailPage")),
+);
+const SuperAdminSettings = Loadable(
+  lazy(() => import("../../pages/SuperAdmin/SuperAdminSettings")),
+);
+const GlobalRolesPage = Loadable(
+  lazy(() => import("../../pages/SuperAdmin/GlobalRolesPage")),
+);
+const SuperadminInvoices = Loadable(
+  lazy(() => import("../../pages/SuperAdmin/SuperadminInvoices")),
+);
 
 const PlaceholderPage = ({ name }: { name: string }) => (
   <div style={{ padding: 48, textAlign: "center" }}>
@@ -43,6 +57,7 @@ export const superAdminRoutes = {
     { path: "dashboard", element: <SuperAdminHome /> },
     { path: "organizations", element: <OrganizationsTable /> },
     { path: "organizations/:id", element: <OrgDetailPage /> },
+    { path: "organizations/create", element: <OrgOnboarding /> },
 
     // Global Roles management
     { path: "global-roles", element: <GlobalRolesPage /> },
@@ -50,8 +65,11 @@ export const superAdminRoutes = {
     // Settings (Profile + Org Roles)
     { path: "settings", element: <SuperAdminSettings /> },
 
-    // Placeholder pages (to be built)
-    { path: "checkin", element: <PlaceholderPage name="Check-ins (Coming Soon)" /> },
-    { path: "payments", element: <PlaceholderPage name="Payments (Coming Soon)" /> },
+    // App pages
+    {
+      path: "checkin",
+      element: <PlaceholderPage name="Check-ins (Coming Soon)" />,
+    },
+    { path: "payments", element: <SuperadminInvoices /> },
   ],
 };

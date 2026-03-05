@@ -13,16 +13,42 @@ const Loadable = (C: any) => (props: any) => (
   </Suspense>
 );
 
-const MainOrgSelect = Loadable(lazy(() => import("../../pages/Admin/OrganizationList")));
-const MainDashboard = Loadable(lazy(() => import("../../pages/Admin/OrganizationDashboard")));
+const MainOrgSelect = Loadable(
+  lazy(() => import("../../pages/Admin/OrganizationList")),
+);
+const MainDashboard = Loadable(
+  lazy(() => import("../../pages/Admin/OrganizationDashboard")),
+);
 
 import { useAuthStore } from "../../Store/store";
 import Task from "../../pages/Admin/Task/Task";
-const CreateTask = Loadable(lazy(() => import("../../pages/Admin/Task/CreateTask")));
+import Voucher from "../../pages/Admin/Voucher/Voucher";
+import NotificationsPage from "../../pages/Admin/notifications/Notificationspage";
+const CreateTask = Loadable(
+  lazy(() => import("../../pages/Admin/Task/CreateTask")),
+);
 const Logs = Loadable(lazy(() => import("../../pages/Admin/Logs/Logs")));
-const OrgSettings = Loadable(lazy(() => import("../../pages/Admin/Settings/OrgSettings")));
-const AdminRolesPage = Loadable(lazy(() => import("../../pages/Admin/Roles/AdminRolesPage")));
-const AttendancePage = Loadable(lazy(() => import("../../pages/Admin/Attendance/AttendancePage")));
+const OrgSettings = Loadable(
+  lazy(() => import("../../pages/Admin/Settings/OrgSettings")),
+);
+const AdminRolesPage = Loadable(
+  lazy(() => import("../../pages/Admin/Roles/AdminRolesPage")),
+);
+const AttendancePage = Loadable(
+  lazy(() => import("../../pages/Admin/Attendance/AttendancePage")),
+);
+const EmployeeList = Loadable(
+  lazy(() => import("../../pages/Admin/Employees/EmployeeList")),
+);
+const SopList = Loadable(
+  lazy(() => import("../../pages/Admin/SOP/SopList")),
+);
+const CreateSop = Loadable(
+  lazy(() => import("../../pages/Admin/SOP/CreateSop")),
+);
+const SalaryManagement = Loadable(
+  lazy(() => import("../../pages/Admin/Salary/SalaryManagement")),
+);
 
 function ClientIndexRedirect() {
   const orgId = useAuthStore((s) => s.session?.restaurantId);
@@ -59,20 +85,28 @@ export const mainRoutes = {
         { path: "issue", element: <InProgress name="Issue raised" /> },
         { path: "request", element: <InProgress name="Request" /> },
         { path: "attendance", element: <AttendancePage /> },
-        { path: "voucher", element: <InProgress name="Vouchers" /> },
-        { path: "sop", element: <InProgress name="SOP" /> },
+        { path: "voucher", element: <Voucher /> },
+
+        // SOP routes
+        { path: "sop", element: <SopList /> },
+        { path: "sop/new", element: <CreateSop /> },
+        { path: "sop/:id/edit", element: <CreateSop /> },
+
         { path: "ai-review", element: <InProgress name="AI Review" /> },
-        { path: "salary-management", element: <InProgress name="Salary Management" /> },
+
+        // Salary Management
+        { path: "salary-management", element: <SalaryManagement /> },
+
         { path: "logs", element: <Logs /> },
 
         // Profile & Settings
-        { path: "user-profile", element: <InProgress name="User Profile" /> },
+        { path: "notifications", element: <NotificationsPage /> },
         { path: "settings", element: <OrgSettings /> },
 
         // ✅ Role management for admin
         { path: "roles", element: <AdminRolesPage /> },
+        { path: "employees", element: <EmployeeList /> },
       ],
     },
   ],
 };
-

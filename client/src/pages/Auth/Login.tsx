@@ -31,7 +31,7 @@ import {
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 
-import { loginUser, hrmManagerCheckIn } from "../../Api";
+import { loginUser, attendanceCheckIn } from "../../Api";
 import { useAuthStore } from "../../Store/store";
 import { useAppStore } from "../../Store/app.store";
 
@@ -173,12 +173,11 @@ export default function LoginAntd({ onLogin }: Props) {
       const systemRole = user?.systemRole; // "admin" | "employee" | ...
       if (systemRole === "employee") {
         try {
-          // Your API expects restaurantID; in your schema it's organizationID
-          const restaurantID = user?.organizationID?._id;
-
-          const attendanceIdRes: any = await hrmManagerCheckIn({
-            employeeId: user._id,
-            restaurantID,
+          const attendanceIdRes: any = await attendanceCheckIn({
+            lat: 0,
+            lng: 0,
+            dressCheck: true,
+            dressReason: "Auto check-in on login",
           });
 
           const attendanceId =

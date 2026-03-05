@@ -5,12 +5,6 @@ import { useAuthStore } from "../Store/store";
 
 // Create an Axios instance for API requests
 const apiClient = axios.create({
-  /**
-   * BASE URL CONFIGURATION:
-   * 1. UNIFIED DEPLOYMENT: Leave VITE_SERVER_URI blank/undefined in production.
-   *    It will fallback to "" (same-origin), which is correct for unified hosting.
-   * 2. SPLIT DEPLOYMENT: Set VITE_SERVER_URI to your backend URL (e.g., https://api.yourdomain.com).
-   */
   baseURL: import.meta.env.VITE_SERVER_URI || "",
   withCredentials: true,
   timeout: 120000,
@@ -140,6 +134,8 @@ export const getOrganization = getOrganizationById; // alias
 export const getOrganizations = () => apiClient.get(`/api/admin/organizations`);
 export const updateOrganization = (id: string, data: any) =>
   apiClient.put(`/api/admin/organizations/${id}`, data);
+export const createOrganization = (data: any) =>
+  apiClient.post(`/api/admin/admins`, data);
 export const getOrgDetail = (id: string) =>
   apiClient.get(`/api/admin/organizations/${id}/detail`);
 export const updateOrgModules = (id: string, modules: Record<string, boolean>) =>
@@ -340,8 +336,11 @@ export const hrmUpdateTask = (id: string, data: any) => {
 };
 export const hrmDeleteTask = (id: string) =>
   apiClient.delete(`/api/tasks/${id}`);
-export const hrmListSops = () => apiClient.get("/api/sops");
-export const hrmCreateSop = (data: any) => apiClient.post("/api/sops", data);
+export const hrmListSops = (params?: any) => apiClient.get("/api/sops", { params });
+export const hrmCreateSop = (data: FormData) => apiClient.post("/api/sops", data);
+export const hrmGetSopById = (id: string) => apiClient.get(`/api/sops/${id}`);
+export const hrmUpdateSop = (id: string, data: FormData) => apiClient.put(`/api/sops/${id}`, data);
+export const hrmDeleteSop = (id: string) => apiClient.delete(`/api/sops/${id}`);
 export const hrmCreateRequest = (data: any) => apiClient.post("/api/requests", data);
 
 // Financials (HRM)
@@ -349,6 +348,10 @@ export const hrmCreateSalaryRecord = (data: any) =>
   apiClient.post("/api/salary-records", data);
 export const hrmListSalaryRecords = (params?: any) =>
   apiClient.get("/api/salary-records", { params });
+export const hrmDeleteSalaryRecord = (id: string) =>
+  apiClient.delete(`/api/salary-records/${id}`);
+export const hrmGetSalaryRecord = (id: string) =>
+  apiClient.get(`/api/salary-records/${id}`);
 export const hrmRecordPayment = (data: any) =>
   apiClient.post("/api/payments", data);
 export const hrmListPayments = (params?: any) =>
@@ -369,6 +372,13 @@ export const getDashboardHome = () => apiClient.get("/api/home");
 export const fetchUserLogs = (params: any) =>
   apiClient.get("/api/logs", { params });
 export const fetchUserLogsStats = () => apiClient.get("/api/logs/stats");
+
+// Voucher APis
+export const voucherList = (params?: any) => apiClient.get("/api/vouchers", { params });
+export const voucherCreate = (data: FormData) => apiClient.post("/api/vouchers", data);
+export const voucherGetById = (id: string) => apiClient.get(`/api/vouchers/${id}`);
+export const voucherUpdate = (id: string, data: FormData) => apiClient.put(`/api/vouchers/${id}`, data);
+export const voucherDelete = (id: string) => apiClient.delete(`/api/vouchers/${id}`);
 
 // Legacy support placeholders (to prevent immediate build break if referenced)
 export const getAvailableUsers = () => Promise.resolve({ data: [] });
