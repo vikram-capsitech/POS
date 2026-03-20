@@ -129,6 +129,16 @@ const SideNav = () => {
           label: <NavLink to={`${base}/menu`}>Menu Manager</NavLink>,
         },
         {
+          key: "tables",
+          icon: (
+            <Table2
+              size={17}
+              color={activeKey === "tables" ? activeIconColor : iconColor}
+            />
+          ),
+          label: <NavLink to={`${base}/tables`}>Tables</NavLink>,
+        },
+        {
           key: "delivery",
           icon: (
             <Truck
