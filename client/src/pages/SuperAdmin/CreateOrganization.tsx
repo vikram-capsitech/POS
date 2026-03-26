@@ -264,9 +264,13 @@ const Step1OrgBasics: React.FC<Step1Props> = ({ form, onOrgTypeChange, savedOrgT
                 <Col span={12}>
                     <Form.Item name="slug" label="URL Slug" rules={[
                         { required: true, message: "Slug is required" },
-                        { pattern: /^[a-z0-9-]+$/, message: "Only lowercase, numbers, hyphens" },
-                    ]}>
-                        <Input size="large" placeholder="burger-house-delhi" addonBefore="app.yourplatform.com/" />
+                        { pattern: /^[a-z0-9-]+$/, message: "Only lowercase letters, numbers and hyphens" },
+                        { min: 3, message: "Minimum 3 characters" },
+                        { max: 60, message: "Maximum 60 characters" },
+                    ]}
+                        extra={<span style={{ fontSize: 11, color: "#6b7280" }}>Must be globally unique, e.g. <b>burger-house-delhi</b></span>}
+                    >
+                        <Input size="large" placeholder="burger-house-delhi" addonBefore="app/" />
                     </Form.Item>
                 </Col>
             </Row>

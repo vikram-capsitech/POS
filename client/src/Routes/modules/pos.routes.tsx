@@ -27,6 +27,7 @@ const ExpenseTracker = Loadable(
 );
 const DeliveryHub = Loadable(lazy(() => import("../../pages/Pos/DeliveryHub")));
 const OrderTerminal = Loadable(lazy(() => import("../../pages/Pos/OrderTerminal")));
+const TableManager = Loadable(lazy(() => import("../../pages/Pos/TableManager")));
 
 function PosIndexRedirect() {
   const { orgId } = useParams();
@@ -67,6 +68,7 @@ export const posRoutes = {
         { path: "order/:tableId", element: <OrderTerminal /> },
 
         // ── Admin management ──────────────────────────────────
+        { path: "tables", element: <TableManager /> },
         { path: "menu", element: <MenuManager /> },
         { path: "delivery", element: <DeliveryHub /> },
         { path: "expenses", element: <ExpenseTracker /> },

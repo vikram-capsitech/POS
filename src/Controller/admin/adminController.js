@@ -109,12 +109,22 @@ export const addAdmin = asyncHandler(async (req, res) => {
   const profilePhoto = req.files?.profilePhoto?.[0]?.path ?? null;
   const orgLogo = req.files?.organizationLogo?.[0]?.path ?? null;
 
+  // Check slug uniqueness before creating (gives a clean error message)
+  if (slug) {
+    const slugTaken = await Organization.findOne({ slug: slug.toLowerCase().trim() });
+    if (slugTaken) {
+      throw new ApiError(400, `The slug "${slug}" is already taken. Please choose a different one.`);
+    }
+  }
+
   const org = await Organization.create({
     name: organizationName ?? displayName ?? email,
     type: orgType ?? "other",
     address: organizationAddress ?? "",
     contactEmail: email,
     contactPhone: contactPhone ?? phoneNumber,
+    slug: slug ?? undefined,
+    modules: Object.keys(modules).length ? modules : undefined,
     logo: orgLogo,
     ownedBy: req.user._id,
   });

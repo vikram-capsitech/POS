@@ -1,11 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import {
-  Button,
-  Select,
-  Typography,
-  message,
-  theme,
-} from "antd";
+import { Button, theme } from "antd";
 import {
   ReloadOutlined,
   CheckOutlined,
@@ -14,12 +8,12 @@ import {
 } from "@ant-design/icons";
 import { getOrders, updateOrder } from "../../Api";
 import { useAuthStore } from "../../Store/store";
+import { useSingleSectionRole } from "../../Hooks/usePosRole";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { useNavigate } from "react-router-dom";
 dayjs.extend(relativeTime);
 
-const { Text } = Typography;
 const { useToken } = theme;
 
 /* ─────────────────────────────── types ─────────────────────────────────── */
@@ -40,10 +34,10 @@ type KdsOrder = {
 const ACTIVE_STATUSES = ["pending", "approved", "preparing"];
 
 const STATUS_NEXT: Record<string, string | null> = {
-  pending: "preparing",
+  pending:  "preparing",
   approved: "preparing",
   preparing: "ready",
-  ready: null,
+  ready:    null,
 };
 
 /* ──────────────────────── urgency config ────────────────────────────────── */
@@ -51,145 +45,154 @@ type Urgency = "fresh" | "hurry" | "urgent";
 
 const getUrgency = (createdAt: string): Urgency => {
   const mins = dayjs().diff(dayjs(createdAt), "minute");
-  if (mins < 5) return "fresh";
+  if (mins < 5)  return "fresh";
   if (mins < 15) return "hurry";
   return "urgent";
 };
 
-const URGENCY_PALETTE = {
-  fresh: {
-    border: "#22c55e",
-    headerBg: "#16a34a",
-    btnBg: "#15803d",
-    dot: "#22c55e",
-    label: "FRESH",
-    glow: "#22c55e44",
-  },
-  hurry: {
-    border: "#f59e0b",
-    headerBg: "#d97706",
-    btnBg: "#b45309",
-    dot: "#f59e0b",
-    label: "HURRY",
-    glow: "#f59e0b44",
-  },
-  urgent: {
-    border: "#ef4444",
-    headerBg: "#dc2626",
-    btnBg: "#b91c1c",
-    dot: "#ef4444",
-    label: "URGENT",
-    glow: "#ef444444",
-  },
-} as const;
+const URGENCY: Record<
+  Urgency,
+  { border: string; header: string; btn: string; dot: string; badge: string; label: string; glow: string }
+> = {
+  fresh:  { border:"#22c55e", header:"linear-gradient(135deg,#15803d,#16a34a)", btn:"#15803d", dot:"#22c55e", badge:"#f0fdf4", label:"FRESH",  glow:"#22c55e20" },
+  hurry:  { border:"#f59e0b", header:"linear-gradient(135deg,#b45309,#d97706)", btn:"#b45309", dot:"#f59e0b", badge:"#fffbeb", label:"HURRY",  glow:"#f59e0b20" },
+  urgent: { border:"#ef4444", header:"linear-gradient(135deg,#991b1b,#dc2626)", btn:"#b91c1c", dot:"#ef4444", badge:"#fef2f2", label:"URGENT", glow:"#ef444420" },
+};
 
-/* ──────────────────────── CSS animations ────────────────────────────────── */
-const GLOBAL_STYLES = `
-  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Syne:wght@700;800&display=swap');
+/* ────────────────── CSS animations (no colours) ─────────────────────────── */
+const KDS_CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@700&display=swap');
 
-  @keyframes kds-slide-in {
-    from { opacity: 0; transform: translateY(24px) scale(0.97); }
-    to   { opacity: 1; transform: translateY(0) scale(1); }
-  }
-  @keyframes kds-tick {
-    0%,100% { opacity: 1; }
-    50%     { opacity: 0.3; }
-  }
-  @keyframes kds-flame {
-    0%,100% { transform: scaleY(1) rotate(-2deg); }
-    50%     { transform: scaleY(1.2) rotate(2deg); }
-  }
-  @keyframes kds-badge-pop {
-    0%  { transform: scale(0.5); opacity: 0; }
-    60% { transform: scale(1.2); }
-    100%{ transform: scale(1); opacity: 1; }
-  }
-  @keyframes kds-ready-glow {
-    0%,100% { box-shadow: 0 0 0 0 #22c55e44; }
-    50%     { box-shadow: 0 0 20px 6px #22c55e44; }
-  }
+  @keyframes kds-in    { from{opacity:0;transform:translateY(18px) scale(.96)} to{opacity:1;transform:none} }
+  @keyframes kds-pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+  @keyframes kds-flame { 0%,100%{transform:scaleY(1) rotate(-3deg)} 50%{transform:scaleY(1.18) rotate(3deg)} }
+  @keyframes kds-badge { 0%{transform:scale(0);opacity:0} 60%{transform:scale(1.2)} 100%{transform:scale(1);opacity:1} }
+  @keyframes kds-ready { 0%,100%{opacity:1} 50%{opacity:.7} }
 
-  .kds-flame-icon {
-    display: inline-block;
-    animation: kds-flame 1.1s ease-in-out infinite;
-    transform-origin: bottom center;
+  * { box-sizing: border-box; }
+  .kds-root  { font-family: 'Plus Jakarta Sans', sans-serif; }
+  .kds-mono  { font-family: 'JetBrains Mono', monospace; }
+  .kds-card  { animation: kds-in .35s cubic-bezier(.22,.68,0,1.2) both; border-radius: 20px; overflow: hidden; display: flex; flex-direction: column; transition: transform .2s, box-shadow .2s; }
+  .kds-card:hover { transform: translateY(-4px); }
+  .kds-tick  { animation: kds-pulse 1.1s ease infinite; display:inline-block; }
+  .kds-flame-icon { animation: kds-flame 1s ease infinite; transform-origin: bottom center; display:inline-block; }
+  .kds-ready { animation: kds-ready 1.8s ease infinite; }
+  .kds-action-btn {
+    width:100%; height:46px; border:none; border-radius:12px;
+    font-size:14px; font-weight:800; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    transition:opacity .15s, transform .1s;
+    font-family:'Plus Jakarta Sans', sans-serif; letter-spacing:.3px;
   }
-  .kds-card {
-    animation: kds-slide-in .38s cubic-bezier(.22,.68,0,1.2) both;
-    transition: transform .2s ease, box-shadow .2s ease;
-  }
-  .kds-card:hover {
-    transform: translateY(-3px) scale(1.008);
-  }
+  .kds-action-btn:hover:not(:disabled) { opacity:.88; transform:scale(.985); }
+  .kds-action-btn:active:not(:disabled) { transform:scale(.97); }
+  .kds-action-btn:disabled { opacity:.55; cursor:not-allowed; }
 `;
 
-/* ──────────────────────── Timer component ───────────────────────────────── */
+/* ──────────────────────── Live Timer ────────────────────────────────────── */
 function LiveTimer({ createdAt, color }: { createdAt: string; color: string }) {
-  const [elapsed, setElapsed] = useState(() =>
-    dayjs().diff(dayjs(createdAt), "second")
-  );
+  const [elapsed, setElapsed] = useState(() => dayjs().diff(dayjs(createdAt), "second"));
   useEffect(() => {
-    const id = setInterval(
-      () => setElapsed(dayjs().diff(dayjs(createdAt), "second")),
-      1000
-    );
+    const id = setInterval(() => setElapsed(dayjs().diff(dayjs(createdAt), "second")), 1000);
     return () => clearInterval(id);
   }, [createdAt]);
-
   const mm = String(Math.floor(elapsed / 60)).padStart(2, "0");
   const ss = String(elapsed % 60).padStart(2, "0");
-
   return (
-    <span
-      style={{
-        fontFamily: "'JetBrains Mono', monospace",
-        fontWeight: 800,
-        fontSize: 15,
-        color,
-        letterSpacing: 1,
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 4,
-      }}
-    >
-      <span
-        style={{
-          fontSize: 8,
-          animation: "kds-tick 1.2s ease infinite",
-          display: "inline-block",
-        }}
-      >
-        ●
-      </span>
+    <span className="kds-mono" style={{ color, fontWeight:700, fontSize:15, display:"inline-flex", alignItems:"center", gap:4 }}>
+      <span className="kds-tick" style={{ fontSize:7 }}>⬤</span>
       {mm}:{ss}
     </span>
   );
 }
 
+/* ──────────────────────── Item Row ──────────────────────────────────────── */
+function ItemRow({
+  item, idx, urgency, delay, borderColor, textColor, subTextColor,
+}: {
+  item: KdsOrder["items"][0];
+  idx: number;
+  urgency: Urgency;
+  delay: number;
+  borderColor: string;
+  textColor: string;
+  subTextColor: string;
+}) {
+  const pal = URGENCY[urgency];
+  const isVeg = item.menuItem?.isVeg !== false;
+  return (
+    <div
+      style={{
+        display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:10,
+        padding:"9px 0",
+        borderBottom: idx > 0 ? `1px dashed ${borderColor}` : "none",
+        animation: `kds-badge .28s ease ${delay}ms both`,
+      }}
+    >
+      <div style={{ display:"flex", alignItems:"flex-start", gap:9, flex:1 }}>
+        {/* Veg/Non-veg dot */}
+        <div
+          style={{
+            width:10, height:10, minWidth:10, borderRadius:2, marginTop:4,
+            border:`2px solid ${isVeg ? "#22c55e" : "#ef4444"}`,
+            background: isVeg ? "#22c55e" : "#ef4444",
+          }}
+        />
+        <div>
+          <div style={{ fontWeight:800, fontSize:14, color:textColor, lineHeight:1.2 }}>
+            {item.menuItem?.name ?? "Unknown Item"}
+          </div>
+          {(item.specialRequest || item.customization) && (
+            <div
+              style={{
+                marginTop:4, paddingLeft:8,
+                borderLeft:`2.5px solid ${pal.border}88`,
+                fontSize:11, color:subTextColor, fontStyle:"italic", lineHeight:1.4,
+              }}
+            >
+              📝 {item.specialRequest || item.customization}
+            </div>
+          )}
+        </div>
+      </div>
+      {/* Qty bubble */}
+      <div
+        style={{
+          width:34, height:34, borderRadius:"50%",
+          background:pal.header, color:"#fff",
+          display:"flex", alignItems:"center", justifyContent:"center",
+          fontWeight:800, fontSize:14, flexShrink:0,
+          boxShadow:`0 2px 8px ${pal.border}55`,
+        }}
+      >
+        {item.quantity}
+      </div>
+    </div>
+  );
+}
+
 /* ──────────────────────── Order Card ────────────────────────────────────── */
 function OrderCard({
-  order,
-  index,
-  updating,
-  onAction,
-  token,
+  order, index, updating, onAction, cardBg, borderColor, textColor, subTextColor,
 }: {
   order: KdsOrder;
   index: number;
   updating: string | null;
   onAction: (o: KdsOrder) => void;
-  token: ReturnType<typeof useToken>["token"];
+  cardBg: string;
+  borderColor: string;
+  textColor: string;
+  subTextColor: string;
 }) {
   const urgency = getUrgency(order.createdAt);
-  const pal = URGENCY_PALETTE[urgency];
+  const pal = URGENCY[urgency];
   const next = STATUS_NEXT[order.status];
   const isUpdating = updating === order._id;
   const mins = dayjs().diff(dayjs(order.createdAt), "minute");
 
   const tableLabel = () => {
     if (!order.tableID) return order.orderSource ?? "Takeaway";
-    if (typeof order.tableID === "object")
-      return `T-${order.tableID.number ?? "?"}`;
+    if (typeof order.tableID === "object") return `T-${order.tableID.number ?? "?"}`;
     return `T-${order.tableID}`;
   };
 
@@ -197,272 +200,94 @@ function OrderCard({
     <div
       className="kds-card"
       style={{
-        animationDelay: `${index * 55}ms`,
-        borderRadius: 16,
+        animationDelay: `${index * 50}ms`,
         border: `2px solid ${pal.border}`,
-        background: token.colorBgContainer,
-        boxShadow: `0 4px 20px ${pal.glow}, 0 1px 4px ${(token as any).colorShadow}`,
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
+        boxShadow: `0 4px 24px ${pal.glow}`,
+        background: cardBg,
       }}
     >
-      {/* Progress strip */}
-      <div
-        style={{
-          height: 4,
-          background: token.colorFillTertiary,
-          position: "relative",
-        }}
-      >
+      {/* Progress bar */}
+      <div style={{ height:5, background:borderColor, position:"relative" }}>
         <div
           style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            height: "100%",
+            position:"absolute", top:0, left:0, height:"100%",
             width: `${Math.min((mins / 20) * 100, 100)}%`,
-            background: pal.headerBg,
-            transition: "width 1s linear",
-            borderRadius: 2,
+            background: pal.border, transition:"width 1s linear", borderRadius:2,
           }}
         />
       </div>
 
-      {/* Colored header */}
-      <div
-        style={{
-          background: pal.headerBg,
-          padding: "10px 16px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span
-            style={{
-              fontFamily: "'Syne', sans-serif",
-              fontWeight: 800,
-              fontSize: 22,
-              color: "#fff",
-              letterSpacing: -0.5,
-              lineHeight: 1,
-            }}
-          >
+      {/* Coloured header */}
+      <div style={{ background:pal.header, padding:"12px 16px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+          <div style={{ fontWeight:800, fontSize:24, color:"#fff", lineHeight:1, letterSpacing:-0.5 }}>
             {tableLabel()}
-          </span>
-          <span
-            style={{
-              fontSize: 10,
-              fontWeight: 800,
-              background: "#ffffff25",
-              color: "#fff",
-              padding: "2px 8px",
-              borderRadius: 20,
-              letterSpacing: 1.5,
-              textTransform: "uppercase",
-            }}
-          >
+          </div>
+          <span style={{ fontSize:10, fontWeight:800, padding:"2px 9px", borderRadius:20, background:"#ffffff28", color:"#fff", letterSpacing:1.5, textTransform:"uppercase" }}>
             {pal.label}
           </span>
         </div>
-        <div style={{ textAlign: "right" }}>
+        <div style={{ textAlign:"right" }}>
           <LiveTimer createdAt={order.createdAt} color="#fff" />
-          <div
-            style={{
-              fontSize: 10,
-              color: "#ffffffbb",
-              fontFamily: "'JetBrains Mono', monospace",
-              marginTop: 1,
-            }}
-          >
+          <div className="kds-mono" style={{ fontSize:10, color:"#ffffff99", marginTop:1 }}>
             #{order._id.slice(-6).toUpperCase()}
           </div>
         </div>
       </div>
 
-      {/* Status badge row */}
-      <div
-        style={{
-          padding: "8px 16px",
-          borderBottom: `1px solid ${token.colorBorderSecondary}`,
-          display: "flex",
-          gap: 8,
-          alignItems: "center",
-        }}
-      >
-        <span
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 5,
-            padding: "3px 10px",
-            borderRadius: 20,
-            border: `1.5px solid ${pal.border}`,
-            fontSize: 11,
-            fontWeight: 800,
-            color: pal.btnBg,
-            letterSpacing: 0.8,
-            textTransform: "uppercase",
-            background: `${pal.border}18`,
-          }}
-        >
+      {/* Status + count bar */}
+      <div style={{ padding:"8px 16px", borderBottom:`1px solid ${borderColor}`, display:"flex", alignItems:"center", gap:8, background:pal.badge }}>
+        <span style={{ display:"inline-flex", alignItems:"center", gap:6 }}>
           <span
             style={{
-              width: 7,
-              height: 7,
-              borderRadius: "50%",
-              background: pal.dot,
-              display: "inline-block",
-              ...(order.status === "preparing"
-                ? { animation: "kds-tick 1s ease infinite" }
-                : {}),
+              width:8, height:8, borderRadius:"50%", background:pal.dot, display:"inline-block",
+              ...(order.status === "preparing" ? { animation:"kds-pulse 1s ease infinite" } : {}),
             }}
           />
-          {order.status}
+          <span style={{ fontSize:12, fontWeight:800, color:pal.btn, textTransform:"uppercase", letterSpacing:.6 }}>
+            {order.status}
+          </span>
         </span>
-        <span
-          style={{
-            fontSize: 12,
-            color: token.colorTextSecondary,
-            marginLeft: "auto",
-          }}
-        >
+        <span style={{ marginLeft:"auto", fontSize:12, color:subTextColor, fontWeight:600 }}>
           {order.items.length} item{order.items.length !== 1 ? "s" : ""}
         </span>
       </div>
 
-      {/* Items list */}
-      <div style={{ padding: "12px 16px", flex: 1 }}>
+      {/* Items */}
+      <div style={{ padding:"12px 16px", flex:1 }}>
         {order.items.map((item, idx) => (
-          <div
+          <ItemRow
             key={idx}
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "flex-start",
-              padding: "8px 0",
-              borderBottom:
-                idx < order.items.length - 1
-                  ? `1px dashed ${token.colorBorderSecondary}`
-                  : "none",
-            }}
-          >
-            <div style={{ flex: 1 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                <div
-                  style={{
-                    width: 10,
-                    height: 10,
-                    borderRadius: "50%",
-                    border: `2px solid ${item.menuItem?.isVeg !== false ? "#22c55e" : "#ef4444"
-                      }`,
-                    background:
-                      item.menuItem?.isVeg !== false ? "#22c55e" : "#ef4444",
-                    flexShrink: 0,
-                  }}
-                />
-                <span
-                  style={{
-                    fontFamily: "'Syne', sans-serif",
-                    fontWeight: 700,
-                    fontSize: 14,
-                    color: token.colorText,
-                  }}
-                >
-                  {item.menuItem?.name ?? "Item"}
-                </span>
-              </div>
-              {(item.specialRequest || item.customization) && (
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: token.colorTextSecondary,
-                    marginTop: 2,
-                    marginLeft: 17,
-                    fontStyle: "italic",
-                    borderLeft: `2px solid ${pal.border}88`,
-                    paddingLeft: 6,
-                  }}
-                >
-                  {item.specialRequest || item.customization}
-                </div>
-              )}
-            </div>
-
-            {/* Quantity bubble */}
-            <div
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: "50%",
-                background: pal.headerBg,
-                color: "#fff",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontWeight: 800,
-                fontSize: 14,
-                fontFamily: "'JetBrains Mono', monospace",
-                flexShrink: 0,
-                animation: `kds-badge-pop 0.3s ease ${index * 60 + idx * 40 + 200
-                  }ms both`,
-                boxShadow: `0 2px 8px ${pal.border}55`,
-              }}
-            >
-              {item.quantity}
-            </div>
-          </div>
+            item={item}
+            idx={idx}
+            urgency={urgency}
+            delay={index * 50 + idx * 30 + 150}
+            borderColor={borderColor}
+            textColor={textColor}
+            subTextColor={subTextColor}
+          />
         ))}
       </div>
 
       {/* CTA */}
-      <div style={{ padding: "12px 16px", paddingTop: 0 }}>
+      <div style={{ padding:"10px 16px 14px" }}>
         {next ? (
-          <Button
-            type="primary"
-            loading={isUpdating}
+          <button
+            className="kds-action-btn"
+            disabled={isUpdating}
             onClick={() => onAction(order)}
-            icon={
-              next === "preparing" ? (
-                <ThunderboltOutlined />
-              ) : (
-                <CheckOutlined />
-              )
-            }
-            style={{
-              width: "100%",
-              height: 44,
-              borderRadius: 12,
-              background: isUpdating
-                ? undefined
-                : `linear-gradient(135deg, ${pal.btnBg}, ${pal.headerBg})`,
-              border: "none",
-              fontWeight: 800,
-              fontSize: 14,
-              fontFamily: "'Syne', sans-serif",
-              letterSpacing: 0.4,
-              boxShadow: `0 4px 14px ${pal.border}55`,
-            }}
+            style={{ background:pal.header, color:"#fff", boxShadow:`0 4px 14px ${pal.border}55` }}
           >
-            {next === "preparing" ? "Start Preparing" : "Mark Ready"}
-          </Button>
+            {isUpdating ? <>⏳ Updating…</> : next === "preparing" ? <><ThunderboltOutlined /> Start Cooking</> : <><CheckOutlined /> Mark Ready</>}
+          </button>
         ) : (
           <div
+            className="kds-ready"
             style={{
-              width: "100%",
-              padding: "11px 0",
-              borderRadius: 12,
-              background: "linear-gradient(135deg, #16a34a, #22c55e)",
-              color: "#fff",
-              fontWeight: 800,
-              fontSize: 14,
-              fontFamily: "'Syne', sans-serif",
-              textAlign: "center",
-              letterSpacing: 0.5,
-              boxShadow: "0 4px 16px #22c55e55",
-              animation: "kds-ready-glow 2s ease infinite",
+              padding:"12px 0", borderRadius:12,
+              background:"linear-gradient(135deg,#15803d,#22c55e)",
+              color:"#fff", fontWeight:800, fontSize:14, textAlign:"center",
+              boxShadow:"0 4px 16px #22c55e55",
             }}
           >
             ✓ Ready for Pickup
@@ -475,56 +300,25 @@ function OrderCard({
 
 /* ──────────────────────── Stat Chip ─────────────────────────────────────── */
 function StatChip({
-  count,
-  label,
-  color,
-  icon,
-  token,
+  count, label, icon, color, glowColor, chipBg, borderColor,
 }: {
-  count: number;
-  label: string;
-  color: string;
-  icon: string;
-  token: ReturnType<typeof useToken>["token"];
+  count: number; label: string; icon: React.ReactNode;
+  color: string; glowColor: string;
+  chipBg: string; borderColor: string;
 }) {
   return (
     <div
       style={{
-        background: token.colorBgElevated,
-        border: `1.5px solid ${color}40`,
-        borderRadius: 14,
-        padding: "10px 18px",
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-        minWidth: 110,
-        boxShadow: token.boxShadowTertiary,
+        padding:"14px 18px", borderRadius:16, display:"flex", alignItems:"center", gap:12,
+        background: chipBg,
+        border: `1.5px solid ${borderColor}`,
+        boxShadow: `0 2px 12px ${glowColor}`,
       }}
     >
-      <span style={{ fontSize: 20 }}>{icon}</span>
+      <div style={{ fontSize:20 }}>{icon}</div>
       <div>
-        <div
-          style={{
-            fontSize: 22,
-            fontWeight: 800,
-            color,
-            fontFamily: "'JetBrains Mono', monospace",
-            lineHeight: 1,
-          }}
-        >
-          {count}
-        </div>
-        <div
-          style={{
-            fontSize: 10,
-            fontWeight: 700,
-            color: token.colorTextSecondary,
-            textTransform: "uppercase",
-            letterSpacing: 1,
-          }}
-        >
-          {label}
-        </div>
+        <div className="kds-mono" style={{ fontSize:24, fontWeight:700, color, lineHeight:1 }}>{count}</div>
+        <div style={{ fontSize:11, fontWeight:700, color, textTransform:"uppercase", letterSpacing:1, marginTop:2, opacity:.7 }}>{label}</div>
       </div>
     </div>
   );
@@ -537,11 +331,16 @@ export default function KitchenDisplay() {
   const clearSession = useAuthStore((s) => s.clearSession);
   const navigate = useNavigate();
 
-  const [orders, setOrders] = useState<KdsOrder[]>([]);
+  // Show inline Logout only for single-section roles (kitchen / waiter staff)
+  // who have no sidebar navigation to exit from.
+  const { isSingleSectionRole } = useSingleSectionRole();
+
+  const [orders, setOrders]   = useState<KdsOrder[]>([]);
   const [loading, setLoading] = useState(false);
   const [updating, setUpdating] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
-  const [lastRefresh, setLastRefresh] = useState<string>("");
+  const [statusFilter,   setStatusFilter]   = useState<string>("all");
+  const [lastRefresh,    setLastRefresh]     = useState<string>("");
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [, setTick] = useState(0);
 
@@ -553,11 +352,8 @@ export default function KitchenDisplay() {
       const all: KdsOrder[] = res?.data?.data ?? res?.data ?? [];
       setOrders(all.filter((o) => ACTIVE_STATUSES.includes(o.status)));
       setLastRefresh(dayjs().format("hh:mm:ss A"));
-    } catch {
-      // silent
-    } finally {
-      setLoading(false);
-    }
+    } catch { /* silent */ }
+    finally { setLoading(false); }
   }, [restaurantId]);
 
   useEffect(() => {
@@ -576,337 +372,200 @@ export default function KitchenDisplay() {
     setUpdating(order._id);
     try {
       await updateOrder(order._id, { status: next });
-      message.success(
-        <span>
-          Order <b>{order._id.slice(-6).toUpperCase()}</b> → <b>{next}</b>
-        </span>
-      );
       fetchOrders();
     } catch {
-      message.error("Failed to update status");
+      /* silent */
     } finally {
       setUpdating(null);
     }
   };
 
+  /* ── Derived ── */
   const allCategories = Array.from(
-    new Set(
-      orders.flatMap((o) =>
-        o.items.map((i) => i.menuItem?.category ?? "Uncategorized")
-      )
-    )
+    new Set(orders.flatMap((o) => o.items.map((i) => i.menuItem?.category ?? "Uncategorized")))
   );
-
   const displayed = orders
     .filter((o) => {
-      if (categoryFilter === "all") return true;
-      return o.items.some(
-        (i) => (i.menuItem?.category ?? "Uncategorized") === categoryFilter
-      );
+      const okCat = categoryFilter === "all" || o.items.some((i) => (i.menuItem?.category ?? "Uncategorized") === categoryFilter);
+      const okSt  = statusFilter === "all" || o.status === statusFilter;
+      return okCat && okSt;
     })
-    .sort(
-      (a, b) => dayjs(a.createdAt).valueOf() - dayjs(b.createdAt).valueOf()
-    );
+    .sort((a, b) => dayjs(a.createdAt).valueOf() - dayjs(b.createdAt).valueOf());
 
   const counts = {
-    pending: orders.filter(
-      (o) => o.status === "pending" || o.status === "approved"
-    ).length,
-    preparing: orders.filter((o) => o.status === "preparing").length,
-    urgent: orders.filter((o) => getUrgency(o.createdAt) === "urgent").length,
+    pending: orders.filter((o) => o.status === "pending" || o.status === "approved").length,
+    cooking: orders.filter((o) => o.status === "preparing").length,
+    urgent:  orders.filter((o) => getUrgency(o.createdAt) === "urgent").length,
   };
+  const statusList = Array.from(new Set(orders.map((o) => o.status)));
+
+  /* ── Theme-aware colour aliases ── */
+  const bg        = token.colorBgLayout;
+  const headerBg  = token.colorBgContainer;
+  const cardBg    = token.colorBgContainer;
+  const chipBg    = token.colorBgElevated;
+  const textColor = token.colorText;
+  const subText   = token.colorTextSecondary;
+  const borderCol = token.colorBorderSecondary;
+  const selectBg  = token.colorFillQuaternary;
+  const selectBorder = token.colorBorder;
+  const selectColor  = token.colorText;
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: token.colorBgLayout,
-        fontFamily: "'Syne', 'JetBrains Mono', sans-serif",
-        color: token.colorText,
-        position: "relative",
-      }}
-    >
-      <style>{GLOBAL_STYLES}</style>
+    <div className="kds-root" style={{ minHeight:"100vh", background:bg, color:textColor }}>
+      <style>{KDS_CSS}</style>
 
-      {/* Subtle grid texture */}
+      {/* ── Sticky Header ── */}
       <div
         style={{
-          position: "fixed",
-          inset: 0,
-          backgroundImage: `
-            linear-gradient(${token.colorBorderSecondary} 1px, transparent 1px),
-            linear-gradient(90deg, ${token.colorBorderSecondary} 1px, transparent 1px)
-          `,
-          backgroundSize: "40px 40px",
-          pointerEvents: "none",
-          zIndex: 0,
-          opacity: 0.5,
+          position:"sticky", top:0, zIndex:50,
+          background: headerBg,
+          borderBottom: `1px solid ${borderCol}`,
+          boxShadow: `0 2px 12px #00000012`,
         }}
-      />
-
-      <div style={{ position: "relative", zIndex: 1, padding: "16px 24px" }}>
-
-        {/* ── HEADER ── */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            flexWrap: "wrap",
-            gap: 12,
-            marginBottom: 20,
-            padding: "12px 16px",
-            borderRadius: 16,
-            background: token.colorBgContainer,
-            border: `1px solid ${token.colorBorderSecondary}`,
-            boxShadow: token.boxShadowTertiary,
-          }}
-        >
-          {/* Left: Brand + live status */}
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <span className="kds-flame-icon" style={{ fontSize: 28 }}>🔥</span>
+      >
+        {/* Top row */}
+        <div style={{ padding:"14px 24px", display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:12 }}>
+          {/* Brand */}
+          <div style={{ display:"flex", alignItems:"center", gap:14 }}>
+            <div style={{ fontSize:28 }} className="kds-flame-icon">🔥</div>
             <div>
-              <div
-                style={{
-                  fontFamily: "'Syne', sans-serif",
-                  fontWeight: 800,
-                  fontSize: 20,
-                  color: token.colorText,
-                  letterSpacing: -0.8,
-                  lineHeight: 1.1,
-                }}
-              >
+              <div style={{ fontWeight:800, fontSize:19, letterSpacing:-0.5, color:textColor, lineHeight:1 }}>
                 Kitchen Display
               </div>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  marginTop: 3,
-                }}
-              >
-                <span
-                  style={{
-                    display: "inline-block",
-                    width: 7,
-                    height: 7,
-                    borderRadius: "50%",
-                    background: loading ? "#f59e0b" : "#22c55e",
-                    animation: "kds-tick 1.2s ease infinite",
-                  }}
-                />
-                <Text
-                  style={{
-                    fontSize: 11,
-                    color: token.colorTextSecondary,
-                    fontFamily: "'JetBrains Mono', monospace",
-                  }}
-                >
-                  {loading
-                    ? "Syncing…"
-                    : `Live · Last sync ${lastRefresh || "—"}`}
-                </Text>
+              <div style={{ display:"flex", alignItems:"center", gap:6, marginTop:3 }}>
+                <span className="kds-tick" style={{ width:7, height:7, borderRadius:"50%", background:loading ? "#f59e0b" : "#22c55e", display:"inline-block" }} />
+                <span className="kds-mono" style={{ fontSize:11, color:subText }}>
+                  {loading ? "Syncing…" : `Live · ${lastRefresh || "—"}`}
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Right: Controls */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              flexWrap: "wrap",
-            }}
-          >
-            <Select
+          {/* Controls */}
+          <div style={{ display:"flex", alignItems:"center", gap:10, flexWrap:"wrap" }}>
+            {/* Category filter */}
+            <select
               value={categoryFilter}
-              onChange={setCategoryFilter}
-              style={{ width: 160 }}
-              options={[
-                { label: "All Categories", value: "all" },
-                ...allCategories.map((c) => ({ label: c, value: c })),
-              ]}
-            />
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              style={{
+                padding:"7px 12px", borderRadius:10,
+                border:`1.5px solid ${selectBorder}`,
+                background:selectBg, color:selectColor,
+                fontSize:13, fontWeight:600, cursor:"pointer", outline:"none",
+              }}
+            >
+              <option value="all">All Categories</option>
+              {allCategories.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+
+            {/* Status filter */}
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              style={{
+                padding:"7px 12px", borderRadius:10,
+                border:`1.5px solid ${selectBorder}`,
+                background:selectBg, color:selectColor,
+                fontSize:13, fontWeight:600, cursor:"pointer", outline:"none",
+              }}
+            >
+              <option value="all">All Statuses</option>
+              {statusList.map((s) => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
+            </select>
+
             <Button
               icon={<ReloadOutlined />}
               onClick={fetchOrders}
               loading={loading}
+              style={{ borderRadius:10 }}
             >
               Refresh
             </Button>
-            <Button
-              icon={<LogoutOutlined />}
-              danger
-              onClick={() => {
-                clearSession();
-                navigate("/auth/login");
-              }}
-            >
-              Logout
-            </Button>
+            {isSingleSectionRole && (
+              <Button
+                icon={<LogoutOutlined />}
+                danger
+                onClick={() => { clearSession(); navigate("/auth/login"); }}
+                style={{ borderRadius:10 }}
+              >
+                Logout
+              </Button>
+            )}
           </div>
         </div>
 
-        {/* ── STATS ROW ── */}
-        <div
-          style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}
-        >
-          <StatChip
-            count={displayed.length}
-            label="Active"
-            color={token.colorPrimary}
-            icon="📋"
-            token={token}
-          />
-          <StatChip
-            count={counts.pending}
-            label="Pending"
-            color="#f59e0b"
-            icon="⏳"
-            token={token}
-          />
-          <StatChip
-            count={counts.preparing}
-            label="Cooking"
-            color="#22c55e"
-            icon="👨‍🍳"
-            token={token}
-          />
+        {/* Stats bar */}
+        <div style={{ padding:"10px 24px 14px", display:"flex", gap:12, flexWrap:"wrap", borderTop:`1px solid ${borderCol}`, background:bg }}>
+          <StatChip count={displayed.length} label="Active"   icon="📋" color="#6366f1" glowColor="#6366f120" chipBg={chipBg} borderColor={`#6366f130`} />
+          <StatChip count={counts.pending}   label="Pending"  icon="⏳" color="#f59e0b" glowColor="#f59e0b20" chipBg={chipBg} borderColor={`#f59e0b30`} />
+          <StatChip count={counts.cooking}   label="Cooking"  icon="👨‍🍳" color="#22c55e" glowColor="#22c55e20" chipBg={chipBg} borderColor={`#22c55e30`} />
           {counts.urgent > 0 && (
-            <StatChip
-              count={counts.urgent}
-              label="Urgent!"
-              color="#ef4444"
-              icon="🚨"
-              token={token}
-            />
+            <StatChip count={counts.urgent}  label="⚠ Urgent" icon="🚨" color="#ef4444" glowColor="#ef444420" chipBg={chipBg} borderColor={`#ef444430`} />
           )}
-        </div>
 
-        {/* ── LEGEND ── */}
-        <div
-          style={{
-            display: "flex",
-            gap: 20,
-            marginBottom: 20,
-            padding: "10px 16px",
-            background: token.colorBgContainer,
-            borderRadius: 12,
-            border: `1px solid ${token.colorBorderSecondary}`,
-            flexWrap: "wrap",
-            alignItems: "center",
-          }}
-        >
-          <Text
-            style={{
-              fontSize: 11,
-              fontWeight: 700,
-              color: token.colorTextTertiary,
-              letterSpacing: 1,
-              textTransform: "uppercase",
-            }}
-          >
-            Urgency:
-          </Text>
-          {(
-            [
-              { u: "fresh", label: "< 5 min · Fresh" },
-              { u: "hurry", label: "5–15 min · Hurry" },
-              { u: "urgent", label: "> 15 min · Urgent!" },
-            ] as const
-          ).map(({ u, label }) => (
-            <div
-              key={u}
-              style={{ display: "flex", alignItems: "center", gap: 7 }}
-            >
-              <div
-                style={{
-                  width: 12,
-                  height: 12,
-                  borderRadius: 3,
-                  background: URGENCY_PALETTE[u].headerBg,
-                }}
-              />
-              <Text style={{ fontSize: 12, color: token.colorTextSecondary }}>
-                {label}
-              </Text>
-            </div>
-          ))}
-        </div>
-
-        {/* ── CARDS GRID ── */}
-        {loading && orders.length === 0 ? (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              height: 380,
-            }}
-          >
-            <div style={{ textAlign: "center" }}>
-              <span className="kds-flame-icon" style={{ fontSize: 52 }}>
-                🔥
-              </span>
-              <div
-                style={{
-                  color: token.colorTextSecondary,
-                  marginTop: 16,
-                  fontSize: 14,
-                }}
-              >
-                Loading orders…
+          {/* Urgency legend */}
+          <div style={{ marginLeft:"auto", display:"flex", gap:16, alignItems:"center", flexWrap:"wrap" }}>
+            <span style={{ fontSize:11, color:subText, fontWeight:700, textTransform:"uppercase", letterSpacing:1 }}>Urgency:</span>
+            {(["fresh", "hurry", "urgent"] as Urgency[]).map((u) => (
+              <div key={u} style={{ display:"flex", alignItems:"center", gap:6 }}>
+                <div style={{ width:11, height:11, borderRadius:3, background:URGENCY[u].border }} />
+                <span style={{ fontSize:12, color:subText, fontWeight:600 }}>
+                  {u === "fresh" ? "< 5 min" : u === "hurry" ? "5–15 min" : "> 15 min"}
+                </span>
               </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Main content ── */}
+      <div style={{ padding:"24px" }}>
+        {loading && orders.length === 0 ? (
+          <div style={{ display:"flex", justifyContent:"center", alignItems:"center", height:"60vh" }}>
+            <div style={{ textAlign:"center" }}>
+              <div className="kds-flame-icon" style={{ fontSize:56 }}>🔥</div>
+              <div style={{ color:subText, marginTop:18, fontSize:16, fontWeight:600 }}>Loading orders…</div>
             </div>
           </div>
         ) : displayed.length === 0 ? (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              height: 380,
-            }}
-          >
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 56, marginBottom: 12 }}>✅</div>
-              <div
-                style={{
-                  fontFamily: "'Syne', sans-serif",
-                  fontWeight: 800,
-                  fontSize: 22,
-                  color: "#22c55e",
-                  marginBottom: 8,
-                }}
-              >
-                Kitchen is Clear!
+          <div style={{ display:"flex", justifyContent:"center", alignItems:"center", height:"60vh" }}>
+            <div style={{ textAlign:"center" }}>
+              <div style={{ fontSize:64, marginBottom:16 }}>✅</div>
+              <div style={{ fontWeight:800, fontSize:26, color:"#22c55e", marginBottom:8 }}>Kitchen is Clear!</div>
+              <div style={{ fontSize:15, color:subText }}>
+                {orders.length > 0 ? "No orders match the current filters." : "No active orders — well done, team! 👏"}
               </div>
-              <Text type="secondary" style={{ fontSize: 14 }}>
-                No active orders — well done, team 👏
-              </Text>
             </div>
           </div>
         ) : (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-              gap: 20,
-            }}
-          >
-            {displayed.map((order, index) => (
-              <OrderCard
-                key={order._id}
-                order={order}
-                index={index}
-                updating={updating}
-                onAction={handleAction}
-                token={token}
-              />
-            ))}
-          </div>
+          <>
+            {/* Results header */}
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:20 }}>
+              <div style={{ fontWeight:700, fontSize:14, color:subText }}>
+                Showing <span style={{ color:textColor, fontWeight:800 }}>{displayed.length}</span> order{displayed.length !== 1 ? "s" : ""}
+                {categoryFilter !== "all" && <> · <span style={{ color:"#6366f1" }}>{categoryFilter}</span></>}
+              </div>
+              <div style={{ fontSize:12, color:subText }}>Auto-refresh every 30 s</div>
+            </div>
+
+            {/* Cards grid */}
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(290px, 1fr))", gap:20 }}>
+              {displayed.map((order, index) => (
+                <OrderCard
+                  key={order._id}
+                  order={order}
+                  index={index}
+                  updating={updating}
+                  onAction={handleAction}
+                  cardBg={cardBg}
+                  borderColor={borderCol}
+                  textColor={textColor}
+                  subTextColor={subText}
+                />
+              ))}
+            </div>
+          </>
         )}
       </div>
     </div>

@@ -19,6 +19,7 @@ import {
   message,
   Popconfirm,
   Divider,
+  theme,
 } from "antd";
 import {
   PlusOutlined,
@@ -43,6 +44,7 @@ import type { ColumnsType } from "antd/es/table";
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
+const { useToken } = theme;
 
 type Expense = {
   _id: string;
@@ -75,6 +77,7 @@ const PAYMENT_ICONS: Record<string, string> = {
 const money = (n: number) => `₹${Number(n || 0).toLocaleString("en-IN")}`;
 
 export default function ExpenseTracker() {
+  const { token } = useToken();
   const restaurantId = useAuthStore((s) => s.session.restaurantId);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [byCategory, setByCategory] = useState<
@@ -207,7 +210,7 @@ export default function ExpenseTracker() {
       key: "amount",
       width: 120,
       render: (v) => (
-        <Text strong style={{ color: "#ff4d4f" }}>
+        <Text strong style={{ color: token.colorError }}>
           {money(v)}
         </Text>
       ),
@@ -235,10 +238,10 @@ export default function ExpenseTracker() {
   ];
 
   return (
-    <div style={{ padding: 20, background: "#f5f7fa", minHeight: "100vh" }}>
+    <div style={{ padding: 20, background: token.colorBgLayout, minHeight: "100vh" }}>
       <Flex justify="space-between" align="center" style={{ marginBottom: 20 }}>
         <Flex gap={10} align="center">
-          <WalletOutlined style={{ fontSize: 24, color: "#722ed1" }} />
+          <WalletOutlined style={{ fontSize: 24, color: token.colorPrimary }} />
           <Title level={4} style={{ margin: 0 }}>
             Expense Tracker
           </Title>
@@ -264,48 +267,45 @@ export default function ExpenseTracker() {
       {/* Summary cards */}
       <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
         {[
-          {
-            title: "Period Total",
-            value: money(totals.total),
-            bg: "linear-gradient(135deg,#f093fb,#f5576c)",
-            icon: "💸",
-          },
-          {
-            title: "Today's Expenses",
-            value: money(totals.today),
-            bg: "linear-gradient(135deg,#4facfe,#00f2fe)",
-            icon: "📅",
-          },
-          {
-            title: "Top Category",
-            value: totals.topCategory,
-            bg: "linear-gradient(135deg,#43e97b,#38f9d7)",
-            icon: "📊",
-          },
-          {
-            title: "Transactions",
-            value: expenses.length,
-            bg: "linear-gradient(135deg,#fa709a,#fee140)",
-            icon: "🧾",
-          },
+          { title: "Period Total",     value: money(totals.total),    icon: "💸", accentColor: token.colorPrimary },
+          { title: "Today's Expenses", value: money(totals.today),    icon: "📅", accentColor: token.colorInfo },
+          { title: "Top Category",     value: totals.topCategory,     icon: "📊", accentColor: token.colorSuccess },
+          { title: "Transactions",     value: expenses.length,        icon: "🧾", accentColor: token.colorWarning },
         ].map((s, i) => (
           <Col xs={24} sm={12} lg={6} key={i}>
             <Card
-              style={{ borderRadius: 14, background: s.bg, border: "none" }}
+              style={{
+                borderRadius: 14,
+                background: token.colorBgContainer,
+                border: `1.5px solid ${token.colorBorderSecondary}`,
+                overflow: "hidden",
+                position: "relative",
+              }}
               styles={{ body: { padding: "18px 22px" } }}
             >
-              <Text
-                style={{
-                  color: "rgba(255,255,255,0.85)",
-                  fontSize: 13,
-                  display: "block",
-                }}
-              >
-                {s.icon} {s.title}
-              </Text>
-              <Text strong style={{ color: "#fff", fontSize: 26 }}>
-                {s.value}
-              </Text>
+              {/* Left accent bar */}
+              <div style={{
+                position: "absolute", left: 0, top: 0, bottom: 0,
+                width: 4, background: s.accentColor,
+                borderRadius: "14px 0 0 14px",
+              }} />
+              <div style={{ marginLeft: 8 }}>
+                <Flex justify="space-between" align="flex-start">
+                  <Statistic
+                    title={<Text type="secondary" style={{ fontSize: 12, fontWeight: 600 }}>{s.icon} {s.title}</Text>}
+                    value={s.value}
+                    valueStyle={{ color: token.colorText, fontSize: 24, fontWeight: 800 }}
+                  />
+                  <div style={{
+                    width: 38, height: 38, borderRadius: 10,
+                    background: `${s.accentColor}18`,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 18, flexShrink: 0,
+                  }}>
+                    {s.icon}
+                  </div>
+                </Flex>
+              </div>
             </Card>
           </Col>
         ))}

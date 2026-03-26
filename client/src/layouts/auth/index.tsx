@@ -2,7 +2,7 @@
 import React from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { Layout, Space } from "antd";
-import Background from "../../Assets/Images/Background.png";
+// Background image removed (file not present in repo)
 import { useAuthStore } from "../../Store/store";
 
 const { Content } = Layout;
@@ -45,7 +45,7 @@ const AuthLayout: React.FC = () => {
     background:
       "linear-gradient(180deg, #F4F9FF 0%, #FBFBFB 47.23%, #F4F9FF 101.21%)",
     paddingTop: 100,
-    backgroundImage: `url(${Background})`,
+    // backgroundImage: removed — Background.png not in repo
     backgroundSize: "cover",
     backgroundPosition: "center",
     backgroundRepeat: "no-repeat",

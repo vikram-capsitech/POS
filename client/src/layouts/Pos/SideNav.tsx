@@ -119,6 +119,16 @@ const SideNav = () => {
       ),
       children: [
         {
+          key: "tables",
+          icon: (
+            <Table2
+              size={17}
+              color={activeKey === "tables" ? activeIconColor : iconColor}
+            />
+          ),
+          label: <NavLink to={`${base}/tables`}>Table Manager</NavLink>,
+        },
+        {
           key: "menu",
           icon: (
             <MenuIcon

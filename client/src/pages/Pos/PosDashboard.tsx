@@ -18,6 +18,7 @@ import {
   message,
   Divider,
   Avatar,
+  theme,
 } from "antd";
 import {
   DollarOutlined,
@@ -51,17 +52,23 @@ import type { ColumnsType } from "antd/es/table";
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
+const { useToken } = theme;
 
 // ── Role-Based Redirect ───────────────────────────────────────────────────────
 export default function PosDashboard() {
   const role = useAuthStore((s) => s.session.role);
+  const orgAccess = useAuthStore((s) => s.session.orgAccess);
+  const restaurantId = useAuthStore((s) => s.session.restaurantId);
   const { orgId } = useParams();
+  const effectiveOrgId = orgId || restaurantId || "";
+  const roleName = orgAccess?.[effectiveOrgId]?.roleName?.toLowerCase() || "";
+  const effectiveRole = role?.toLowerCase() || roleName;
 
   // Redirect waiter/employee/kitchen roles to their specific view
-  if (role === "waiter" || role === "employee")
-    return <Navigate to={`/pos/${orgId}/waiter`} replace />;
-  if (role === "kitchen")
-    return <Navigate to={`/pos/${orgId}/kitchen`} replace />;
+  if (effectiveRole === "waiter" || effectiveRole === "employee")
+    return <Navigate to={`/pos/${effectiveOrgId}/waiter`} replace />;
+  if (effectiveRole === "kitchen")
+    return <Navigate to={`/pos/${effectiveOrgId}/kitchen`} replace />;
 
   // Admin/Manager → full dashboard
   return <AdminPosDashboard />;
@@ -122,6 +129,7 @@ const SOURCE_LABELS: Record<string, string> = {
 
 // ── Admin Dashboard ───────────────────────────────────────────────────────────
 function AdminPosDashboard() {
+  const { token } = useToken();
   const { orgId } = useParams();
   const restaurantId = useAuthStore((s) => s.session.restaurantId);
 
@@ -319,53 +327,18 @@ function AdminPosDashboard() {
     },
   ];
 
-  const GRADIENT_CARDS = [
-    {
-      title: "Revenue",
-      value: money(kpis.revenue),
-      icon: <DollarOutlined />,
-      bg: "linear-gradient(135deg,#667eea,#764ba2)",
-    },
-    {
-      title: "Orders",
-      value: kpis.count,
-      icon: <ShoppingCartOutlined />,
-      bg: "linear-gradient(135deg,#11998e,#38ef7d)",
-    },
-    {
-      title: "Avg Order",
-      value: money(kpis.aov),
-      icon: <RiseOutlined />,
-      bg: "linear-gradient(135deg,#4facfe,#00f2fe)",
-    },
-    {
-      title: "Active Orders",
-      value: kpis.activeOrders,
-      icon: <FireOutlined />,
-      bg: "linear-gradient(135deg,#f093fb,#f5576c)",
-    },
-    {
-      title: "Occupancy",
-      value: `${kpis.occupancyPct}%`,
-      icon: <TableOutlined />,
-      bg: "linear-gradient(135deg,#fa709a,#fee140)",
-    },
-    {
-      title: "Expenses",
-      value: money(kpis.totalExpenses),
-      icon: <WalletOutlined />,
-      bg: "linear-gradient(135deg,#30cfd0,#330867)",
-    },
+  // Theme-aware KPI card data (semantic accent colours)
+  const KPI_CARDS = [
+    { title: "Revenue",       value: money(kpis.revenue),       icon: <DollarOutlined />,       accentColor: token.colorPrimary },
+    { title: "Orders",        value: kpis.count,                icon: <ShoppingCartOutlined />,  accentColor: token.colorInfo },
+    { title: "Avg Order",     value: money(kpis.aov),           icon: <RiseOutlined />,          accentColor: token.colorSuccess },
+    { title: "Active Orders", value: kpis.activeOrders,         icon: <FireOutlined />,          accentColor: token.colorWarning },
+    { title: "Occupancy",     value: `${kpis.occupancyPct}%`,  icon: <TableOutlined />,         accentColor: token.colorError },
+    { title: "Expenses",      value: money(kpis.totalExpenses), icon: <WalletOutlined />,        accentColor: token.colorTextSecondary },
   ];
 
   return (
-    <div
-      style={{
-        padding: "16px 20px",
-        background: "#f5f7fa",
-        minHeight: "100vh",
-      }}
-    >
+    <div style={{ padding: "16px 20px", background: token.colorBgLayout, minHeight: "100vh" }}>
       {/* Header */}
       <Flex
         justify="space-between"
@@ -412,26 +385,41 @@ function AdminPosDashboard() {
 
       {/* KPI Row */}
       <Row gutter={[14, 14]} style={{ marginBottom: 20 }}>
-        {GRADIENT_CARDS.map((c, i) => (
+        {KPI_CARDS.map((c, i) => (
           <Col xs={24} sm={12} lg={4} key={i}>
             <Card
-              style={{ borderRadius: 14, background: c.bg, border: "none" }}
+              style={{
+                borderRadius: 14,
+                background: token.colorBgContainer,
+                border: `1.5px solid ${token.colorBorderSecondary}`,
+                overflow: "hidden",
+                position: "relative",
+              }}
               styles={{ body: { padding: "16px 18px" } }}
             >
-              <Statistic
-                title={
-                  <Text
-                    style={{ color: "rgba(255,255,255,0.85)", fontSize: 12 }}
-                  >
-                    {c.title}
-                  </Text>
-                }
-                value={c.value}
-                prefix={React.cloneElement(c.icon, {
-                  style: { color: "rgba(255,255,255,0.8)" },
-                })}
-                valueStyle={{ color: "#fff", fontSize: 22, fontWeight: 700 }}
-              />
+              {/* Left accent bar */}
+              <div style={{
+                position: "absolute", left: 0, top: 0, bottom: 0,
+                width: 4, background: c.accentColor,
+                borderRadius: "14px 0 0 14px",
+              }} />
+              <div style={{ marginLeft: 8 }}>
+                <Flex justify="space-between" align="flex-start">
+                  <Statistic
+                    title={<Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>{c.title}</Text>}
+                    value={c.value}
+                    valueStyle={{ color: token.colorText, fontSize: 20, fontWeight: 700 }}
+                  />
+                  <div style={{
+                    width: 36, height: 36, borderRadius: 9,
+                    background: `${c.accentColor}18`,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 16, color: c.accentColor, flexShrink: 0,
+                  }}>
+                    {c.icon}
+                  </div>
+                </Flex>
+              </div>
             </Card>
           </Col>
         ))}
@@ -478,7 +466,7 @@ function AdminPosDashboard() {
                 <Bar
                   dataKey="qty"
                   name="Qty Sold"
-                  fill="#667eea"
+                  fill={token.colorPrimary}
                   radius={[4, 4, 0, 0]}
                 />
               </BarChart>

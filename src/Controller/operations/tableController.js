@@ -13,13 +13,13 @@ const createTable = asyncHandler(async (req, res) => {
     throw new ApiError(400, "number and seats are required");
 
   const exists = await Table.findOne({
-    organizationID: req.organizationID,
+    organizationID: req.user.organizationID,
     number,
   });
   if (exists) throw new ApiError(400, `Table number ${number} already exists`);
 
   const table = await Table.create({
-    organizationID: req.organizationID,
+    organizationID: req.user.organizationID,
     number,
     seats,
     floor,
@@ -43,7 +43,7 @@ const createTable = asyncHandler(async (req, res) => {
 // ─────────────────────────────────────────────
 const getAllTables = asyncHandler(async (req, res) => {
   const { status, floor } = req.query;
-  const query = { organizationID: req.organizationID };
+  const query = { organizationID: req.user.organizationID };
   if (status) query.status = status;
   if (floor) query.floor = floor;
 
@@ -147,7 +147,7 @@ const createBulkTables = asyncHandler(async (req, res) => {
 
   const numbers = tables.map((t) => t.number);
   const existingNums = await Table.distinct("number", {
-    organizationID: req.organizationID,
+    organizationID: req.user.organizationID,
     number: { $in: numbers },
   });
   if (existingNums.length) {
@@ -155,7 +155,7 @@ const createBulkTables = asyncHandler(async (req, res) => {
   }
 
   const created = await Table.insertMany(
-    tables.map((t) => ({ ...t, organizationID: req.organizationID })),
+    tables.map((t) => ({ ...t, organizationID: req.user.organizationID })),
   );
 
   await logUserAction(req, "TABLES_BULK_CREATED", "POS", null, {
@@ -170,7 +170,7 @@ const createBulkTables = asyncHandler(async (req, res) => {
 //  GET /api/tables  (simplified, no filters)
 // ─────────────────────────────────────────────
 const getTables = asyncHandler(async (req, res) => {
-  const tables = await Table.find({ organizationID: req.organizationID })
+  const tables = await Table.find({ organizationID: req.user.organizationID })
     .sort({ number: 1 });
   res.json({ success: true, count: tables.length, data: tables });
 });
