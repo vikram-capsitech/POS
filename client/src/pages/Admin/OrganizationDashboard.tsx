@@ -433,7 +433,7 @@ const OrgCard: React.FC<{ data: OrgStat }> = ({ data }) => {
                     >
                       <Text style={{ color: token.colorPrimaryText, fontSize: 11, fontWeight: 600 }}>Revenue</Text>
                       <Title level={5} style={{ color: token.colorPrimary, margin: 0 }}>
-                        <fmtCurrencyText value={pos.totalRevenue} />
+                        {fmtCurrency(pos.totalRevenue)}
                       </Title>
                     </Card>
                     {/* Orders card */}
