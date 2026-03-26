@@ -39,7 +39,8 @@ import {
 } from "@ant-design/icons";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import OutletOpsMockup from "../Assets/Images/OutletOpsMockup.png";
+// Mockup image — replace with the real screenshot asset at src/Assets/Images/OutletOpsMockup.png
+const OutletOpsMockup = "https://placehold.co/1200x720/0f172a/1677ff?text=OutletOps+Dashboard";
 import apiClient from "../Api";
 import { BotMessage } from "../Components/BotMessage";
 
