@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { WebVitals } from "@/components/WebVitals";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -78,7 +79,8 @@ export const metadata: Metadata = {
   generator: "Next.js",
   referrer: "origin-when-cross-origin",
   verification: {
-    // google: "YOUR_GOOGLE_SITE_VERIFICATION_TOKEN",
+    // TODO: Add your Google Search Console token below after verifying ownership at https://search.google.com/search-console
+    // google: "YOUR_GOOGLE_SEARCH_CONSOLE_VERIFICATION_TOKEN",
   },
 };
 
@@ -157,8 +159,133 @@ export default function RootLayout({
             }),
           }}
         />
+        {/* Structured Data: FAQPage */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "FAQPage",
+              mainEntity: [
+                {
+                  "@type": "Question",
+                  name: "Is OutletOps subscription-based?",
+                  acceptedAnswer: {
+                    "@type": "Answer",
+                    text: "Yes — choose Monthly or Yearly plans. Yearly plans are discounted by ~17%. You can also use Pay-as-you-go for flexible outlets.",
+                  },
+                },
+                {
+                  "@type": "Question",
+                  name: "Does it support restaurants (waiter + kitchen)?",
+                  acceptedAnswer: {
+                    "@type": "Answer",
+                    text: "Yes. The Waiter View shows a live floor map, Table & Orders view, and allows waiters to take orders. The Kitchen Display shows live KOT tickets for kitchen staff.",
+                  },
+                },
+                {
+                  "@type": "Question",
+                  name: "Can I control staff access by role?",
+                  acceptedAnswer: {
+                    "@type": "Answer",
+                    text: "Absolutely. Every employee is assigned a role (Admin, Manager, Cashier, Waiter, Kitchen, Cleaner, etc.) and each role only has access to the modules it needs.",
+                  },
+                },
+                {
+                  "@type": "Question",
+                  name: "Can I manage multiple outlets from one account?",
+                  acceptedAnswer: {
+                    "@type": "Answer",
+                    text: "Yes. OutletOps is built for multi-outlet businesses. You can manage employees, POS, tasks, and reports across all outlets from a single admin dashboard.",
+                  },
+                },
+                {
+                  "@type": "Question",
+                  name: "Is my data secure?",
+                  acceptedAnswer: {
+                    "@type": "Answer",
+                    text: "All data is stored in a secured MongoDB cloud database. Access is protected by JWT-based authentication. Role-based permissions ensure data isolation between team members.",
+                  },
+                },
+                {
+                  "@type": "Question",
+                  name: "What happens if I switch plans?",
+                  acceptedAnswer: {
+                    "@type": "Answer",
+                    text: "You can upgrade or downgrade any time. Your data is fully preserved. Changes take effect from your next billing cycle.",
+                  },
+                },
+              ],
+            }),
+          }}
+        />
+        {/* Structured Data: BreadcrumbList */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "BreadcrumbList",
+              itemListElement: [
+                {
+                  "@type": "ListItem",
+                  position: 1,
+                  name: "Home",
+                  item: BASE_URL,
+                },
+                {
+                  "@type": "ListItem",
+                  position: 2,
+                  name: "Features",
+                  item: `${BASE_URL}/#features`,
+                },
+                {
+                  "@type": "ListItem",
+                  position: 3,
+                  name: "Pricing",
+                  item: `${BASE_URL}/#pricing`,
+                },
+                {
+                  "@type": "ListItem",
+                  position: 4,
+                  name: "FAQ",
+                  item: `${BASE_URL}/#faq`,
+                },
+              ],
+            }),
+          }}
+        />
+        {/* Structured Data: LocalBusiness */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "LocalBusiness",
+              "@id": BASE_URL,
+              name: "OutletOps",
+              description:
+                "SaaS POS and business management platform for restaurants and retail in India.",
+              url: BASE_URL,
+              email: "support@outletops.in",
+              priceRange: "₹₹",
+              currenciesAccepted: "INR",
+              paymentAccepted: "Credit Card, Debit Card, UPI",
+              areaServed: {
+                "@type": "Country",
+                name: "India",
+              },
+              serviceType:
+                "POS Software, Restaurant Management System, Retail Management Software",
+            }),
+          }}
+        />
+
       </head>
-      <body className={inter.className}>{children}</body>
+      <body className={inter.className}>
+        <WebVitals />
+        {children}
+      </body>
     </html>
   );
 }

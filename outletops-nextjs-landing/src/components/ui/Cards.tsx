@@ -28,7 +28,7 @@ export const ModuleBlock: React.FC<{
   const y = useTransform(scrollYProgress, [0, 1], [50, -50]);
 
   return (
-    <div
+    <article
       ref={ref}
       style={{
         padding: "100px 0",
@@ -119,7 +119,7 @@ export const ModuleBlock: React.FC<{
           />
         </Col>
       </Row>
-    </div>
+    </article>
   );
 };
 

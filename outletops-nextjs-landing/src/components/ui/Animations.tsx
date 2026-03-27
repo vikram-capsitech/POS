@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useRef, useState, useEffect } from "react";
+import Image from "next/image";
 import { Button } from "antd";
 import { motion, useInView, useSpring, useMotionValue } from "framer-motion";
 
@@ -161,10 +162,13 @@ export const ScreenshotCard: React.FC<{
               zIndex: -1,
             }}
           />
-          <img
+          <Image
             src={src}
             alt={label}
-            style={{ width: "100%", display: "block", borderRadius: 20 }}
+            width={1200}
+            height={750}
+            style={{ width: "100%", height: "auto", display: "block", borderRadius: 20 }}
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 60vw"
           />
         </div>
       </motion.div>

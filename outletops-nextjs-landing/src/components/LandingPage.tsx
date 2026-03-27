@@ -43,6 +43,7 @@ import {
   ScreenshotCard,
 } from "./ui/Animations";
 import { ModuleBlock, StatCard } from "./ui/Cards";
+import Image from "next/image";
 import { modules, faqItems, plans, testimonials } from "../data";
 
 const { Title, Paragraph, Text } = Typography;
@@ -306,6 +307,7 @@ export default function LandingPage() {
               transition={{ duration: 0.9, delay: 0.3 }}
             >
               <Title
+                level={1}
                 style={{
                   fontSize: screens.xs ? 40 : screens.md ? 60 : 72,
                   fontWeight: 900,
@@ -466,10 +468,13 @@ export default function LandingPage() {
                   zIndex: 1,
                 }}
               />
-              <img
+              <Image
                 src="/screenshots/ss_dashboard.png"
                 alt="OutletOps Admin Dashboard"
-                style={{ width: "100%", display: "block" }}
+                width={1400}
+                height={900}
+                style={{ width: "100%", height: "auto", display: "block" }}
+                priority
               />
             </motion.div>
 
@@ -576,7 +581,7 @@ export default function LandingPage() {
         </div>
 
         {/* ── MODULE SHOWCASE with enhanced blocks ─────────────────────────── */}
-        <div id="features" style={{ maxWidth: 1200, margin: "0 auto", padding: "80px 24px" }}>
+        <section id="features" style={{ maxWidth: 1200, margin: "0 auto", padding: "80px 24px" }}>
           <FadeInSection>
             <div style={{ textAlign: "center", marginBottom: 24 }}>
               <motion.div
@@ -613,7 +618,7 @@ export default function LandingPage() {
           {modules.map((mod, i) => (
             <ModuleBlock key={mod.title} {...mod} index={i} reverse={mod.reverse} />
           ))}
-        </div>
+        </section>
 
         {/* ── QUICK FEATURE GRID with stagger animation ────────────────────── */}
         <div style={{ background: "#fafafa", padding: "100px 40px", borderTop: "1px solid #f0f0f0" }}>
@@ -878,7 +883,7 @@ export default function LandingPage() {
         </div>
 
         {/* ── TEAM SECTION ──────────────────────────────────────────────────── */}
-        <div id="team" style={{ maxWidth: 1200, margin: "0 auto", padding: "100px 24px" }}>
+        <section id="team" style={{ maxWidth: 1200, margin: "0 auto", padding: "100px 24px" }}>
           <FadeInSection>
             <div style={{ textAlign: "center", marginBottom: 64 }}>
               <motion.div
@@ -1144,10 +1149,10 @@ export default function LandingPage() {
               View Open Positions →
             </MagneticButton>
           </motion.div>
-        </div>
+        </section>
 
         {/* ── PRICING with enhanced cards ──────────────────────────────────── */}
-        <div id="pricing" style={{ maxWidth: 1200, margin: "0 auto", padding: "100px 24px" }}>
+        <section id="pricing" style={{ maxWidth: 1200, margin: "0 auto", padding: "100px 24px" }}>
           <FadeInSection>
             <div style={{ textAlign: "center", marginBottom: 48 }}>
               <Title level={2} style={{ fontWeight: 900, fontSize: 44, marginBottom: 16 }}>
@@ -1285,10 +1290,10 @@ export default function LandingPage() {
               </Col>
             ))}
           </Row>
-        </div>
+        </section>
 
         {/* ── FAQ with enhanced collapse ───────────────────────────────────── */}
-        <div
+        <section
           id="faq"
           style={{ background: "#fafafa", padding: "100px 40px", borderTop: "1px solid #f0f0f0" }}
         >
@@ -1322,7 +1327,7 @@ export default function LandingPage() {
               />
             </motion.div>
           </div>
-        </div>
+        </section>
 
         {/* ── CTA BANNER with enhanced gradient ────────────────────────────── */}
         <motion.div
