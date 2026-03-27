@@ -98,7 +98,6 @@ export default function CreateTaskAntd() {
             () => fetchEmployees() as any,
             setLoading,
             (data: any) => {
-                debugger;
                 const list = data?.data?.data ?? [];
                 setEmployees(Array.isArray(list) ? list : []);
             },

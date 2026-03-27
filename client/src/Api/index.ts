@@ -330,10 +330,8 @@ export const fetchTasks = (params?: any) =>
   apiClient.get("/api/tasks", { params });
 export const hrmCreateTask = (data: any) => apiClient.post("/api/tasks", data);
 export const hrmGetTaskById = (id: string) => apiClient.get(`/api/tasks/${id}`);
-export const hrmUpdateTask = (id: string, data: any) => {
-  debugger;
-  return apiClient.put(`/api/tasks/${id}`, data);
-};
+export const hrmUpdateTask = (id: string, data: any) =>
+  apiClient.put(`/api/tasks/${id}`, data);
 export const hrmDeleteTask = (id: string) =>
   apiClient.delete(`/api/tasks/${id}`);
 export const hrmListSops = (params?: any) => apiClient.get("/api/sops", { params });

@@ -1,15 +1,15 @@
-import React, { useEffect, useRef, useState } from "react";
+"use client";
+
+import React, { useState, useRef } from "react";
 import {
   Layout,
   Typography,
-  Button,
   Row,
   Col,
   Card,
   Tag,
   Collapse,
   Segmented,
-  Badge,
   Grid,
 } from "antd";
 import {
@@ -34,615 +34,31 @@ import {
   StarFilled,
   ArrowRightOutlined,
 } from "@ant-design/icons";
-import { motion, useInView, useScroll, useTransform, useSpring, useMotionValue } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { motion, useScroll, useTransform } from "framer-motion";
+import { useRouter } from "next/navigation";
+
+import {
+  FadeInSection,
+  MagneticButton,
+  ScreenshotCard,
+} from "./ui/Animations";
+import { ModuleBlock, StatCard } from "./ui/Cards";
+import { modules, faqItems, plans, testimonials } from "../data";
 
 const { Title, Paragraph, Text } = Typography;
 const { Header, Content, Footer } = Layout;
 const { useBreakpoint } = Grid;
 
-// ─── Enhanced scroll-aware section wrapper ────────────────────────────────────
-const FadeInSection: React.FC<{
-  children: React.ReactNode;
-  delay?: number;
-  direction?: "up" | "left" | "right";
-  stagger?: boolean;
-}> = ({ children, delay = 0, direction = "up", stagger = false }) => {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: "-100px" });
-  const initial =
-    direction === "up"
-      ? { opacity: 0, y: 80 }
-      : direction === "left"
-        ? { opacity: 0, x: -80 }
-        : { opacity: 0, x: 80 };
-  return (
-    <motion.div
-      ref={ref}
-      initial={initial}
-      animate={isInView ? { opacity: 1, x: 0, y: 0 } : initial}
-      transition={{
-        duration: 0.8,
-        delay,
-        ease: [0.16, 1, 0.3, 1],
-        type: "spring",
-        stiffness: 80,
-        damping: 20
-      }}
-    >
-      {children}
-    </motion.div>
-  );
-};
-
-// ─── Magnetic Button Component ────────────────────────────────────────────────
-const MagneticButton: React.FC<{
-  children: React.ReactNode;
-  onClick?: () => void;
-  type?: "primary" | "default";
-  size?: "large" | "middle";
-  icon?: React.ReactNode;
-  style?: React.CSSProperties;
-  href?: string;
-}> = ({ children, onClick, type = "default", size = "large", icon, style, href }) => {
-  const ref = useRef<HTMLDivElement>(null);
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-  const springX = useSpring(x, { stiffness: 150, damping: 15 });
-  const springY = useSpring(y, { stiffness: 150, damping: 15 });
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!ref.current) return;
-    const rect = ref.current.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    x.set((e.clientX - centerX) * 0.15);
-    y.set((e.clientY - centerY) * 0.15);
-  };
-
-  const handleMouseLeave = () => {
-    x.set(0);
-    y.set(0);
-  };
-
-  return (
-    <motion.div
-      ref={ref}
-      style={{ x: springX, y: springY, display: "inline-block" }}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
-    >
-      <Button
-        type={type}
-        size={size}
-        icon={icon}
-        onClick={onClick}
-        href={href}
-        style={style}
-      >
-        {children}
-      </Button>
-    </motion.div>
-  );
-};
-
-// ─── Floating screenshot with 3D tilt effect ──────────────────────────────────
-const ScreenshotCard: React.FC<{
-  src: string;
-  label: string;
-  delay?: number;
-  direction?: "left" | "right";
-}> = ({ src, label, delay = 0, direction = "right" }) => {
-  const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-60px" });
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [isHovering, setIsHovering] = useState(false);
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!ref.current) return;
-    const rect = ref.current.getBoundingClientRect();
-    const x = (e.clientX - rect.left - rect.width / 2) / rect.width;
-    const y = (e.clientY - rect.top - rect.height / 2) / rect.height;
-    setMousePosition({ x, y });
-  };
-
-  const rotateX = useSpring(isHovering ? mousePosition.y * -10 : 0, { stiffness: 100, damping: 15 });
-  const rotateY = useSpring(isHovering ? mousePosition.x * 10 : 0, { stiffness: 100, damping: 15 });
-
-  return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, x: direction === "right" ? 100 : -100, y: 30 }}
-      animate={isInView ? { opacity: 1, x: 0, y: 0 } : {}}
-      transition={{ duration: 0.9, delay, ease: [0.16, 1, 0.3, 1] }}
-      style={{
-        position: "relative",
-        perspective: 1000,
-      }}
-      onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovering(true)}
-      onMouseLeave={() => {
-        setIsHovering(false);
-        setMousePosition({ x: 0, y: 0 });
-      }}
-    >
-      <motion.div
-        style={{
-          rotateX,
-          rotateY,
-          transformStyle: "preserve-3d",
-        }}
-      >
-        <div
-          style={{
-            borderRadius: 20,
-            overflow: "hidden",
-            boxShadow: "0 30px 100px rgba(88,56,255,0.2), 0 10px 40px rgba(0,0,0,0.15)",
-            border: "1px solid rgba(88,56,255,0.2)",
-            background: "#fff",
-            position: "relative",
-          }}
-        >
-          {/* Glow effect */}
-          <div
-            style={{
-              position: "absolute",
-              inset: -2,
-              background: "linear-gradient(135deg, rgba(88,56,255,0.3), rgba(168,85,247,0.3))",
-              borderRadius: 20,
-              opacity: isHovering ? 1 : 0,
-              transition: "opacity 0.3s",
-              filter: "blur(20px)",
-              zIndex: -1,
-            }}
-          />
-          <img
-            src={src}
-            alt={label}
-            style={{ width: "100%", display: "block", borderRadius: 20 }}
-          />
-        </div>
-      </motion.div>
-      <motion.div
-        animate={{ y: isHovering ? -8 : 0 }}
-        style={{
-          position: "absolute",
-          bottom: -16,
-          left: "50%",
-          transform: "translateX(-50%)",
-          background: "linear-gradient(135deg,#5838ff,#a855f7)",
-          color: "#fff",
-          borderRadius: 24,
-          padding: "6px 22px",
-          fontSize: 13,
-          fontWeight: 700,
-          whiteSpace: "nowrap",
-          boxShadow: "0 8px 24px rgba(88,56,255,0.4)",
-        }}
-      >
-        {label}
-      </motion.div>
-    </motion.div>
-  );
-};
-
-// ─── Animated Number Counter ──────────────────────────────────────────────────
-const AnimatedCounter: React.FC<{ value: string; delay?: number }> = ({ value, delay = 0 }) => {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true });
-  const [displayValue, setDisplayValue] = useState("0");
-
-  useEffect(() => {
-    if (!isInView) return;
-
-    const timer = setTimeout(() => {
-      if (value.includes("+")) {
-        const num = parseInt(value);
-        let current = 0;
-        const increment = Math.ceil(num / 30);
-        const interval = setInterval(() => {
-          current += increment;
-          if (current >= num) {
-            setDisplayValue(value);
-            clearInterval(interval);
-          } else {
-            setDisplayValue(current + "+");
-          }
-        }, 40);
-      } else {
-        setDisplayValue(value);
-      }
-    }, delay * 1000);
-
-    return () => clearTimeout(timer);
-  }, [isInView, value, delay]);
-
-  return <span ref={ref}>{displayValue}</span>;
-};
-
-// ─── Enhanced Module Block with Parallax ──────────────────────────────────────
-const ModuleBlock: React.FC<{
-  icon: React.ReactNode;
-  color: string;
-  title: string;
-  description: string;
-  screenshot: string;
-  bullets: string[];
-  reverse?: boolean;
-  index: number;
-}> = ({ icon, color, title, description, screenshot, bullets, reverse, index }) => {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: "-100px" });
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ["start end", "end start"]
-  });
-
-  const y = useTransform(scrollYProgress, [0, 1], [50, -50]);
-
-  return (
-    <div
-      ref={ref}
-      style={{
-        padding: "100px 0",
-        borderBottom: "1px solid #f0f0f0",
-        position: "relative",
-      }}
-    >
-      {/* Decorative background element */}
-      <motion.div
-        style={{
-          position: "absolute",
-          top: "20%",
-          [reverse ? "right" : "left"]: "-10%",
-          width: 400,
-          height: 400,
-          borderRadius: "50%",
-          background: `radial-gradient(circle, ${color}08 0%, transparent 70%)`,
-          pointerEvents: "none",
-          y,
-        }}
-      />
-
-      <Row
-        gutter={[80, 60]}
-        align="middle"
-        style={{ flexDirection: reverse ? "row-reverse" : "row" }}
-      >
-        {/* Text side */}
-        <Col xs={24} md={11}>
-          <motion.div
-            initial={{ opacity: 0, x: reverse ? 60 : -60 }}
-            animate={isInView ? { opacity: 1, x: 0 } : {}}
-            transition={{ duration: 0.8, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-          >
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={isInView ? { scale: 1, opacity: 1 } : {}}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 12,
-                background: `${color}15`,
-                border: `1.5px solid ${color}40`,
-                borderRadius: 12,
-                padding: "8px 18px",
-                marginBottom: 24,
-              }}
-            >
-              <span style={{ color, fontSize: 20 }}>{icon}</span>
-              <Text style={{ color, fontWeight: 700, fontSize: 14, letterSpacing: "0.5px" }}>
-                Module {String(index + 1).padStart(2, "0")}
-              </Text>
-            </motion.div>
-
-            <Title level={2} style={{ fontSize: 36, fontWeight: 900, marginBottom: 16, lineHeight: 1.2 }}>
-              {title}
-            </Title>
-            <Paragraph style={{ fontSize: 17, color: "#666", lineHeight: 1.8, marginBottom: 32 }}>
-              {description}
-            </Paragraph>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              {bullets.map((b, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, x: -30 }}
-                  animate={isInView ? { opacity: 1, x: 0 } : {}}
-                  transition={{ duration: 0.5, delay: 0.3 + i * 0.1 }}
-                  whileHover={{ x: 8, transition: { duration: 0.2 } }}
-                  style={{ display: "flex", alignItems: "flex-start", gap: 12 }}
-                >
-                  <CheckCircleFilled style={{ color, fontSize: 18, marginTop: 2 }} />
-                  <Text style={{ fontSize: 16, color: "#444", lineHeight: 1.6 }}>{b}</Text>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-        </Col>
-
-        {/* Screenshot side */}
-        <Col xs={24} md={13}>
-          <ScreenshotCard
-            src={screenshot}
-            label={title}
-            delay={0.3}
-            direction={reverse ? "left" : "right"}
-          />
-        </Col>
-      </Row>
-    </div>
-  );
-};
-
-// ─── Enhanced Stats Card with Hover Effect ────────────────────────────────────
-const StatCard: React.FC<{ value: string; label: string; color: string; delay?: number }> = ({
-  value,
-  label,
-  color,
-  delay = 0,
-}) => {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true });
-
-  return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 30 }}
-      animate={isInView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.6, delay }}
-      whileHover={{ y: -8, transition: { duration: 0.3 } }}
-      style={{
-        textAlign: "center",
-        padding: "40px 24px",
-        borderRadius: 20,
-        background: "#fff",
-        boxShadow: "0 4px 30px rgba(0,0,0,0.08)",
-        border: `2px solid ${color}20`,
-        position: "relative",
-        overflow: "hidden",
-      }}
-    >
-      {/* Animated gradient background on hover */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        whileHover={{ opacity: 1 }}
-        style={{
-          position: "absolute",
-          inset: 0,
-          background: `linear-gradient(135deg, ${color}05, ${color}15)`,
-          pointerEvents: "none",
-        }}
-      />
-      <div style={{ fontSize: 44, fontWeight: 900, color, lineHeight: 1, position: "relative" }}>
-        <AnimatedCounter value={value} delay={delay} />
-      </div>
-      <div style={{ fontSize: 15, color: "#888", marginTop: 12, fontWeight: 600, position: "relative" }}>
-        {label}
-      </div>
-    </motion.div>
-  );
-};
-
-// ─── Pricing plan with enhanced animations ────────────────────────────────────
-const plans = [
-  {
-    name: "Starter",
-    desc: "For single outlet getting started",
-    monthlyPrice: "₹1,999",
-    yearlyPrice: "₹19,990",
-    color: "#52c41a",
-    features: [
-      "1 Outlet",
-      "POS billing + receipts",
-      "Inventory basics + low stock alerts",
-      "Attendance + leave",
-      "Basic analytics",
-      "Email support",
-    ],
-    cta: "Start Starter",
-    popular: false,
-  },
-  {
-    name: "Growth",
-    desc: "For growing teams and multiple modules",
-    monthlyPrice: "₹3,999",
-    yearlyPrice: "₹39,990",
-    color: "#5838ff",
-    features: [
-      "Up to 3 Outlets",
-      "POS + discounts + split bills",
-      "Inventory + purchase requests",
-      "Tasks/SOP + completion tracking",
-      "Expenses + reports",
-      "Priority support",
-    ],
-    cta: "Choose Growth",
-    popular: true,
-  },
-  {
-    name: "Pro",
-    desc: "For multi-outlet operations and deeper control",
-    monthlyPrice: "₹6,999",
-    yearlyPrice: "₹69,990",
-    color: "#f7931a",
-    features: [
-      "Up to 10 Outlets",
-      "Kitchen display + waiter flows",
-      "Advanced analytics + outlet comparison",
-      "Salary management",
-      "Activity logs",
-      "Dedicated onboarding",
-    ],
-    cta: "Go Pro",
-    popular: false,
-  },
-];
-
-// ─── Testimonials ─────────────────────────────────────────────────────────────
-const testimonials = [
-  {
-    name: "Rahul Sharma",
-    role: "Owner, Spice Garden",
-    text: "OutletOps completely transformed how we manage our 3 branches. The POS + kitchen display combo alone saved us ₹40k/month in wasted orders.",
-    stars: 5,
-  },
-  {
-    name: "Priya Mehta",
-    role: "Manager, Café Bloom",
-    text: "Staff attendance, tasks, and salary — all in one place. I used to spend hours on spreadsheets. Now it's 5 minutes a day.",
-    stars: 5,
-  },
-  {
-    name: "Anil Verma",
-    role: "Director, QuickBite Chain",
-    text: "The SOP module is underrated. Training new staff is 3x faster because everything is documented and trackable.",
-    stars: 5,
-  },
-];
-
-// ─── Main Component ───────────────────────────────────────────────────────────
-export default function WelcomePage() {
-  const navigate = useNavigate();
+export default function LandingPage() {
+  const router = useRouter();
   const screens = useBreakpoint();
   const [billingPeriod, setBillingPeriod] = useState<"Monthly" | "Yearly">("Monthly");
+  
   const heroRef = useRef(null);
   const { scrollYProgress } = useScroll({ target: heroRef });
   const heroY = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
   const heroOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
   const heroScale = useTransform(scrollYProgress, [0, 0.5], [1, 0.95]);
-
-  const modules = [
-    {
-      icon: <ShopOutlined />,
-      color: "#5838ff",
-      title: "POS Billing & Order Terminal",
-      description:
-        "A lightning-fast point-of-sale terminal designed for busy restaurants and retail. Handle dine-in, takeaway, and delivery with split bills, discounts, and real-time printing — all from one screen.",
-      screenshot: "/screenshots/ss_waiter.png",
-      bullets: [
-        "Table-based ordering with live floor map",
-        "Split bills, custom discounts, and item modifiers",
-        "Instant KOT printing to kitchen printers",
-        "Support for multiple payment modes",
-      ],
-    },
-    {
-      icon: <RestOutlined />,
-      color: "#f7931a",
-      title: "Menu & Kitchen Management",
-      description:
-        "Design your menu with images, categories, and pricing. The live Kitchen Display System (KDS) keeps your kitchen team in sync with orders the moment they are placed.",
-      screenshot: "/screenshots/ss_menu.png",
-      bullets: [
-        "Rich menu cards with images, prep times, and tags",
-        "Live kitchen display ordered by priority",
-        "Toggle item availability in real time",
-        "Category-wise filtering for fast navigation",
-      ],
-      reverse: true,
-    },
-    {
-      icon: <TeamOutlined />,
-      color: "#13c2c2",
-      title: "Staff & Employee Management",
-      description:
-        "Manage your entire team from one place — from onboarding to role assignment. Role-based access ensures every staff member only sees what they need.",
-      screenshot: "/screenshots/ss_employees.png",
-      bullets: [
-        "Add employees with salary, role, and contact details",
-        "Role-based module access (POS, HRM, Admin, etc.)",
-        "See all active staff across all outlets",
-        "Quick employee profile view and edit",
-      ],
-    },
-    {
-      icon: <CalendarOutlined />,
-      color: "#eb2f96",
-      title: "Attendance & Leave Tracking",
-      description:
-        "Replace paper registers with a digital attendance system. Track daily check-ins, breaks, and working hours with monthly views and automated summaries.",
-      screenshot: "/screenshots/ss_attendance.png",
-      bullets: [
-        "Mark check-in/check-out for any employee",
-        "Daily and monthly attendance views",
-        "Track Present, Absent, Late, On Leave status",
-        "Export attendance data for payroll",
-      ],
-      reverse: true,
-    },
-    {
-      icon: <BlockOutlined />,
-      color: "#52c41a",
-      title: "Tasks & SOP Management",
-      description:
-        "Create tasks, assign them to team members, and track completion with priorities and deadlines. Standard Operating Procedures ensure consistency across every shift.",
-      screenshot: "/screenshots/ss_tasks.png",
-      bullets: [
-        "Create tasks with priority, deadline & assignee",
-        "Track status: Pending → In Progress → Completed",
-        "SOP library with step-by-step instructions",
-        "Attach categories and difficulty levels to SOPs",
-      ],
-    },
-    {
-      icon: <DollarOutlined />,
-      color: "#fa8c16",
-      title: "Salary & Payroll Processing",
-      description:
-        "View a complete employee salary summary, process monthly payroll, and track advance payments — all from a single payroll dashboard.",
-      screenshot: "/screenshots/ss_salary.png",
-      bullets: [
-        "Monthly payroll dashboard per organization",
-        "Track base salary, advances, and remaining payable",
-        "Process payroll with one click",
-        "Per-employee payslip view",
-      ],
-      reverse: true,
-    },
-  ];
-
-  const faqItems = [
-    {
-      key: "1",
-      label: "Is OutletOps subscription-based?",
-      children:
-        "Yes — choose Monthly or Yearly plans. Yearly plans are discounted by ~17%. You can also use Pay-as-you-go for flexible outlets.",
-    },
-    {
-      key: "2",
-      label: "Does it support restaurants (waiter + kitchen)?",
-      children:
-        "Yes. The Waiter View shows a live floor map, Table & Orders view, and allows waiters to take orders. The Kitchen Display shows live KOT tickets for kitchen staff.",
-    },
-    {
-      key: "3",
-      label: "Can I control staff access by role?",
-      children:
-        "Absolutely. Every employee is assigned a role (Admin, Manager, Cashier, Waiter, Kitchen, Cleaner, etc.) and each role only has access to the modules it needs.",
-    },
-    {
-      key: "4",
-      label: "Can I manage multiple outlets from one account?",
-      children:
-        "Yes. OutletOps is built for multi-outlet businesses. You can manage employees, POS, tasks, and reports across all outlets from a single admin dashboard.",
-    },
-    {
-      key: "5",
-      label: "Is my data secure?",
-      children:
-        "All data is stored in a secured MongoDB cloud database. Access is protected by JWT-based authentication. Role-based permissions ensure data isolation between team members.",
-    },
-    {
-      key: "6",
-      label: "What happens if I switch plans?",
-      children:
-        "You can upgrade or downgrade any time. Your data is fully preserved. Changes take effect from your next billing cycle.",
-    },
-  ];
 
   return (
     <Layout style={{ minHeight: "100vh", background: "#fff", overflowX: "hidden" }}>
@@ -669,9 +85,10 @@ export default function WelcomePage() {
           }}
         >
           <motion.div
-            style={{ display: "flex", alignItems: "center", gap: 12 }}
+            style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}
             whileHover={{ scale: 1.05 }}
             transition={{ duration: 0.2 }}
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
           >
             <div
               style={{
@@ -734,7 +151,7 @@ export default function WelcomePage() {
             <MagneticButton
               type="primary"
               icon={<LoginOutlined />}
-              onClick={() => navigate("/auth/login")}
+              onClick={() => window.location.href = "http://localhost:3000/auth/login"}
               style={{
                 background: "linear-gradient(135deg,#5838ff,#a855f7)",
                 border: "none",
@@ -949,7 +366,7 @@ export default function WelcomePage() {
                 type="primary"
                 size="large"
                 icon={<LoginOutlined />}
-                onClick={() => navigate("/auth/login")}
+                onClick={() => window.location.href = "http://localhost:3000/auth/login"}
                 style={{
                   height: 56,
                   paddingInline: 36,
@@ -1295,7 +712,7 @@ export default function WelcomePage() {
                     whileHover={{ y: -8 }}
                   >
                     <Card
-                      bodyStyle={{ padding: 24 }}
+                      styles={{ body: { padding: 24 } }}
                       style={{
                         borderRadius: 20,
                         border: "1px solid #f0f0f0",
@@ -1344,7 +761,7 @@ export default function WelcomePage() {
           </div>
         </div>
 
-        {/* ── ADDITIONAL SCREENSHOTS ROW with your images ──────────────────── */}
+        {/* ── ADDITIONAL SCREENSHOTS ROW ──────────────────── */}
         <div style={{ maxWidth: 1200, margin: "0 auto", padding: "100px 24px" }}>
           <FadeInSection>
             <div style={{ textAlign: "center", marginBottom: 64 }}>
@@ -1370,7 +787,7 @@ export default function WelcomePage() {
           </Row>
         </div>
 
-        {/* ── TESTIMONIALS with enhanced cards ─────────────────────────────── */}
+        {/* ── TESTIMONIALS ─────────────────────────────── */}
         <div style={{ background: "linear-gradient(135deg, #1a1a2e 0%, #2d1f7a 100%)", padding: "100px 40px", position: "relative", overflow: "hidden" }}>
           {/* Animated background pattern */}
           <motion.div
@@ -1534,7 +951,7 @@ export default function WelcomePage() {
                   style={{ height: "100%" }}
                 >
                   <Card
-                    bodyStyle={{ padding: 0 }}
+                    styles={{ body: { padding: 0 } }}
                     style={{
                       borderRadius: 24,
                       overflow: "hidden",
@@ -1737,7 +1154,7 @@ export default function WelcomePage() {
                 Simple pricing in INR
               </Title>
               <Paragraph style={{ color: "#666", fontSize: 17, marginBottom: 32 }}>
-                Choose Monthly or Yearly plans. (You can change these numbers any time.)
+                Choose Monthly or Yearly plans.
               </Paragraph>
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 <Segmented<"Monthly" | "Yearly">
@@ -1843,7 +1260,7 @@ export default function WelcomePage() {
                   <MagneticButton
                     type={plan.popular ? "primary" : "default"}
                     size="large"
-                    onClick={() => navigate("/auth/login")}
+                    onClick={() => window.location.href = "http://localhost:3000/auth/login"}
                     style={{
                       width: "100%",
                       borderRadius: 100,
@@ -1963,7 +1380,7 @@ export default function WelcomePage() {
                 type="primary"
                 size="large"
                 icon={<LoginOutlined />}
-                onClick={() => navigate("/auth/login")}
+                onClick={() => window.location.href = "http://localhost:3000/auth/login"}
                 style={{
                   height: 60,
                   paddingInline: 52,

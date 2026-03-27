@@ -180,7 +180,6 @@ export default function VoucherManagement() {
             () => fetchEmployees() as any,
             setLoading,
             (data: any) => {
-                debugger;
                 const list = data?.data?.data ?? [];
                 setEmployees(Array.isArray(list) ? list : []);
             },
